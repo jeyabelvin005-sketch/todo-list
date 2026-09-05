@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>✨ Task Tracker Pro</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Rain Background -->
+    <div class="rain-container">
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+        <div class="rain-drop"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <h1>Task Tracker Pro</h1>
+            </div>
+            <div class="month-navigation">
+                <button class="nav-btn" id="prevMonth">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="month-year" id="monthYear">January 2024</span>
+                <button class="nav-btn" id="nextMonth">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+                <button class="today-btn" id="todayBtn">Today</button>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card purple">
+                <div class="stat-icon">
+                    <i class="fas fa-tasks"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Tasks</span>
+                    <span class="stat-value" id="totalTasks">0</span>
+                </div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Completed</span>
+                    <span class="stat-value" id="completedTasks">0</span>
+                </div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Pending</span>
+                    <span class="stat-value" id="pendingTasks">0</span>
+                </div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-icon">
+                    <i class="fas fa-clock"></i>
+                </div>
+                <div class="stat-info">
+                    <span class="stat-label">Total Hours</span>
+                    <span class="stat-value" id="totalHours">0h 0m</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-add-section">
+            <div class="quick-add-header">
+                <h2><i class="fas fa-plus-circle"></i> Quick Add Task</h2>
+                <span class="hint">Press Enter to add quickly</span>
+            </div>
+            <div class="quick-add-form">
+                <input type="text" id="taskInput" placeholder="What did you do today? Type here..." class="main-input">
+                <div class="time-inputs">
+                    <div class="input-group">
+                        <label><i class="far fa-calendar"></i> Date</label>
+                        <input type="date" id="taskDate">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="far fa-clock"></i> Start</label>
+                        <input type="time" id="startTime">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-stopwatch"></i> End</label>
+                        <input type="time" id="endTime">
+                    </div>
+                </div>
+                <button class="add-btn" id="addBtn">
+                    <i class="fas fa-plus"></i> Add Task
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th><i class="far fa-calendar"></i> Date</th>
+                        <th><i class="far fa-sun"></i> Day</th>
+                        <th><i class="fas fa-tasks"></i> Task</th>
+                        <th><i class="far fa-clock"></i> Start</th>
+                        <th><i class="fas fa-stop"></i> End</th>
+                        <th><i class="fas fa-hourglass-half"></i> Duration</th>
+                        <th><i class="fas fa-info-circle"></i> Status</th>
+                        <th><i class="fas fa-cog"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="taskTableBody">
+                    <!-- Tasks will appear here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="bottom-actions">
+            <button class="export-btn" id="exportCSV">
+                <i class="fas fa-file-excel"></i> Export to Excel
+            </button>
+            <button class="clear-btn" id="clearMonth">
+                <i class="fas fa-trash-alt"></i> Clear Month
+            </button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
