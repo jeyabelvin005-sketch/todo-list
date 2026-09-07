@@ -830,4 +830,59 @@ body.dark-mode .no-time-badge {
     border: 1px solid #e74c3c;
 }
 
-.clear-btn:hover
+.clear-btn:hover {
+    background: #e74c3c;
+    color: #ffffff;
+    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+}
+
+body.dark-mode .clear-btn {
+    background: #2a2a3e;
+    color: #e74c3c;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .header-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .quick-add-form {
+        flex-direction: column;
+    }
+    
+    .main-input {
+        width: 100%;
+    }
+    
+    .time-inputs {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .input-group {
+        width: 100%;
+    }
+    
+    .input-group input {
+        width: 100%;
+    }
+    
+    .add-btn {
+        width: 100%;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .toggle-container {
+        flex-direction: column;
+    }
+}
