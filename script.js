@@ -38,7 +38,6 @@ function loadTasks() {
     if (saved) {
         tasks = JSON.parse(saved);
     }
-    // Auto-check past days
     autoCheckPastDays();
 }
 
@@ -53,15 +52,12 @@ function autoCheckPastDays() {
     let changed = false;
     
     tasks.forEach(task => {
-        // Ensure days array exists
         if (!task.days) {
             task.days = [false, false, false, false, false, false, false];
             changed = true;
         }
         
-        // For past days (before today), if not explicitly completed, mark as false
         for (let i = 0; i < todayIndex; i++) {
-            // If day is not completed (false or undefined), set to false
             if (task.days[i] !== true) {
                 task.days[i] = false;
             }
@@ -86,8 +82,8 @@ function addTask() {
     const task = {
         id: Date.now(),
         text: text,
-        createdDate: getToday(), // Track when task was created
-        days: [false, false, false, false, false, false, false] // Mon-Sun
+        createdDate: getToday(),
+        days: [false, false, false, false, false, false, false]
     };
     
     tasks.push(task);
@@ -96,15 +92,12 @@ function addTask() {
     input.value = '';
     renderTasks();
     updateStats();
-    
-    console.log('Task added:', task);
 }
 
 // Toggle day completion
 function toggleDay(taskId, dayIndex) {
     const todayIndex = getTodayIndex();
     
-    // Can only toggle today or past days (not future)
     if (dayIndex > todayIndex) {
         alert('Future days are locked! 🔒');
         return;
@@ -137,7 +130,7 @@ function renderTasks() {
     const todayIndex = getTodayIndex();
     
     if (tasks.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px;">No tasks added yet</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#999;">📝 No tasks added yet</td></tr>';
         return;
     }
     
@@ -209,7 +202,6 @@ function updateStats() {
     let pending = 0;
     
     tasks.forEach(task => {
-        // Count only past and today days
         for (let i = 0; i <= todayIndex; i++) {
             if (task.days[i]) {
                 completed++;
@@ -221,22 +213,12 @@ function updateStats() {
     
     document.getElementById('completedTasks').textContent = completed;
     document.getElementById('pendingTasks').textContent = pending;
+    
+    const total = completed + pending;
+    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+    document.getElementById('progressPercent').textContent = `${percent}%`;
+    document.getElementById('progressFill').style.width = `${percent}%`;
 }
-
-// Navigation
-document.getElementById('prevWeekBtn').addEventListener('click', function() {
-    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    updateWeekDisplay();
-    renderTasks();
-    updateStats();
-});
-
-document.getElementById('nextWeekBtn').addEventListener('click', function() {
-    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    updateWeekDisplay();
-    renderTasks();
-    updateStats();
-});
 
 // Update week display
 function updateWeekDisplay() {
@@ -251,7 +233,6 @@ function updateWeekDisplay() {
     let weekLabel = `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
     document.getElementById('weekLabel').textContent = weekLabel;
     
-    // Update day headers with dates
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     const today = getToday();
     
@@ -274,12 +255,63 @@ function updateWeekDisplay() {
     }
 }
 
+// Dark mode toggle
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    
+    const btn = document.getElementById('darkModeBtn');
+    if (isDark) {
+        btn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    } else {
+        btn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+    }
+}
+
+// Check saved dark mode
+function checkDarkMode() {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'true') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    }
+}
+
+// Backup data
+function backupData() {
+    const dataStr = JSON.stringify(tasks, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `task_backup_${getToday()}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Clear all tasks
+function clearAllTasks() {
+    if (tasks.length === 0) {
+        alert('No tasks to clear!');
+        return;
+    }
+    
+    if (confirm(`Delete ALL ${tasks.length} tasks?`)) {
+        tasks = [];
+        saveTasks();
+        renderTasks();
+        updateStats();
+    }
+}
+
 // Initialize
 document.addEventListener('DOMContentLoaded', function() {
     loadTasks();
     updateWeekDisplay();
     renderTasks();
     updateStats();
+    checkDarkMode();
 });
 
 // Event listeners
@@ -289,5 +321,25 @@ document.getElementById('taskInput').addEventListener('keypress', function(e) {
         addTask();
     }
 });
+document.getElementById('prevWeekBtn').addEventListener('click', function() {
+    currentWeekStart.setDate(currentWeekStart.getDate() - 7);
+    updateWeekDisplay();
+    renderTasks();
+    updateStats();
+});
+document.getElementById('nextWeekBtn').addEventListener('click', function() {
+    currentWeekStart.setDate(currentWeekStart.getDate() + 7);
+    updateWeekDisplay();
+    renderTasks();
+    updateStats();
+});
+document.getElementById('todayBtn').addEventListener('click', function() {
+    currentWeekStart = getWeekStart(new Date());
+    updateWeekDisplay();
+    renderTasks();
+    updateStats();
+});
+document.getElementById('backupBtn').addEventListener('click', backupData);
+document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 
-console.log('Script loaded successfully!');
+console.log('✅ Script loaded successfully!');
