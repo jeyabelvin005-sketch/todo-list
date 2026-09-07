@@ -239,4 +239,134 @@ function loadWeekTasks() {
             const dayCell = document.createElement('td');
             dayCell.className = 'checkbox-cell';
             
-            if (is
+            if (isCompleted) {
+                dayCell.classList.add('completed');
+                dayCell.innerHTML = '✅';
+            } else {
+                dayCell.classList.add('pending');
+                dayCell.innerHTML = '❌';
+            }
+            
+            dayCell.onclick = function() {
+                toggleTaskCompletion(task.id, i);
+            };
+            
+            dayCell.title = `Click to toggle ${isCompleted ? 'incomplete' : 'complete'}`;
+            
+            row.appendChild(dayCell);
+        }
+        
+        taskTableBody.appendChild(row);
+    });
+}
+
+// Update statistics
+function updateStats() {
+    const weekTasks = getWeekTasks();
+    const totalTasks = weekTasks.length;
+    
+    // Count completed and pending across all days
+    let totalChecks = 0;
+    let completedChecks = 0;
+    
+    weekTasks.forEach(task => {
+        for (let i = 0; i < 7; i++) {
+            const dayKey = `day${i}`;
+            if (task.completedDays[dayKey] !== undefined) {
+                totalChecks++;
+                if (task.completedDays[dayKey]) {
+                    completedChecks++;
+                }
+            }
+        }
+    });
+    
+    const pendingChecks = totalChecks - completedChecks;
+    
+    totalTasksSpan.textContent = totalTasks;
+    completedTasksSpan.textContent = completedChecks;
+    pendingTasksSpan.textContent = pendingChecks;
+    
+    // Calculate progress percentage
+    const progressPercent = totalChecks > 0 ? Math.round((completedChecks / totalChecks) * 100) : 0;
+    document.getElementById('progressPercent').textContent = `${progressPercent}%`;
+    document.getElementById('progressFill').style.width = `${progressPercent}%`;
+}
+
+// Dark mode toggle
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    
+    const btn = document.getElementById('darkModeBtn');
+    if (isDark) {
+        btn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    } else {
+        btn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+    }
+}
+
+// Check saved dark mode on load
+function checkDarkMode() {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'true') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    }
+}
+
+// Backup data
+function backupData() {
+    const allTasks = getAllTasks();
+    const dataStr = JSON.stringify(allTasks, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `weekly_task_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Restore data
+function restoreData(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const tasks = JSON.parse(e.target.result);
+            localStorage.setItem('weeklyTasks', JSON.stringify(tasks));
+            loadWeekTasks();
+            updateStats();
+            alert('Data restored successfully!');
+        } catch (error) {
+            alert('Invalid backup file!');
+        }
+    };
+    reader.readAsText(file);
+}
+
+// Clear all tasks for current week
+function clearWeek() {
+    const weekTasks = getWeekTasks();
+    
+    if (weekTasks.length === 0) {
+        alert('No tasks to clear for this week!');
+        return;
+    }
+    
+    if (confirm(`Are you sure you want to delete ALL ${weekTasks.length} tasks for this week?`)) {
+        const allTasks = getAllTasks();
+        const weekEnd = new Date(currentWeekStart);
+        weekEnd.setDate(weekEnd.getDate() + 6);
+        
+        const remainingTasks = allTasks.filter(task => {
+            const taskDate = new Date(task.date);
+            return !(taskDate >= currentWeekStart && taskDate <= weekEnd);
+        });
+        
+        localStorage.setItem('weeklyTasks', JSON.stringify(remainingTasks));
+        loadWeekTasks();
+        updateStats();
+    }
+}
