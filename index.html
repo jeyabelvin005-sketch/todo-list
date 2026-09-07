@@ -59,7 +59,6 @@
         <div class="rain-drop"></div>
         <div class="rain-drop"></div>
         <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
     </div>
 
     <div class="container">
@@ -68,15 +67,31 @@
                 <span class="logo-icon">⚡</span>
                 <h1>Task Tracker Pro</h1>
             </div>
-            <div class="month-navigation">
-                <button class="nav-btn" id="prevMonth">
-                    <i class="fas fa-chevron-left"></i>
+            <div class="header-actions">
+                <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()">
+                    <i class="fas fa-moon"></i> Dark Mode
                 </button>
-                <span class="month-year" id="monthYear">January 2024</span>
-                <button class="nav-btn" id="nextMonth">
-                    <i class="fas fa-chevron-right"></i>
-                </button>
-                <button class="today-btn" id="todayBtn">Today</button>
+                <div class="month-navigation">
+                    <button class="nav-btn" id="prevMonth">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span class="month-year" id="monthYear">January 2024</span>
+                    <button class="nav-btn" id="nextMonth">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                    <button class="today-btn" id="todayBtn">Today</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Section -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <span><i class="fas fa-chart-line"></i> Monthly Progress</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
             </div>
         </div>
 
@@ -126,7 +141,22 @@
             </div>
             <div class="quick-add-form">
                 <input type="text" id="taskInput" placeholder="What did you do today? Type here..." class="main-input">
-                <div class="time-inputs">
+                
+                <!-- Time Toggle Section -->
+                <div class="time-toggle-section">
+                    <div class="toggle-container">
+                        <label class="toggle-label">
+                            <input type="radio" name="timeOption" value="withTime" checked onchange="toggleTimeInputs()">
+                            <span class="toggle-text">⏰ With Time</span>
+                        </label>
+                        <label class="toggle-label">
+                            <input type="radio" name="timeOption" value="withoutTime" onchange="toggleTimeInputs()">
+                            <span class="toggle-text">📋 Without Time</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="time-inputs" id="timeInputs">
                     <div class="input-group">
                         <label><i class="far fa-calendar"></i> Date</label>
                         <input type="date" id="taskDate">
@@ -140,10 +170,16 @@
                         <input type="time" id="endTime">
                     </div>
                 </div>
+                
                 <button class="add-btn" id="addBtn">
                     <i class="fas fa-plus"></i> Add Task
                 </button>
             </div>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <input type="text" id="searchInput" placeholder="🔍 Search tasks..." class="search-input" onkeyup="searchTasks()">
         </div>
 
         <div class="table-container">
@@ -170,6 +206,13 @@
             <button class="export-btn" id="exportCSV">
                 <i class="fas fa-file-excel"></i> Export to Excel
             </button>
+            <button class="export-btn" id="backupBtn">
+                <i class="fas fa-download"></i> Backup Data
+            </button>
+            <button class="export-btn" id="restoreBtn">
+                <i class="fas fa-upload"></i> Restore
+            </button>
+            <input type="file" id="restoreFile" accept=".json" style="display: none;">
             <button class="clear-btn" id="clearMonth">
                 <i class="fas fa-trash-alt"></i> Clear Month
             </button>
