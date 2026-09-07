@@ -98,7 +98,6 @@ function updateWeekDisplay() {
     
     // Update day headers
     const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    const fullDayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     
     for (let i = 0; i < 7; i++) {
         const dayDate = new Date(currentWeekStart);
@@ -114,7 +113,7 @@ function updateWeekDisplay() {
     }
 }
 
-// Add new task
+// Add new task - FIXED
 function addTask() {
     const taskText = taskInput.value.trim();
     
@@ -127,8 +126,8 @@ function addTask() {
     const task = {
         id: Date.now(),
         text: taskText,
-        date: formatDate(new Date()), // Today's date
-        completedDays: {} // Store completion status for each day
+        date: formatDate(currentWeekStart), // Current week start date
+        completedDays: {} // Empty object - no days completed yet
     };
     
     // Save task
@@ -141,36 +140,28 @@ function addTask() {
     // Refresh display
     loadWeekTasks();
     updateStats();
+    
+    alert('Task added successfully! ✅');
 }
 
-// Save task to localStorage
+// Save task to localStorage - FIXED
 function saveTask(task) {
     const allTasks = getAllTasks();
     allTasks.push(task);
     localStorage.setItem('weeklyTasks', JSON.stringify(allTasks));
 }
 
-// Get all tasks from localStorage
+// Get all tasks from localStorage - FIXED
 function getAllTasks() {
     return JSON.parse(localStorage.getItem('weeklyTasks')) || [];
 }
 
-// Get tasks for current week
+// Get tasks for current week - FIXED
 function getWeekTasks() {
     const allTasks = getAllTasks();
-    const weekTasks = [];
     
-    allTasks.forEach(task => {
-        const taskDate = new Date(task.date);
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        if (taskDate >= currentWeekStart && taskDate <= weekEnd) {
-            weekTasks.push(task);
-        }
-    });
-    
-    return weekTasks;
+    // Show ALL tasks (weekly habits)
+    return allTasks.sort((a, b) => a.id - b.id);
 }
 
 // Toggle task completion for a specific day
@@ -199,9 +190,11 @@ function deleteTask(taskId) {
     }
 }
 
-// Load and display tasks for current week
+// Load and display tasks for current week - FIXED
 function loadWeekTasks() {
     const weekTasks = getWeekTasks();
+    console.log('Loading tasks:', weekTasks); // Debug log
+    
     taskTableBody.innerHTML = '';
     
     if (weekTasks.length === 0) {
@@ -260,12 +253,12 @@ function loadWeekTasks() {
     });
 }
 
-// Update statistics
+// Update statistics - FIXED
 function updateStats() {
     const weekTasks = getWeekTasks();
     const totalTasks = weekTasks.length;
     
-    // Count completed and pending across all days
+    // Count completed and pending
     let totalChecks = 0;
     let completedChecks = 0;
     
@@ -355,17 +348,8 @@ function clearWeek() {
         return;
     }
     
-    if (confirm(`Are you sure you want to delete ALL ${weekTasks.length} tasks for this week?`)) {
-        const allTasks = getAllTasks();
-        const weekEnd = new Date(currentWeekStart);
-        weekEnd.setDate(weekEnd.getDate() + 6);
-        
-        const remainingTasks = allTasks.filter(task => {
-            const taskDate = new Date(task.date);
-            return !(taskDate >= currentWeekStart && taskDate <= weekEnd);
-        });
-        
-        localStorage.setItem('weeklyTasks', JSON.stringify(remainingTasks));
+    if (confirm(`Are you sure you want to delete ALL ${weekTasks.length} tasks?`)) {
+        localStorage.setItem('weeklyTasks', JSON.stringify([]));
         loadWeekTasks();
         updateStats();
     }
