@@ -12,6 +12,12 @@ body {
     color: #2c3e50;
     position: relative;
     overflow-x: hidden;
+    transition: background 0.5s ease;
+}
+
+/* Dark Mode */
+body.dark-mode {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
 /* Rain Animation */
@@ -104,6 +110,11 @@ body {
     position: relative;
     z-index: 2;
     backdrop-filter: blur(10px);
+    transition: background 0.5s ease;
+}
+
+body.dark-mode .container {
+    background: rgba(30, 30, 50, 0.95);
 }
 
 /* Header */
@@ -116,6 +127,13 @@ body {
     gap: 20px;
     padding-bottom: 20px;
     border-bottom: 2px solid #e1e8ed;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
 }
 
 .logo {
@@ -138,6 +156,34 @@ h1 {
     color: #667eea;
     font-size: 26px;
     font-weight: 600;
+}
+
+body.dark-mode h1 {
+    color: #a5b4fc;
+}
+
+/* Dark Mode Button */
+.dark-mode-btn {
+    background: #ffffff;
+    color: #667eea;
+    border: 1px solid #dcdde1;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.dark-mode-btn:hover {
+    background: #667eea;
+    color: #ffffff;
+}
+
+body.dark-mode .dark-mode-btn {
+    background: #2a2a3e;
+    color: #a5b4fc;
+    border-color: #3a3a4e;
 }
 
 .month-navigation {
@@ -186,6 +232,57 @@ h1 {
     text-align: center;
 }
 
+body.dark-mode .month-year {
+    color: #ffffff;
+}
+
+/* Progress Section */
+.progress-section {
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #e1e8ed;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.progress-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 20px;
+    background: #f0f0f0;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    border-radius: 10px;
+    transition: width 0.5s ease;
+    width: 0%;
+}
+
+body.dark-mode .progress-section {
+    background: #2a2a3e;
+    border-color: #3a3a4e;
+}
+
+body.dark-mode .progress-header {
+    color: #ffffff;
+}
+
+body.dark-mode .progress-bar {
+    background: #1a1a2e;
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;
@@ -211,6 +308,11 @@ h1 {
     box-shadow: 0 5px 20px rgba(0,0,0,0.1);
 }
 
+body.dark-mode .stat-card {
+    background: #2a2a3e;
+    border-color: #3a3a4e;
+}
+
 .stat-card.purple { border-top: 3px solid #667eea; }
 .stat-card.green { border-top: 3px solid #00b894; }
 .stat-card.orange { border-top: 3px solid #e74c3c; }
@@ -225,6 +327,10 @@ h1 {
     justify-content: center;
     border-radius: 10px;
     background: #f8f9fa;
+}
+
+body.dark-mode .stat-icon {
+    background: #1a1a2e;
 }
 
 .stat-card.purple .stat-icon { color: #667eea; }
@@ -252,6 +358,10 @@ h1 {
     color: #2c3e50;
 }
 
+body.dark-mode .stat-value {
+    color: #ffffff;
+}
+
 /* Quick Add Section */
 .quick-add-section {
     background: #ffffff;
@@ -260,6 +370,11 @@ h1 {
     margin-bottom: 30px;
     border: 1px solid #e1e8ed;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+body.dark-mode .quick-add-section {
+    background: #2a2a3e;
+    border-color: #3a3a4e;
 }
 
 .quick-add-header {
@@ -273,6 +388,10 @@ h1 {
     color: #2c3e50;
     font-size: 18px;
     font-weight: 600;
+}
+
+body.dark-mode .quick-add-header h2 {
+    color: #ffffff;
 }
 
 .hint {
@@ -304,6 +423,68 @@ h1 {
     border-color: #667eea;
     background: #ffffff;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+body.dark-mode .main-input {
+    background: #1a1a2e;
+    color: #ffffff;
+    border-color: #3a3a4e;
+}
+
+/* Time Toggle */
+.time-toggle-section {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.toggle-container {
+    display: flex;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 10px 15px;
+    border: 2px solid #dcdde1;
+    border-radius: 8px;
+    transition: all 0.3s;
+    background: #f8f9fa;
+}
+
+.toggle-label:hover {
+    border-color: #667eea;
+    background: #f0f3ff;
+}
+
+.toggle-label input[type="radio"] {
+    display: none;
+}
+
+.toggle-label:has(input[type="radio"]:checked) {
+    border-color: #667eea;
+    background: #667eea;
+    color: #ffffff;
+}
+
+.toggle-text {
+    font-weight: 500;
+    font-size: 14px;
+}
+
+body.dark-mode .toggle-label {
+    background: #1a1a2e;
+    border-color: #3a3a4e;
+    color: #ffffff;
+}
+
+body.dark-mode .toggle-label:has(input[type="radio"]:checked) {
+    background: #667eea;
+    border-color: #667eea;
+    color: #ffffff;
 }
 
 .time-inputs {
@@ -341,6 +522,12 @@ h1 {
     box-shadow: 0 0 0 3px rgba(118, 75, 162, 0.1);
 }
 
+body.dark-mode .input-group input {
+    background: #1a1a2e;
+    color: #ffffff;
+    border-color: #3a3a4e;
+}
+
 .add-btn {
     padding: 12px 25px;
     background: #667eea;
@@ -359,6 +546,35 @@ h1 {
     box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
 }
 
+/* Search Section */
+.search-section {
+    margin-bottom: 20px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border: 1px solid #dcdde1;
+    border-radius: 8px;
+    color: #2c3e50;
+    font-size: 15px;
+    transition: all 0.3s;
+}
+
+.search-input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+body.dark-mode .search-input {
+    background: #1a1a2e;
+    color: #ffffff;
+    border-color: #3a3a4e;
+}
+
 /* Table */
 .table-container {
     background: #ffffff;
@@ -367,6 +583,11 @@ h1 {
     margin-bottom: 30px;
     border: 1px solid #e1e8ed;
     box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+body.dark-mode .table-container {
+    background: #2a2a3e;
+    border-color: #3a3a4e;
 }
 
 table {
@@ -395,6 +616,11 @@ td {
     color: #2c3e50;
 }
 
+body.dark-mode td {
+    color: #ffffff;
+    border-bottom-color: #3a3a4e;
+}
+
 tbody tr {
     transition: all 0.3s;
 }
@@ -404,8 +630,16 @@ tbody tr.task-normal {
     background: #ffffff;
 }
 
+body.dark-mode tbody tr.task-normal {
+    background: #2a2a3e;
+}
+
 tbody tr.task-normal:hover {
     background: #f8f9fa;
+}
+
+body.dark-mode tbody tr.task-normal:hover {
+    background: #3a3a4e;
 }
 
 /* RED background for pending/not completed tasks */
@@ -418,6 +652,10 @@ tbody tr.task-pending:hover {
     background: #ffe9e9;
 }
 
+body.dark-mode tbody tr.task-pending {
+    background: #3e1a1a;
+}
+
 /* RED background for overdue tasks (yesterday or older) */
 tbody tr.task-overdue {
     background: #ffebee;
@@ -427,6 +665,10 @@ tbody tr.task-overdue {
 
 tbody tr.task-overdue:hover {
     background: #ffcdd2;
+}
+
+body.dark-mode tbody tr.task-overdue {
+    background: #4e1a1a;
 }
 
 @keyframes pulse {
@@ -442,6 +684,10 @@ tbody tr.task-completed {
 
 tbody tr.task-completed:hover {
     background: #e6ffe9;
+}
+
+body.dark-mode tbody tr.task-completed {
+    background: #1a3e2a;
 }
 
 tbody tr.task-completed .task-text {
@@ -484,6 +730,21 @@ tbody tr.task-completed .task-text {
     font-weight: 500;
     font-size: 13px;
     border: 1px solid #bbdefb;
+}
+
+.no-time-badge {
+    background: #f0f0f0;
+    color: #666;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    border: 1px dashed #999;
+}
+
+body.dark-mode .no-time-badge {
+    background: #1a1a2e;
+    color: #aaa;
+    border-color: #555;
 }
 
 /* Action Buttons */
@@ -569,45 +830,4 @@ tbody tr.task-completed .task-text {
     border: 1px solid #e74c3c;
 }
 
-.clear-btn:hover {
-    background: #e74c3c;
-    color: #ffffff;
-    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .quick-add-form {
-        flex-direction: column;
-    }
-    
-    .main-input {
-        width: 100%;
-    }
-    
-    .time-inputs {
-        width: 100%;
-        flex-direction: column;
-    }
-    
-    .input-group {
-        width: 100%;
-    }
-    
-    .input-group input {
-        width: 100%;
-    }
-    
-    .add-btn {
-        width: 100%;
-    }
-    
-    .stats-grid {
-        grid-template-columns: 1fr 1fr;
-    }
-}
+.clear-btn:hover
