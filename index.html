@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>✨ Task Tracker Pro - Weekly View</title>
+    <title>📋 Weekly Task Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
@@ -59,37 +59,38 @@
         <div class="rain-drop"></div>
         <div class="rain-drop"></div>
         <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
     </div>
 
     <div class="container">
+        <!-- Header -->
         <div class="header">
             <div class="logo">
                 <span class="logo-icon">⚡</span>
-                <h1>Task Tracker Pro</h1>
+                <h1>Weekly Task Tracker</h1>
             </div>
-            <div class="header-actions">
-                <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()">
-                    <i class="fas fa-moon"></i> Dark Mode
-                </button>
-                <div class="week-navigation">
-                    <button class="nav-btn" id="prevWeek">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <span class="week-label" id="weekLabel">This Week</span>
-                    <button class="nav-btn" id="nextWeek">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                    <button class="today-btn" id="todayBtn">Today</button>
-                </div>
-            </div>
+            <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()">
+                <i class="fas fa-moon"></i> Dark Mode
+            </button>
         </div>
 
-        <!-- Progress Section -->
+        <!-- Week Navigation -->
+        <div class="week-nav">
+            <button class="nav-btn" id="prevWeekBtn">
+                <i class="fas fa-chevron-left"></i> Prev
+            </button>
+            <span id="weekLabel">This Week</span>
+            <button class="nav-btn" id="nextWeekBtn">
+                Next <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="today-btn" id="todayBtn">
+                <i class="fas fa-calendar-day"></i> Today
+            </button>
+        </div>
+
+        <!-- Progress Bar -->
         <div class="progress-section">
             <div class="progress-header">
-                <span><i class="fas fa-chart-line"></i> Weekly Progress</span>
+                <span><i class="fas fa-chart-line"></i> Today's Progress</span>
                 <span id="progressPercent">0%</span>
             </div>
             <div class="progress-bar">
@@ -97,6 +98,7 @@
             </div>
         </div>
 
+        <!-- Stats -->
         <div class="stats-grid">
             <div class="stat-card purple">
                 <div class="stat-icon">
@@ -112,7 +114,7 @@
                     <i class="fas fa-check-circle"></i>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-label">Completed</span>
+                    <span class="stat-label">Completed Today</span>
                     <span class="stat-value" id="completedTasks">0</span>
                 </div>
             </div>
@@ -121,20 +123,21 @@
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
                 <div class="stat-info">
-                    <span class="stat-label">Pending</span>
+                    <span class="stat-label">Pending Today</span>
                     <span class="stat-value" id="pendingTasks">0</span>
                 </div>
             </div>
         </div>
 
-        <div class="quick-add-section">
-            <div class="quick-add-header">
-                <h2><i class="fas fa-plus-circle"></i> Quick Add Task</h2>
-                <span class="hint">Press Enter to add quickly</span>
+        <!-- Add Task -->
+        <div class="add-section">
+            <div class="add-header">
+                <h2><i class="fas fa-plus-circle"></i> Add New Task</h2>
+                <span class="hint">Press Enter to add</span>
             </div>
-            <div class="quick-add-form">
-                <input type="text" id="taskInput" placeholder="Enter your task..." class="main-input">
-                <button class="add-btn" id="addBtn">
+            <div class="add-form">
+                <input type="text" id="taskInput" placeholder="Enter task name..." class="main-input">
+                <button id="addBtn" class="add-btn">
                     <i class="fas fa-plus"></i> Add Task
                 </button>
             </div>
@@ -142,10 +145,10 @@
 
         <!-- Weekly Table -->
         <div class="table-container">
-            <table class="weekly-table">
+            <table id="taskTable">
                 <thead>
                     <tr>
-                        <th class="task-col"><i class="fas fa-list"></i> Tasks</th>
+                        <th class="task-col"><i class="fas fa-list"></i> Task</th>
                         <th id="day1Header">Mon</th>
                         <th id="day2Header">Tue</th>
                         <th id="day3Header">Wed</th>
@@ -161,16 +164,21 @@
             </table>
         </div>
 
+        <!-- Legend -->
+        <div class="legend">
+            <span class="legend-item"><span class="legend-icon completed">✅</span> Completed</span>
+            <span class="legend-item"><span class="legend-icon pending">❌</span> Not Completed</span>
+            <span class="legend-item"><span class="legend-icon today">⬜</span> Today</span>
+            <span class="legend-item"><span class="legend-icon locked">🔒</span> Future (Locked)</span>
+        </div>
+
+        <!-- Bottom Actions -->
         <div class="bottom-actions">
             <button class="export-btn" id="backupBtn">
-                <i class="fas fa-download"></i> Backup Data
+                <i class="fas fa-download"></i> Backup
             </button>
-            <button class="export-btn" id="restoreBtn">
-                <i class="fas fa-upload"></i> Restore
-            </button>
-            <input type="file" id="restoreFile" accept=".json" style="display: none;">
-            <button class="clear-btn" id="clearWeek">
-                <i class="fas fa-trash-alt"></i> Clear Week
+            <button class="clear-btn" id="clearBtn">
+                <i class="fas fa-trash-alt"></i> Clear All
             </button>
         </div>
     </div>
