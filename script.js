@@ -2,6 +2,7 @@
 let currentDate = new Date();
 let currentMonth = currentDate.getMonth();
 let currentYear = currentDate.getFullYear();
+let isWithTime = true; // Default: With Time
 
 // Get elements
 const monthYearSpan = document.getElementById('monthYear');
@@ -27,6 +28,8 @@ document.addEventListener('DOMContentLoaded', function() {
     updateMonthDisplay();
     loadTasks();
     updateStats();
+    checkDarkMode();
+    toggleTimeInputs();
 });
 
 // Event listeners
@@ -71,6 +74,51 @@ taskInput.addEventListener('keypress', function(e) {
 
 exportCSVBtn.addEventListener('click', exportToCSV);
 clearMonthBtn.addEventListener('click', clearMonth);
+
+document.getElementById('backupBtn').addEventListener('click', backupData);
+document.getElementById('restoreBtn').addEventListener('click', function() {
+    document.getElementById('restoreFile').click();
+});
+document.getElementById('restoreFile').addEventListener('change', function(e) {
+    restoreData(e.target.files[0]);
+});
+
+// Toggle time inputs visibility
+function toggleTimeInputs() {
+    const timeOption = document.querySelector('input[name="timeOption"]:checked').value;
+    const timeInputs = document.getElementById('timeInputs');
+    
+    if (timeOption === 'withTime') {
+        isWithTime = true;
+        timeInputs.style.display = 'flex';
+    } else {
+        isWithTime = false;
+        timeInputs.style.display = 'none';
+    }
+}
+
+// Dark mode toggle
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const isDark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', isDark);
+    
+    const btn = document.getElementById('darkModeBtn');
+    if (isDark) {
+        btn.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    } else {
+        btn.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+    }
+}
+
+// Check saved dark mode on load
+function checkDarkMode() {
+    const savedMode = localStorage.getItem('darkMode');
+    if (savedMode === 'true') {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+    }
+}
 
 // Set default date and time
 function setDefaultDateTime() {
@@ -117,31 +165,37 @@ function addTask() {
         return;
     }
     
-    if (startTime === '') {
-        alert('Please select start time!');
-        return;
-    }
+    let duration = null;
     
-    if (endTime === '') {
-        alert('Please select end time!');
-        return;
+    if (isWithTime) {
+        // With Time - Validate time inputs
+        if (startTime === '') {
+            alert('Please select start time!');
+            return;
+        }
+        
+        if (endTime === '') {
+            alert('Please select end time!');
+            return;
+        }
+        
+        if (endTime <= startTime) {
+            alert('End time must be after start time!');
+            return;
+        }
+        
+        duration = calculateDuration(startTime, endTime);
     }
-    
-    if (endTime <= startTime) {
-        alert('End time must be after start time!');
-        return;
-    }
-    
-    const duration = calculateDuration(startTime, endTime);
     
     const task = {
         id: Date.now(),
         date: taskDate,
         text: taskText,
-        startTime: startTime,
-        endTime: endTime,
+        startTime: isWithTime ? startTime : null,
+        endTime: isWithTime ? endTime : null,
         duration: duration,
-        status: 'normal' // normal, completed, pending
+        hasTime: isWithTime,
+        status: 'normal'
     };
     
     // Save task
@@ -206,7 +260,7 @@ function getMonthTasks() {
     
     return allTasks
         .filter(task => task.date.startsWith(monthPrefix))
-        .sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+        .sort((a, b) => a.date.localeCompare(b.date) || (a.startTime || '').localeCompare(b.startTime || ''));
 }
 
 // Check if task is overdue (yesterday or older)
@@ -243,19 +297,14 @@ function loadTasks() {
         
         // Determine task status and apply color coding
         if (task.status === 'completed') {
-            // GREEN for completed tasks
             row.classList.add('task-completed');
         } else if (task.status === 'pending') {
-            // Check if overdue (yesterday or older)
             if (isTaskOverdue(task.date)) {
-                // DARK RED for overdue pending tasks
                 row.classList.add('task-overdue');
             } else {
-                // LIGHT RED for pending tasks
                 row.classList.add('task-pending');
             }
         } else {
-            // WHITE for normal tasks
             row.classList.add('task-normal');
         }
         
@@ -296,7 +345,6 @@ function loadTasks() {
                 </button>
             `;
         } else {
-            // Normal status - show both options
             actionButtons = `
                 <button class="complete-btn" onclick="markAsCompleted(${task.id})">
                     <i class="fas fa-check"></i> Complete
@@ -310,13 +358,20 @@ function loadTasks() {
             `;
         }
         
+        // Time display
+        const startTimeDisplay = task.hasTime ? formatTime12h(task.startTime) : '—';
+        const endTimeDisplay = task.hasTime ? formatTime12h(task.endTime) : '—';
+        const durationDisplay = task.hasTime ? 
+            `<span class="duration-badge">${task.duration?.display || 'N/A'}</span>` : 
+            '<span class="no-time-badge">No Time</span>';
+        
         row.innerHTML = `
             <td>${formatDisplayDate(task.date)}</td>
             <td>${dayName}</td>
             <td class="task-text">${task.text}</td>
-            <td>${formatTime12h(task.startTime)}</td>
-            <td>${formatTime12h(task.endTime)}</td>
-            <td><span class="duration-badge">${task.duration?.display || 'N/A'}</span></td>
+            <td>${startTimeDisplay}</td>
+            <td>${endTimeDisplay}</td>
+            <td>${durationDisplay}</td>
             <td>${statusBadge}</td>
             <td>${actionButtons}</td>
         `;
@@ -339,6 +394,21 @@ function formatTime12h(time24) {
     const ampm = h >= 12 ? 'PM' : 'AM';
     const h12 = h % 12 || 12;
     return `${h12}:${minutes} ${ampm}`;
+}
+
+// Search functionality
+function searchTasks() {
+    const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+    const rows = document.querySelectorAll('#taskTableBody tr');
+    
+    rows.forEach(row => {
+        const text = row.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
 }
 
 // Mark task as completed
@@ -382,10 +452,10 @@ function updateStats() {
     const completedTasks = monthTasks.filter(task => task.status === 'completed').length;
     const pendingTasks = monthTasks.filter(task => task.status === 'pending').length;
     
-    // Calculate total hours
+    // Calculate total hours (only for tasks with time)
     let totalMinutes = 0;
     monthTasks.forEach(task => {
-        if (task.duration) {
+        if (task.hasTime && task.duration) {
             totalMinutes += (task.duration.hours * 60) + task.duration.minutes;
         }
     });
@@ -398,6 +468,11 @@ function updateStats() {
     completedTasksSpan.textContent = completedTasks;
     pendingTasksSpan.textContent = pendingTasks;
     totalHoursSpan.textContent = totalHoursDisplay;
+    
+    // Calculate progress percentage
+    const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+    document.getElementById('progressPercent').textContent = `${progressPercent}%`;
+    document.getElementById('progressFill').style.width = `${progressPercent}%`;
 }
 
 // Export to CSV (Excel compatible)
@@ -409,19 +484,23 @@ function exportToCSV() {
         return;
     }
     
-    let csv = 'Date,Day,Task,Start Time,End Time,Duration,Status\n';
+    let csv = 'Date,Day,Task,Start Time,End Time,Duration,Status,Time Type\n';
     
     monthTasks.forEach(task => {
         const dateObj = new Date(task.date);
         const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
         const dayName = dayNames[dateObj.getDay()];
         const status = task.status === 'completed' ? 'Completed' : task.status === 'pending' ? 'Pending' : 'Normal';
+        const timeType = task.hasTime ? 'With Time' : 'Without Time';
+        const startTime = task.hasTime ? task.startTime : '—';
+        const endTime = task.hasTime ? task.endTime : '—';
+        const duration = task.hasTime ? (task.duration?.display || 'N/A') : '—';
         
-        csv += `"${task.date}","${dayName}","${task.text}","${task.startTime}","${task.endTime}","${task.duration?.display || 'N/A'}","${status}"\n`;
+        csv += `"${task.date}","${dayName}","${task.text}","${startTime}","${endTime}","${duration}","${status}","${timeType}"\n`;
     });
     
     const totalMinutes = monthTasks.reduce((sum, task) => {
-        if (task.duration) {
+        if (task.hasTime && task.duration) {
             return sum + (task.duration.hours * 60) + task.duration.minutes;
         }
         return sum;
@@ -439,6 +518,36 @@ function exportToCSV() {
     a.download = `tasks_${currentYear}_${String(currentMonth + 1).padStart(2, '0')}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
+}
+
+// Backup data
+function backupData() {
+    const allTasks = getAllTasks();
+    const dataStr = JSON.stringify(allTasks, null, 2);
+    const blob = new Blob([dataStr], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `task_backup_${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    window.URL.revokeObjectURL(url);
+}
+
+// Restore data
+function restoreData(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const tasks = JSON.parse(e.target.result);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+            loadTasks();
+            updateStats();
+            alert('Data restored successfully!');
+        } catch (error) {
+            alert('Invalid backup file!');
+        }
+    };
+    reader.readAsText(file);
 }
 
 // Clear all tasks for current month
