@@ -288,3 +288,4 @@ function attachEventListeners() {
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 }
 console.log('🍥 Ninja Mission Tracker loaded!');
+https://github.com/jeyabelvin005-sketch/todo-list/edit/main/script.js
