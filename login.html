@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔐 Login - Weekly Task Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    .auth-container {
+      max-width: 420px;
+      margin: 60px auto;
+      background: rgba(255,255,255,0.97);
+      padding: 40px 35px;
+      border-radius: 15px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+      position: relative;
+      z-index: 2;
+      backdrop-filter: blur(10px);
+    }
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .auth-logo .logo-icon {
+      font-size: 50px;
+      display: block;
+      margin-bottom: 8px;
+      animation: bounce 2s infinite;
+    }
+    .auth-logo h1 {
+      color: #667eea;
+      font-size: 22px;
+    }
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 25px;
+      border-bottom: 2px solid #e1e8ed;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 12px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      color: #7f8c8d;
+      transition: all 0.3s;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .auth-tab.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .auth-form input {
+      width: 100%;
+      padding: 13px 15px;
+      margin-bottom: 15px;
+      background: #f8f9fa;
+      border: 2px solid #dcdde1;
+      border-radius: 8px;
+      font-size: 15px;
+      color: #2c3e50;
+      transition: all 0.3s;
+    }
+    .auth-form input:focus {
+      outline: none;
+      border-color: #667eea;
+      background: #fff;
+      box-shadow: 0 0 0 3px rgba(102,126,234,0.1);
+    }
+    .auth-form button[type="submit"] {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .auth-form button[type="submit"]:hover {
+      box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+      transform: translateY(-2px);
+    }
+    .auth-form button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .auth-error {
+      color: #e74c3c;
+      font-size: 13px;
+      margin-bottom: 10px;
+      min-height: 18px;
+      text-align: center;
+    }
+    .auth-success {
+      color: #00b894;
+      font-size: 13px;
+      margin-bottom: 10px;
+      min-height: 18px;
+      text-align: center;
+    }
+    body.dark-mode .auth-container { background: rgba(30,30,50,0.97); }
+    body.dark-mode .auth-form input {
+      background: #1a1a2e;
+      color: #fff;
+      border-color: #3a3a4e;
+    }
+  </style>
+</head>
+<body>
+  <!-- Rain background (same as before) -->
+  <div class="rain-container">
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+    <div class="rain-drop"></div><div class="rain-drop"></div><div class="rain-drop"></div>
+  </div>
+
+  <div class="auth-container">
+    <div class="auth-logo">
+      <span class="logo-icon">⚡</span>
+      <h1>Weekly Task Tracker</h1>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Login</button>
+      <button class="auth-tab" data-tab="signup">Sign Up</button>
+    </div>
+
+    <!-- Login Form -->
+    <form id="loginForm" class="auth-form active">
+      <div class="auth-error" id="loginError"></div>
+      <input type="email" id="loginEmail" placeholder="Email address" required>
+      <input type="password" id="loginPassword" placeholder="Password" required minlength="6">
+      <button type="submit" id="loginBtn">
+        <i class="fas fa-sign-in-alt"></i> Login
+      </button>
+    </form>
+
+    <!-- Signup Form -->
+    <form id="signupForm" class="auth-form">
+      <div class="auth-error" id="signupError"></div>
+      <div class="auth-success" id="signupSuccess"></div>
+      <input type="email" id="signupEmail" placeholder="Email address" required>
+      <input type="password" id="signupPassword" placeholder="Password (min 6 chars)" required minlength="6">
+      <input type="password" id="signupConfirm" placeholder="Confirm password" required minlength="6">
+      <button type="submit" id="signupBtn">
+        <i class="fas fa-user-plus"></i> Create Account
+      </button>
+    </form>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script>
+    // Tab switching
+    document.querySelectorAll('.auth-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
+      });
+    });
+
+    // Login
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+      errEl.textContent = '';
+      btn.disabled = true;
+      try {
+        await auth.signInWithEmailAndPassword(
+          document.getElementById('loginEmail').value.trim(),
+          document.getElementById('loginPassword').value
+        );
+        window.location.href = 'index.html';
+      } catch (err) {
+        errEl.textContent = friendlyError(err.code);
+        btn.disabled = false;
+      }
+    });
+
+    // Signup
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errEl = document.getElementById('signupError');
+      const okEl = document.getElementById('signupSuccess');
+      const btn = document.getElementById('signupBtn');
+      errEl.textContent = '';
+      okEl.textContent = '';
+
+      const pwd = document.getElementById('signupPassword').value;
+      const conf = document.getElementById('signupConfirm').value;
+      if (pwd !== conf) {
+        errEl.textContent = 'Passwords do not match!';
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        await auth.createUserWithEmailAndPassword(
+          document.getElementById('signupEmail').value.trim(),
+          pwd
+        );
+        okEl.textContent = 'Account created! Redirecting...';
+        setTimeout(() => window.location.href = 'index.html', 800);
+      } catch (err) {
+        errEl.textContent = friendlyError(err.code);
+        btn.disabled = false;
+      }
+    });
+
+    // Already logged in? Go to app
+    auth.onAuthStateChanged(user => {
+      if (user) window.location.href = 'index.html';
+    });
+
+    function friendlyError(code) {
+      const map = {
+        'auth/invalid-email': 'Invalid email address.',
+        'auth/user-not-found': 'No account found with this email.',
+        'auth/wrong-password': 'Incorrect password.',
+        'auth/invalid-credential': 'Invalid email or password.',
+        'auth/email-already-in-use': 'This email is already registered.',
+        'auth/weak-password': 'Password should be at least 6 characters.',
+        'auth/too-many-requests': 'Too many attempts. Try again later.'
+      };
+      return map[code] || 'Something went wrong. Try again.';
+    }
+  </script>
+</body>
+</html>
