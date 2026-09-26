@@ -288,4 +288,44 @@ function attachEventListeners() {
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 }
 console.log('🍥 Ninja Mission Tracker loaded!');
-https://github.com/jeyabelvin005-sketch/todo-list/edit/main/script.js
+// ============================================
+// 🖱️ CURSOR CLICK EFFECT
+// ============================================
+document.addEventListener('mousedown', () => {
+    document.body.classList.add('mouse-down');
+});
+
+document.addEventListener('mouseup', () => {
+    document.body.classList.remove('mouse-down');
+});
+
+// Chakra burst on click
+document.addEventListener('click', (e) => {
+    const burst = document.createElement('div');
+    burst.style.cssText = `
+        position: fixed;
+        left: ${e.clientX}px;
+        top: ${e.clientY}px;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: radial-gradient(circle, #ffd700, #ff6b1a, transparent);
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        z-index: 99999;
+        animation: chakraBurst 0.6s ease-out forwards;
+        box-shadow: 0 0 20px #ffd700, 0 0 40px #ff6b1a;
+    `;
+    document.body.appendChild(burst);
+    setTimeout(() => burst.remove(), 600);
+});
+
+// Add animation keyframes
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes chakraBurst {
+        0% { width: 10px; height: 10px; opacity: 1; }
+        100% { width: 80px; height: 80px; opacity: 0; }
+    }
+`;
+document.head.appendChild(style);
