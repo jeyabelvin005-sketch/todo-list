@@ -1,11 +1,8 @@
-// ============================================
 // 🍥 Ninja Mission Tracker — Firebase + Naruto Theme
-// ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 
-// ---------- Date helpers ----------
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -14,17 +11,13 @@ function getWeekStart(date) {
   d.setHours(0, 0, 0, 0);
   return d;
 }
-
 function formatDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
-
-function getToday() {
-  return formatDate(new Date());
-}
+function getToday() { return formatDate(new Date()); }
 
 // 🎯 FIX: Based on current week navigation
 function getTodayIndex() {
@@ -38,19 +31,16 @@ function getTodayIndex() {
   return diffDays;
 }
 
-// ---------- Firestore ----------
 function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
 }
 
-// ---------- Load tasks ----------
 async function loadTasks() {
   const snap = await tasksCol().orderBy('createdAt', 'asc').get();
   tasks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   await autoCheckPastDays();
 }
 
-// ---------- Auto-check past ----------
 async function autoCheckPastDays() {
   const todayIndex = getTodayIndex();
   const batch = db.batch();
@@ -68,7 +58,6 @@ async function autoCheckPastDays() {
   if (changed) await batch.commit();
 }
 
-// ---------- Add ----------
 async function addTask() {
   const input = document.getElementById('taskInput');
   const text = input.value.trim();
@@ -86,7 +75,6 @@ async function addTask() {
   updateStats();
 }
 
-// ---------- Toggle ----------
 async function toggleDay(taskId, dayIndex) {
   const todayIndex = getTodayIndex();
   if (dayIndex > todayIndex) {
@@ -101,7 +89,6 @@ async function toggleDay(taskId, dayIndex) {
   updateStats();
 }
 
-// ---------- Delete ----------
 async function deleteTask(taskId) {
   if (!confirm('Delete this mission?')) return;
   await tasksCol().doc(taskId).delete();
@@ -110,7 +97,6 @@ async function deleteTask(taskId) {
   updateStats();
 }
 
-// ---------- Render ----------
 function renderTasks() {
   const tbody = document.getElementById('taskTableBody');
   tbody.innerHTML = '';
@@ -132,7 +118,6 @@ function renderTasks() {
       const dayCell = document.createElement('td');
       dayCell.className = 'checkbox';
 
-      // 🎯 FIX: Future ALWAYS locked
       if (i > todayIndex) {
         dayCell.innerHTML = '<span class="cell-icon">🔒</span>';
         dayCell.classList.add('locked');
@@ -140,11 +125,11 @@ function renderTasks() {
         dayCell.style.cursor = 'not-allowed';
       } else if (i === todayIndex) {
         if (task.days[i]) {
-          dayCell.innerHTML = '<img src="images/naruto-done.png" class="cell-img" alt="done">';
+          dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
           dayCell.title = 'Completed today';
         } else {
-          dayCell.innerHTML = '<img src="images/kunai.png" class="cell-img" alt="today">';
+          dayCell.innerHTML = '<img src="images/kunai.jpg" class="cell-img" alt="today">';
           dayCell.classList.add('today');
           dayCell.title = 'Today - click to complete';
         }
@@ -152,11 +137,11 @@ function renderTasks() {
         dayCell.onclick = () => toggleDay(task.id, i);
       } else {
         if (task.days[i]) {
-          dayCell.innerHTML = '<img src="images/naruto-done.png" class="cell-img" alt="done">';
+          dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
           dayCell.title = 'Completed - click to undo';
         } else {
-          dayCell.innerHTML = '<img src="images/failed.png" class="cell-img" alt="failed">';
+          dayCell.innerHTML = '<img src="images/failed.jpg" class="cell-img" alt="failed">';
           dayCell.classList.add('pending');
           dayCell.title = 'Not completed';
         }
@@ -169,7 +154,6 @@ function renderTasks() {
   });
 }
 
-// ---------- Stats ----------
 function updateStats() {
   document.getElementById('totalTasks').textContent = tasks.length;
   const todayIndex = getTodayIndex();
@@ -198,7 +182,6 @@ function updateStats() {
   }
 }
 
-// ---------- Week display ----------
 function updateWeekDisplay() {
   const weekEnd = new Date(currentWeekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
@@ -222,7 +205,6 @@ function updateWeekDisplay() {
   }
 }
 
-// ---------- Dark mode ----------
 function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
@@ -236,13 +218,9 @@ function checkDarkMode() {
     document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i>';
   }
 }
-
-// ---------- Logout ----------
 function logoutUser() {
   if (confirm('Logout from Konoha?')) auth.signOut();
 }
-
-// ---------- Backup ----------
 function backupData() {
   const dataStr = JSON.stringify(tasks, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
@@ -253,8 +231,6 @@ function backupData() {
   a.click();
   window.URL.revokeObjectURL(url);
 }
-
-// ---------- Clear all ----------
 async function clearAllTasks() {
   if (tasks.length === 0) { alert('No missions to clear!'); return; }
   if (confirm(`Delete ALL ${tasks.length} missions?`)) {
@@ -267,9 +243,6 @@ async function clearAllTasks() {
   }
 }
 
-// ============================================
-// AUTH + INIT
-// ============================================
 auth.onAuthStateChanged(async (user) => {
   if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
@@ -314,5 +287,4 @@ function attachEventListeners() {
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 }
-
 console.log('🍥 Ninja Mission Tracker loaded!');
