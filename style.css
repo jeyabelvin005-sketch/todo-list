@@ -1,5 +1,5 @@
 /* ============================================
-   🍥 NINJA MISSION TRACKER — Konoha Style (ULTIMATE)
+   🍥 NINJA MISSION TRACKER — Konoha Style (FINAL)
    ============================================ */
 
 * {
@@ -30,7 +30,7 @@ html, body {
     cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><circle cx='16' cy='16' r='11' fill='none' stroke='%23ff6b1a' stroke-width='2'/><circle cx='16' cy='16' r='4' fill='%23ff6b1a'/><circle cx='16' cy='16' r='1.5' fill='%23ffffff'/></svg>") 16 16, auto !important;
 }
 
-/* ALL elements inherit (important!) */
+/* ALL elements inherit */
 *, *::before, *::after {
     cursor: inherit;
 }
@@ -56,6 +56,7 @@ button i, a i, button span, a span, button svg, a svg {
     cursor: inherit !important;
     pointer-events: none;
 }
+
 /* ==========================================
    🌅 BODY — Full Area Clear Leaf Village
    ========================================== */
@@ -78,7 +79,7 @@ body {
     background-attachment: fixed;
 }
 
-/* VERY LIGHT overlay — background clear ah theriyum */
+/* VERY LIGHT overlay — background clear */
 body::before {
     content: '';
     position: fixed;
@@ -266,7 +267,7 @@ body.dark-mode::before {
 }
 
 /* ==========================================
-   📦 CONTAINER — SUPER TRANSPARENT (Background clear)
+   📦 CONTAINER — SUPER TRANSPARENT
    ========================================== */
 .container {
     max-width: 1100px;
@@ -290,10 +291,6 @@ body.dark-mode::before {
 body.dark-mode .container {
     background: rgba(10, 14, 26, 0.55);
     border-color: rgba(0, 217, 255, 0.4);
-    box-shadow:
-        0 20px 60px rgba(0, 0, 0, 0.6),
-        inset 0 1px 0 rgba(0, 217, 255, 0.2),
-        0 0 80px rgba(0, 217, 255, 0.15);
 }
 
 @keyframes containerEnter {
@@ -304,8 +301,6 @@ body.dark-mode .container {
 /* ==========================================
    ✨ FLOATING TEXT EFFECTS
    ========================================== */
-
-/* Main headings — gentle float */
 .logo-text h1,
 .add-header h2,
 .progress-header span:first-child,
@@ -318,23 +313,21 @@ th.task-col {
     50%      { transform: translateY(-3px); }
 }
 
-/* Stat values — strong float with glow */
 .stat-value {
     animation: valueFloat 2.5s ease-in-out infinite;
 }
 
 @keyframes valueFloat {
-    0%, 100% { 
-        transform: translateY(0) scale(1); 
+    0%, 100% {
+        transform: translateY(0) scale(1);
         text-shadow: 0 0 15px rgba(255, 165, 0, 0.6);
     }
-    50% { 
-        transform: translateY(-6px) scale(1.05); 
+    50% {
+        transform: translateY(-6px) scale(1.05);
         text-shadow: 0 0 30px rgba(255, 215, 0, 0.9), 0 0 50px rgba(255, 165, 0, 0.5);
     }
 }
 
-/* Header title — flowing gradient + float */
 .logo-text h1 {
     animation: titleFloat 4s ease-in-out infinite, gradientShift 3s ease infinite;
 }
@@ -344,7 +337,6 @@ th.task-col {
     50%      { transform: translateY(-4px) rotate(-0.5deg); }
 }
 
-/* Week label — floating */
 #weekLabel {
     animation: weekFloat 3.5s ease-in-out infinite;
 }
@@ -354,23 +346,21 @@ th.task-col {
     50%      { transform: translateY(-3px); text-shadow: 0 0 15px rgba(255, 215, 0, 0.6); }
 }
 
-/* Rank label — pulsing float */
 .progress-rank {
     animation: rankFloat 2s ease-in-out infinite;
 }
 
 @keyframes rankFloat {
-    0%, 100% { 
-        transform: translateY(0) scale(1); 
+    0%, 100% {
+        transform: translateY(0) scale(1);
         text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
     }
-    50% { 
-        transform: translateY(-4px) scale(1.05); 
+    50% {
+        transform: translateY(-4px) scale(1.05);
         text-shadow: 0 0 25px rgba(255, 215, 0, 1), 0 0 40px rgba(255, 107, 26, 0.8);
     }
 }
 
-/* Stat labels — subtle float */
 .stat-label {
     animation: labelFloat 3s ease-in-out infinite;
 }
@@ -380,23 +370,21 @@ th.task-col {
     50%      { transform: translateY(-2px); opacity: 1; }
 }
 
-/* Chakra percent — glow float */
 .chakra-percent {
     animation: percentFloat 2s ease-in-out infinite;
 }
 
 @keyframes percentFloat {
-    0%, 100% { 
-        transform: translateY(0); 
+    0%, 100% {
+        transform: translateY(0);
         text-shadow: 0 0 10px var(--chakra-blue);
     }
-    50% { 
-        transform: translateY(-4px); 
+    50% {
+        transform: translateY(-4px);
         text-shadow: 0 0 20px var(--chakra-blue), 0 0 40px var(--chakra-blue);
     }
 }
 
-/* Subtitle — soft float */
 .subtitle {
     animation: subtitleFloat 4s ease-in-out infinite;
 }
@@ -762,7 +750,6 @@ body.dark-mode #weekLabel { color: #e0f7ff; }
     position: relative;
     overflow: hidden;
     backdrop-filter: blur(6px);
-    cursor: default;
     animation: cardFloat 4s ease-in-out infinite;
 }
 
