@@ -3,152 +3,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📋 Weekly Task Tracker</title>
+    <title>🍥 Ninja Mission Tracker</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Rain Background -->
-    <div class="rain-container">
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
-        <div class="rain-drop"></div>
+    <!-- ===== FLOATING NINJA CHARACTERS ===== -->
+    <div class="character-layer" id="characterLayer">
+        <!-- Rows of running ninjas -->
+        <div class="ninja-run naruto">🍥</div>
+        <div class="ninja-run sasuke">⚡</div>
+        <div class="ninja-run sakura">🌸</div>
+        <div class="ninja-run kakashi">🥷</div>
+        <div class="ninja-run kurama">🦊</div>
+        <div class="ninja-run toad">🐸</div>
+        <div class="ninja-run snake">🐍</div>
+        <div class="ninja-run scroll">📜</div>
+        <div class="ninja-run shuriken">🌀</div>
+        <div class="ninja-run kunai">🗡️</div>
     </div>
 
-    <div class="container">
-        <!-- Header -->
+    <!-- ===== CHAKRA PARTICLES ===== -->
+    <div class="chakra-particles">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <!-- ===== RASENGAN LOADER ===== -->
+    <div class="rasengan-loader" id="rasenganLoader">
+        <div class="rasengan">
+            <div class="rasengan-core"></div>
+            <div class="rasengan-ring"></div>
+            <div class="rasengan-ring r2"></div>
+            <div class="rasengan-ring r3"></div>
+        </div>
+        <p class="loading-text">Loading Ninja Data...</p>
+    </div>
+
+    <div class="container" id="mainContainer" style="opacity:0;">
+        <!-- ===== HEADER ===== -->
         <div class="header">
             <div class="logo">
-                <span class="logo-icon">⚡</span>
-                <h1>Weekly Task Tracker</h1>
+                <div class="konoha-symbol">
+                    <i class="fas fa-leaf"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>Ninja Mission Tracker</h1>
+                    <span class="subtitle">疾風伝 • Weekly Training Log</span>
+                </div>
             </div>
-            <button class="dark-mode-btn" id="darkModeBtn" onclick="toggleDarkMode()">
-                <i class="fas fa-moon"></i> Dark Mode
-            </button>
+            <div class="header-buttons">
+                <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="icon-btn logout-btn" onclick="logoutUser()" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
         </div>
 
-        <!-- Week Navigation -->
+        <!-- ===== WEEK NAVIGATION ===== -->
         <div class="week-nav">
             <button class="nav-btn" id="prevWeekBtn">
-                <i class="fas fa-chevron-left"></i> Prev
+                <i class="fas fa-chevron-left"></i>
             </button>
-            <span id="weekLabel">This Week</span>
+            <div class="week-label-wrap">
+                <span class="week-kanji">週</span>
+                <span id="weekLabel">This Week</span>
+            </div>
             <button class="nav-btn" id="nextWeekBtn">
-                Next <i class="fas fa-chevron-right"></i>
+                <i class="fas fa-chevron-right"></i>
             </button>
             <button class="today-btn" id="todayBtn">
-                <i class="fas fa-calendar-day"></i> Today
+                <i class="fas fa-bolt"></i> Today
             </button>
         </div>
 
-        <!-- Progress Bar -->
+        <!-- ===== CHAKRA PROGRESS BAR ===== -->
         <div class="progress-section">
             <div class="progress-header">
-                <span><i class="fas fa-chart-line"></i> Today's Progress</span>
-                <span id="progressPercent">0%</span>
+                <span><i class="fas fa-fire"></i> Chakra Progress</span>
+                <span id="progressPercent" class="chakra-percent">0%</span>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill" id="progressFill"></div>
+            <div class="chakra-bar">
+                <div class="chakra-fill" id="progressFill">
+                    <div class="chakra-glow"></div>
+                </div>
             </div>
+            <div class="progress-rank" id="rankLabel">🥷 Genin</div>
         </div>
 
-        <!-- Stats -->
+        <!-- ===== STATS ===== -->
         <div class="stats-grid">
-            <div class="stat-card purple">
-                <div class="stat-icon">
-                    <i class="fas fa-tasks"></i>
-                </div>
+            <div class="stat-card naruto-card">
+                <div class="stat-icon">🍥</div>
                 <div class="stat-info">
-                    <span class="stat-label">Total Tasks</span>
+                    <span class="stat-label">Total Missions</span>
                     <span class="stat-value" id="totalTasks">0</span>
                 </div>
             </div>
-            <div class="stat-card green">
-                <div class="stat-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
+            <div class="stat-card sasuke-card">
+                <div class="stat-icon">⚡</div>
                 <div class="stat-info">
-                    <span class="stat-label">Completed Today</span>
+                    <span class="stat-label">Completed</span>
                     <span class="stat-value" id="completedTasks">0</span>
                 </div>
             </div>
-            <div class="stat-card orange">
-                <div class="stat-icon">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
+            <div class="stat-card sakura-card">
+                <div class="stat-icon">🌸</div>
                 <div class="stat-info">
-                    <span class="stat-label">Pending Today</span>
+                    <span class="stat-label">Pending</span>
                     <span class="stat-value" id="pendingTasks">0</span>
                 </div>
             </div>
         </div>
 
-        <!-- Add Task -->
+        <!-- ===== ADD TASK ===== -->
         <div class="add-section">
             <div class="add-header">
-                <h2><i class="fas fa-plus-circle"></i> Add New Task</h2>
-                <span class="hint">Press Enter to add</span>
+                <h2><i class="fas fa-scroll"></i> New Mission</h2>
+                <span class="hint">Press Enter to assign</span>
             </div>
             <div class="add-form">
-                <input type="text" id="taskInput" placeholder="Enter task name..." class="main-input">
+                <input type="text" id="taskInput" placeholder="What's your mission, shinobi?" class="main-input">
                 <button id="addBtn" class="add-btn">
-                    <i class="fas fa-plus"></i> Add Task
+                    <i class="fas fa-plus"></i> Assign
                 </button>
             </div>
         </div>
 
-        <!-- Weekly Table -->
+        <!-- ===== WEEKLY TABLE ===== -->
         <div class="table-container">
             <table id="taskTable">
                 <thead>
                     <tr>
-                        <th class="task-col"><i class="fas fa-list"></i> Task</th>
+                        <th class="task-col"><i class="fas fa-list"></i> Mission</th>
                         <th id="day1Header">Mon</th>
                         <th id="day2Header">Tue</th>
                         <th id="day3Header">Wed</th>
@@ -159,23 +150,23 @@
                     </tr>
                 </thead>
                 <tbody id="taskTableBody">
-                    <!-- Tasks will appear here -->
+                    <!-- Tasks appear here -->
                 </tbody>
             </table>
         </div>
 
-        <!-- Legend -->
+        <!-- ===== LEGEND ===== -->
         <div class="legend">
-            <span class="legend-item"><span class="legend-icon completed">✅</span> Completed</span>
-            <span class="legend-item"><span class="legend-icon pending">❌</span> Not Completed</span>
-            <span class="legend-item"><span class="legend-icon today">⬜</span> Today</span>
-            <span class="legend-item"><span class="legend-icon locked">🔒</span> Future (Locked)</span>
+            <span class="legend-item"><span class="legend-icon completed">🍥</span> Completed</span>
+            <span class="legend-item"><span class="legend-icon pending">💤</span> Failed</span>
+            <span class="legend-item"><span class="legend-icon today">⚔️</span> Active</span>
+            <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
-        <!-- Bottom Actions -->
+        <!-- ===== BOTTOM ACTIONS ===== -->
         <div class="bottom-actions">
             <button class="export-btn" id="backupBtn">
-                <i class="fas fa-download"></i> Backup
+                <i class="fas fa-download"></i> Save Scroll
             </button>
             <button class="clear-btn" id="clearBtn">
                 <i class="fas fa-trash-alt"></i> Clear All
@@ -183,6 +174,11 @@
         </div>
     </div>
 
+    <!-- Firebase scripts -->
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
