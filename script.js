@@ -26,68 +26,67 @@ function getToday() {
   return formatDate(new Date());
 }
 
+// 🎯 FIX: Based on current week navigation
 function getTodayIndex() {
-  const day = new Date().getDay();
-  return day === 0 ? 6 : day - 1;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const weekStart = new Date(currentWeekStart);
+  weekStart.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today - weekStart) / (1000 * 60 * 60 * 24));
+  if (diffDays < 0) return -1;
+  if (diffDays > 6) return 7;
+  return diffDays;
 }
 
-// ---------- Firestore path ----------
+// ---------- Firestore ----------
 function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
 }
 
-// ---------- Load tasks from Firestore ----------
+// ---------- Load tasks ----------
 async function loadTasks() {
   const snap = await tasksCol().orderBy('createdAt', 'asc').get();
-  tasks = snap.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data()
-  }));
+  tasks = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   await autoCheckPastDays();
 }
 
-// ---------- Auto-check past days ----------
+// ---------- Auto-check past ----------
 async function autoCheckPastDays() {
   const todayIndex = getTodayIndex();
   const batch = db.batch();
   let changed = false;
-
   tasks.forEach(task => {
     if (!task.days) {
       task.days = [false, false, false, false, false, false, false];
       changed = true;
     }
-    for (let i = 0; i < todayIndex; i++) {
+    for (let i = 0; i < todayIndex && i < 7; i++) {
       if (task.days[i] !== true) task.days[i] = false;
     }
     if (changed) batch.update(tasksCol().doc(task.id), { days: task.days });
   });
-
   if (changed) await batch.commit();
 }
 
-// ---------- Add task ----------
+// ---------- Add ----------
 async function addTask() {
   const input = document.getElementById('taskInput');
   const text = input.value.trim();
   if (!text) { alert('Please enter a mission!'); return; }
-
   const newTask = {
     text,
     createdDate: getToday(),
     days: [false, false, false, false, false, false, false],
     createdAt: Date.now()
   };
-
   const ref = await tasksCol().add(newTask);
   tasks.push({ id: ref.id, ...newTask });
-
   input.value = '';
   renderTasks();
   updateStats();
 }
 
-// ---------- Toggle day ----------
+// ---------- Toggle ----------
 async function toggleDay(taskId, dayIndex) {
   const todayIndex = getTodayIndex();
   if (dayIndex > todayIndex) {
@@ -96,15 +95,13 @@ async function toggleDay(taskId, dayIndex) {
   }
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
-
   task.days[dayIndex] = !task.days[dayIndex];
   await tasksCol().doc(taskId).update({ days: task.days });
-
   renderTasks();
   updateStats();
 }
 
-// ---------- Delete task ----------
+// ---------- Delete ----------
 async function deleteTask(taskId) {
   if (!confirm('Delete this mission?')) return;
   await tasksCol().doc(taskId).delete();
@@ -113,7 +110,7 @@ async function deleteTask(taskId) {
   updateStats();
 }
 
-// ---------- Render tasks (🍥 Naruto style) ----------
+// ---------- Render ----------
 function renderTasks() {
   const tbody = document.getElementById('taskTableBody');
   tbody.innerHTML = '';
@@ -127,90 +124,68 @@ function renderTasks() {
   tasks.forEach((task, index) => {
     const row = document.createElement('tr');
     row.style.animationDelay = `${index * 0.05}s`;
-
-    // Task name cell
     const nameCell = document.createElement('td');
     nameCell.innerHTML = `${task.text} <button class="delete-btn" onclick="deleteTask('${task.id}')">Delete</button>`;
     row.appendChild(nameCell);
 
-    // Day cells
     for (let i = 0; i < 7; i++) {
       const dayCell = document.createElement('td');
       dayCell.className = 'checkbox';
 
+      // 🎯 FIX: Future ALWAYS locked
       if (i > todayIndex) {
-        // Future day - locked
-        dayCell.textContent = '🔒';
+        dayCell.innerHTML = '<span class="cell-icon">🔒</span>';
         dayCell.classList.add('locked');
         dayCell.title = 'Future day - locked';
         dayCell.style.cursor = 'not-allowed';
-        dayCell.style.opacity = '0.5';
       } else if (i === todayIndex) {
-        // Today - active
         if (task.days[i]) {
-          dayCell.textContent = '🍥';     // ← Naruto emoji
+          dayCell.innerHTML = '<img src="images/naruto-done.png" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
-          dayCell.title = 'Completed today - click to undo';
+          dayCell.title = 'Completed today';
         } else {
-          dayCell.textContent = '⚔️';     // ← Naruto emoji
+          dayCell.innerHTML = '<img src="images/kunai.png" class="cell-img" alt="today">';
           dayCell.classList.add('today');
           dayCell.title = 'Today - click to complete';
         }
-        dayCell.onclick = function () {
-          toggleDay(task.id, i);
-        };
         dayCell.style.cursor = 'pointer';
+        dayCell.onclick = () => toggleDay(task.id, i);
       } else {
-        // Past day
         if (task.days[i]) {
-          dayCell.textContent = '🍥';     // ← Naruto emoji
+          dayCell.innerHTML = '<img src="images/naruto-done.png" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
           dayCell.title = 'Completed - click to undo';
         } else {
-          dayCell.textContent = '💤';     // ← Naruto emoji
+          dayCell.innerHTML = '<img src="images/failed.png" class="cell-img" alt="failed">';
           dayCell.classList.add('pending');
-          dayCell.title = 'Not completed - click to complete';
+          dayCell.title = 'Not completed';
         }
-        dayCell.onclick = function () {
-          toggleDay(task.id, i);
-        };
         dayCell.style.cursor = 'pointer';
+        dayCell.onclick = () => toggleDay(task.id, i);
       }
-
       row.appendChild(dayCell);
     }
-
     tbody.appendChild(row);
   });
 }
 
-// ---------- Update stats + rank ----------
+// ---------- Stats ----------
 function updateStats() {
   document.getElementById('totalTasks').textContent = tasks.length;
-
   const todayIndex = getTodayIndex();
-  let completed = 0;
-  let pending = 0;
-
+  let completed = 0, pending = 0;
   tasks.forEach(task => {
-    for (let i = 0; i <= todayIndex; i++) {
-      if (task.days[i]) {
-        completed++;
-      } else {
-        pending++;
-      }
+    for (let i = 0; i <= todayIndex && i < 7; i++) {
+      task.days[i] ? completed++ : pending++;
     }
   });
-
   document.getElementById('completedTasks').textContent = completed;
   document.getElementById('pendingTasks').textContent = pending;
-
   const total = completed + pending;
   const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
   document.getElementById('progressPercent').textContent = `${percent}%`;
   document.getElementById('progressFill').style.width = `${percent}%`;
 
-  // 🎖️ Rank based on percent
   const rankEl = document.getElementById('rankLabel');
   if (rankEl) {
     let rank = '🥷 Academy Student';
@@ -223,36 +198,26 @@ function updateStats() {
   }
 }
 
-// ---------- Update week display ----------
+// ---------- Week display ----------
 function updateWeekDisplay() {
   const weekEnd = new Date(currentWeekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
-
   const startMonth = currentWeekStart.toLocaleDateString('en-US', { month: 'short' });
   const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
-  const startDay = currentWeekStart.getDate();
-  const endDay = weekEnd.getDate();
-
-  document.getElementById('weekLabel').textContent = `${startMonth} ${startDay} - ${endMonth} ${endDay}`;
+  document.getElementById('weekLabel').textContent =
+    `${startMonth} ${currentWeekStart.getDate()} - ${endMonth} ${weekEnd.getDate()}`;
 
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const today = getToday();
+  const todayIndex = getTodayIndex();
 
   for (let i = 0; i < 7; i++) {
     const dayDate = new Date(currentWeekStart);
     dayDate.setDate(dayDate.getDate() + i);
-    const dateStr = formatDate(dayDate);
     const dayHeader = document.getElementById(`day${i + 1}Header`);
-
     let badge = '';
-    if (dateStr === today) {
-      badge = '<br><span style="color:#00d9ff;font-size:11px;">⚔️ Today</span>';
-    } else if (dateStr < today) {
-      badge = '<br><span style="color:#ff9999;font-size:11px;">Past</span>';
-    } else {
-      badge = '<br><span style="color:#90ee90;font-size:11px;">Future</span>';
-    }
-
+    if (i === todayIndex) badge = '<br><span style="color:#00d9ff;font-size:11px;">⚔️ Today</span>';
+    else if (i < todayIndex) badge = '<br><span style="color:#ff9999;font-size:11px;">Past</span>';
+    else badge = '<br><span style="color:#90ee90;font-size:11px;">Future</span>';
     dayHeader.innerHTML = `${dayNames[i]} ${dayDate.getDate()}${badge}`;
   }
 }
@@ -262,18 +227,11 @@ function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
   localStorage.setItem('darkMode', isDark);
-
-  const btn = document.getElementById('darkModeBtn');
-  if (isDark) {
-    btn.innerHTML = '<i class="fas fa-sun"></i>';
-  } else {
-    btn.innerHTML = '<i class="fas fa-moon"></i>';
-  }
+  document.getElementById('darkModeBtn').innerHTML = isDark ?
+    '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 }
-
 function checkDarkMode() {
-  const savedMode = localStorage.getItem('darkMode');
-  if (savedMode === 'true') {
+  if (localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark-mode');
     document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i>';
   }
@@ -284,7 +242,7 @@ function logoutUser() {
   if (confirm('Logout from Konoha?')) auth.signOut();
 }
 
-// ---------- Backup data ----------
+// ---------- Backup ----------
 function backupData() {
   const dataStr = JSON.stringify(tasks, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
@@ -296,18 +254,13 @@ function backupData() {
   window.URL.revokeObjectURL(url);
 }
 
-// ---------- Clear all tasks ----------
+// ---------- Clear all ----------
 async function clearAllTasks() {
-  if (tasks.length === 0) {
-    alert('No missions to clear!');
-    return;
-  }
-
+  if (tasks.length === 0) { alert('No missions to clear!'); return; }
   if (confirm(`Delete ALL ${tasks.length} missions?`)) {
     const batch = db.batch();
     tasks.forEach(t => batch.delete(tasksCol().doc(t.id)));
     await batch.commit();
-
     tasks = [];
     renderTasks();
     updateStats();
@@ -315,25 +268,17 @@ async function clearAllTasks() {
 }
 
 // ============================================
-// AUTH GUARD + INIT
+// AUTH + INIT
 // ============================================
 auth.onAuthStateChanged(async (user) => {
-  if (!user) {
-    // Not logged in → go to login page
-    window.location.href = 'login.html';
-    return;
-  }
+  if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
-
-  // Load data
   await loadTasks();
   updateWeekDisplay();
   renderTasks();
   updateStats();
   checkDarkMode();
   attachEventListeners();
-
-  // 🥷 Hide rasengan loader after load
   setTimeout(() => {
     const loader = document.getElementById('rasenganLoader');
     const main = document.getElementById('mainContainer');
@@ -342,38 +287,29 @@ auth.onAuthStateChanged(async (user) => {
   }, 1500);
 });
 
-// Expose functions to onclick
 window.toggleDarkMode = toggleDarkMode;
 window.deleteTask = deleteTask;
 window.logoutUser = logoutUser;
 
-// Event listeners (only once)
 let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
-
   document.getElementById('addBtn').addEventListener('click', addTask);
-  document.getElementById('taskInput').addEventListener('keypress', function (e) {
+  document.getElementById('taskInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') addTask();
   });
-  document.getElementById('prevWeekBtn').addEventListener('click', function () {
+  document.getElementById('prevWeekBtn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    updateWeekDisplay();
-    renderTasks();
-    updateStats();
+    updateWeekDisplay(); renderTasks(); updateStats();
   });
-  document.getElementById('nextWeekBtn').addEventListener('click', function () {
+  document.getElementById('nextWeekBtn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    updateWeekDisplay();
-    renderTasks();
-    updateStats();
+    updateWeekDisplay(); renderTasks(); updateStats();
   });
-  document.getElementById('todayBtn').addEventListener('click', function () {
+  document.getElementById('todayBtn').addEventListener('click', () => {
     currentWeekStart = getWeekStart(new Date());
-    updateWeekDisplay();
-    renderTasks();
-    updateStats();
+    updateWeekDisplay(); renderTasks(); updateStats();
   });
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
