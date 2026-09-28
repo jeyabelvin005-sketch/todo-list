@@ -5,7 +5,6 @@ let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 
-// ---------- Date helpers ----------
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -22,9 +21,7 @@ function formatDate(date) {
   return `${y}-${m}-${d}`;
 }
 
-function getToday() {
-  return formatDate(new Date());
-}
+function getToday() { return formatDate(new Date()); }
 
 function getTodayIndex() {
   const today = new Date();
@@ -37,7 +34,6 @@ function getTodayIndex() {
   return diffDays;
 }
 
-// ---------- Firestore ----------
 function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
 }
@@ -249,7 +245,7 @@ async function clearAllTasks() {
   }
 }
 
-// ---------- Character Quotes ----------
+// Character Quotes
 const characterQuotes = [
   { text: "Those who abandon their mission are trash, but those who abandon their comrades are worse than trash.", author: "Kakashi Hatake", emoji: "🥷" },
   { text: "The Yellow Flash of Konoha will always protect his village!", author: "Minato Namikaze", emoji: "💨" },
@@ -267,27 +263,24 @@ function rotateQuote() {
   const quoteEl = document.getElementById('quoteText');
   const authorEl = document.getElementById('quoteAuthor');
   if (!quoteEl || !authorEl) return;
-
   const q = characterQuotes[currentQuoteIndex];
   quoteEl.style.opacity = '0';
   authorEl.style.opacity = '0';
-
   setTimeout(() => {
     quoteEl.textContent = `"${q.text}"`;
     authorEl.textContent = `— ${q.emoji} ${q.author}`;
     quoteEl.style.opacity = '1';
     authorEl.style.opacity = '1';
   }, 400);
-
   currentQuoteIndex = (currentQuoteIndex + 1) % characterQuotes.length;
 }
 
-// ---------- Init ----------
+// Init
 auth.onAuthStateChanged(async (user) => {
   const loader = document.getElementById('rasenganLoader');
   const main = document.getElementById('mainContainer');
 
-  // Always hide loader after 2 seconds max
+  // Force hide loader after 2 sec always
   setTimeout(() => {
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
@@ -297,7 +290,6 @@ auth.onAuthStateChanged(async (user) => {
     window.location.href = 'login.html';
     return;
   }
-
   currentUser = user;
 
   try {
@@ -311,7 +303,6 @@ auth.onAuthStateChanged(async (user) => {
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
 
-    // Quotes
     setTimeout(rotateQuote, 500);
     setInterval(rotateQuote, 7000);
   } catch (err) {
@@ -329,7 +320,6 @@ let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
-
   document.getElementById('addBtn').addEventListener('click', addTask);
   document.getElementById('taskInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') addTask();
