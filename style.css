@@ -66,7 +66,7 @@ body::before {
 body.dark-mode {
     background-color: #050810;
     /* Dark theme background image — unga filename ah inga maathunga */
-    background-image: url('images/konoha-dark.png');
+    background-image: url('images/konoha-night.png');
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
