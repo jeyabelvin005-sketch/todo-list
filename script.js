@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker — Firebase + Character Theme
+// 🍥 Ninja Mission Tracker
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -172,7 +172,6 @@ function updateStats() {
   document.getElementById('progressPercent').textContent = `${percent}%`;
   document.getElementById('progressFill').style.width = `${percent}%`;
 
-  // 🎖️ Rank based on percent
   const rankEl = document.getElementById('rankLabel');
   if (rankEl) {
     let rank = '🥷 Academy Student';
@@ -250,9 +249,7 @@ async function clearAllTasks() {
   }
 }
 
-// ============================================
-// 🎭 CHARACTER QUOTES ROTATION
-// ============================================
+// ---------- Character Quotes ----------
 const characterQuotes = [
   { text: "Those who abandon their mission are trash, but those who abandon their comrades are worse than trash.", author: "Kakashi Hatake", emoji: "🥷" },
   { text: "The Yellow Flash of Konoha will always protect his village!", author: "Minato Namikaze", emoji: "💨" },
@@ -261,9 +258,7 @@ const characterQuotes = [
   { text: "Wake up to reality! Nothing ever goes as planned in this world.", author: "Madara Uchiha", emoji: "👁️" },
   { text: "People live their lives bound by what they accept as correct and true.", author: "Itachi Uchiha", emoji: "🐦" },
   { text: "I don't need to run from anyone. I have the will of fire in me.", author: "Sasuke Uchiha", emoji: "⚡" },
-  { text: "A woman's strength should never be underestimated.", author: "Sakura Haruno", emoji: "🌸" },
-  { text: "Failure is not an option when you have people counting on you.", author: "Kakashi Hatake", emoji: "🥷" },
-  { text: "Believe it! Every mission is a step to becoming Hokage!", author: "Naruto Uzumaki", emoji: "🍥" }
+  { text: "A woman's strength should never be underestimated.", author: "Sakura Haruno", emoji: "🌸" }
 ];
 
 let currentQuoteIndex = 0;
@@ -287,29 +282,43 @@ function rotateQuote() {
   currentQuoteIndex = (currentQuoteIndex + 1) % characterQuotes.length;
 }
 
-// ============================================
-// AUTH + INIT
-// ============================================
+// ---------- Init ----------
 auth.onAuthStateChanged(async (user) => {
-  if (!user) { window.location.href = 'login.html'; return; }
-  currentUser = user;
-  await loadTasks();
-  updateWeekDisplay();
-  renderTasks();
-  updateStats();
-  checkDarkMode();
-  attachEventListeners();
+  const loader = document.getElementById('rasenganLoader');
+  const main = document.getElementById('mainContainer');
 
+  // Always hide loader after 2 seconds max
   setTimeout(() => {
-    const loader = document.getElementById('rasenganLoader');
-    const main = document.getElementById('mainContainer');
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
-  }, 1500);
+  }, 2000);
 
-  // Start quote rotation
-  setTimeout(rotateQuote, 1000);
-  setInterval(rotateQuote, 7000);
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+
+  currentUser = user;
+
+  try {
+    await loadTasks();
+    updateWeekDisplay();
+    renderTasks();
+    updateStats();
+    checkDarkMode();
+    attachEventListeners();
+
+    if (loader) loader.classList.add('hide');
+    if (main) main.style.opacity = '1';
+
+    // Quotes
+    setTimeout(rotateQuote, 500);
+    setInterval(rotateQuote, 7000);
+  } catch (err) {
+    console.error('Init error:', err);
+    if (loader) loader.classList.add('hide');
+    if (main) main.style.opacity = '1';
+  }
 });
 
 window.toggleDarkMode = toggleDarkMode;
@@ -320,6 +329,7 @@ let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
+
   document.getElementById('addBtn').addEventListener('click', addTask);
   document.getElementById('taskInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') addTask();
