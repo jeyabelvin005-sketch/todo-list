@@ -1,371 +1,197 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#090d18">
-  <meta name="description" content="Ninja Mission Tracker — weekly productivity tracker with a shinobi theme.">
-  <title>Ninja Mission Tracker</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="style.css">
-
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
-  <script defer src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
-  <script defer src="firebase-config.js"></script>
-  <script defer src="script.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🍥 Ninja Mission Tracker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍥</text></svg>">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-
-  <div id="loadingScreen" class="loading-screen">
-    <div class="loading-symbol">☯</div>
-    <div class="loading-character">忍</div>
-    <p>Summoning the mission scroll...</p>
-  </div>
-
-  <div id="particleLayer" class="particle-layer" aria-hidden="true"></div>
-  <div id="toast" class="toast" role="status"></div>
-
-  <header class="topbar">
-    <a class="brand" href="index.html" aria-label="Ninja Mission Tracker home">
-      <span class="brand-seal">忍</span>
-      <span>
-        <strong>Ninja Mission</strong>
-        <small>Weekly Tracker</small>
-      </span>
-    </a>
-
-    <div class="header-actions">
-      <button id="soundToggle" class="icon-button" title="Toggle sound effects" aria-label="Toggle sound effects">
-        <i class="fa-solid fa-volume-xmark"></i>
-      </button>
-
-      <button id="themeToggle" class="icon-button" title="Toggle theme" aria-label="Toggle theme">
-        <i class="fa-solid fa-moon"></i>
-      </button>
-
-      <div class="user-menu">
-        <button id="profileButton" class="profile-button" aria-expanded="false">
-          <img id="headerAvatar" src="images/naruto.svg" alt="Selected ninja">
-          <span id="headerCharacterName">Naruto</span>
-          <i class="fa-solid fa-chevron-down"></i>
-        </button>
-
-        <div id="profileMenu" class="profile-menu hidden">
-          <button id="openCharacterModal">
-            <i class="fa-solid fa-user-ninja"></i>
-            Choose character
-          </button>
-          <button id="backupButton">
-            <i class="fa-solid fa-download"></i>
-            Backup missions
-          </button>
-          <button id="restoreButton">
-            <i class="fa-solid fa-upload"></i>
-            Restore backup
-          </button>
-          <input id="restoreInput" type="file" accept="application/json" hidden>
-          <button id="logoutButton" class="danger-text">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            Logout
-          </button>
-        </div>
-      </div>
+    <!-- ===== FLOATING NINJA CHARACTERS ===== -->
+    <div class="character-layer">
+        <div class="ninja-run naruto">🍥</div>
+        <div class="ninja-run sasuke">⚡</div>
+        <div class="ninja-run sakura">🌸</div>
+        <div class="ninja-run kakashi">🥷</div>
+        <div class="ninja-run minato">💨</div>
+        <div class="ninja-run itachi">🐦</div>
+        <div class="ninja-run jiraiya">🐸</div>
+        <div class="ninja-run madara">👁️</div>
+        <div class="ninja-run scroll">📜</div>
+        <div class="ninja-run shuriken">🌀</div>
     </div>
-  </header>
 
-  <main class="app-shell">
-    <section class="hero-panel">
-      <div class="hero-copy">
-        <p class="eyebrow">Mission Control · <span id="currentDateLabel"></span></p>
-        <h1>Train hard. <span id="heroCharacterName">Believe it!</span></h1>
-        <p id="characterQuote" class="hero-quote">
-          The next great Hokage is built one mission at a time.
-        </p>
-
-        <div class="rank-line">
-          <span id="rankBadge" class="rank-badge">Academy Student</span>
-          <span id="rankPoints">0 XP</span>
-          <span class="rank-progress-wrap">
-            <span id="rankProgress" class="rank-progress"></span>
-          </span>
-          <span id="nextRankText">100 XP to Genin</span>
-        </div>
-      </div>
-
-      <div class="hero-avatar-wrap">
-        <div class="hero-chakra-ring"></div>
-        <img id="heroAvatar" class="hero-avatar" src="images/naruto.svg" alt="Selected ninja avatar">
-        <span id="heroJutsu" class="hero-jutsu">影分身の術!</span>
-      </div>
-    </section>
-
-    <section class="stat-grid" aria-label="Weekly statistics">
-      <article class="stat-card orange">
-        <div class="stat-icon"><i class="fa-solid fa-scroll"></i></div>
-        <div>
-          <span>Total missions</span>
-          <strong id="totalTasks">0</strong>
-          <small>Naruto says: keep moving</small>
-        </div>
-      </article>
-
-      <article class="stat-card blue">
-        <div class="stat-icon"><i class="fa-solid fa-bolt"></i></div>
-        <div>
-          <span>Weekly completion</span>
-          <strong id="completionPercent">0%</strong>
-          <small>Sasuke says: sharpen your edge</small>
-        </div>
-      </article>
-
-      <article class="stat-card pink">
-        <div class="stat-icon"><i class="fa-solid fa-heart"></i></div>
-        <div>
-          <span>Victories</span>
-          <strong id="completedToday">0</strong>
-          <small>Sakura says: protect your focus</small>
-        </div>
-      </article>
-
-      <article class="stat-card purple">
-        <div class="stat-icon"><i class="fa-solid fa-trophy"></i></div>
-        <div>
-          <span>Current streak</span>
-          <strong id="currentStreak">0</strong>
-          <small>Keep the chakra flowing</small>
-        </div>
-      </article>
-    </section>
-
-    <section class="toolbar panel">
-      <div class="week-navigation">
-        <button id="previousWeek" class="icon-button" title="Previous week" aria-label="Previous week">
-          <i class="fa-solid fa-chevron-left"></i>
-        </button>
-        <div>
-          <p class="eyebrow">Current scroll</p>
-          <h2 id="weekLabel">This week</h2>
-        </div>
-        <button id="nextWeek" class="icon-button" title="Next week" aria-label="Next week">
-          <i class="fa-solid fa-chevron-right"></i>
-        </button>
-        <button id="todayButton" class="secondary-button">Today</button>
-      </div>
-
-      <div class="view-switcher">
-        <button class="view-button active" data-view="scroll">
-          <i class="fa-solid fa-list-check"></i>
-          Scroll
-        </button>
-        <button class="view-button" data-view="tournament">
-          <i class="fa-solid fa-trophy"></i>
-          Tournament
-        </button>
-      </div>
-    </section>
-
-    <section class="filters panel">
-      <div class="search-field">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input id="searchInput" type="search" placeholder="Search missions, notes, categories..." autocomplete="off">
-      </div>
-
-      <select id="categoryFilter" aria-label="Filter by category">
-        <option value="all">All categories</option>
-        <option value="training">Training</option>
-        <option value="missions">Missions</option>
-        <option value="study">Study</option>
-        <option value="personal">Personal</option>
-      </select>
-
-      <select id="priorityFilter" aria-label="Filter by priority">
-        <option value="all">All ranks</option>
-        <option value="S">S-Rank</option>
-        <option value="A">A-Rank</option>
-        <option value="B">B-Rank</option>
-        <option value="C">C-Rank</option>
-      </select>
-
-      <select id="statusFilter" aria-label="Filter by status">
-        <option value="all">All statuses</option>
-        <option value="active">Active</option>
-        <option value="completed">Completed today</option>
-        <option value="overdue">Overdue</option>
-      </select>
-
-      <button id="addTaskButton" class="primary-button">
-        <i class="fa-solid fa-plus"></i>
-        New mission
-      </button>
-    </section>
-
-    <section id="scrollView" class="workspace-view">
-      <div class="week-grid" id="weekGrid"></div>
-    </section>
-
-    <section id="tournamentView" class="workspace-view hidden">
-      <div class="tournament-panel panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Weekly tournament</p>
-            <h2>Village leaderboard</h2>
-          </div>
-          <span id="tournamentRank" class="rank-badge">Academy Student</span>
-        </div>
-
-        <div class="tournament-progress">
-          <div class="tournament-progress-label">
-            <span>Your weekly score</span>
-            <strong id="tournamentScore">0 points</strong>
-          </div>
-          <div class="progress-track">
-            <span id="tournamentProgress"></span>
-          </div>
-        </div>
-
-        <div id="tournamentStats" class="tournament-stats"></div>
-
-        <div class="tournament-tip">
-          <i class="fa-solid fa-scroll"></i>
-          <span id="tournamentMessage">Complete missions to climb the tournament board.</span>
-        </div>
-      </div>
-
-      <div class="panel weekly-summary">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Mission report</p>
-            <h2>Weekly summary</h2>
-          </div>
-        </div>
-        <div id="summaryGrid" class="summary-grid"></div>
-      </div>
-    </section>
-
-    <section class="bottom-grid">
-      <article class="panel achievements-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Village records</p>
-            <h2>Achievements</h2>
-          </div>
-          <span id="achievementCount">0/0</span>
-        </div>
-        <div id="achievementsGrid" class="achievements-grid"></div>
-      </article>
-
-      <article class="panel quote-panel">
-        <div class="quote-kunai">✦</div>
-        <p class="eyebrow">Sensei's wisdom</p>
-        <blockquote id="rotatingQuote">
-          “Hard work is worthless for those that do not believe in themselves.”
-        </blockquote>
-        <cite id="quoteAuthor">— Naruto Uzumaki</cite>
-      </article>
-    </section>
-  </main>
-
-  <div id="taskModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
-    <div class="modal-card scroll-modal">
-      <button class="modal-close" data-close-modal="taskModal" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <div class="modal-heading">
-        <span class="modal-seal">巻</span>
-        <div>
-          <p class="eyebrow">Mission scroll</p>
-          <h2 id="taskModalTitle">New mission</h2>
-        </div>
-      </div>
-
-      <form id="taskForm" novalidate>
-        <input id="taskId" type="hidden">
-
-        <label for="taskTitle">Mission title</label>
-        <input id="taskTitle" type="text" maxlength="120" placeholder="Complete 30 minutes of training" required>
-
-        <div class="form-two-column">
-          <div>
-            <label for="taskCategory">Category</label>
-            <select id="taskCategory">
-              <option value="training">Training</option>
-              <option value="missions">Missions</option>
-              <option value="study">Study</option>
-              <option value="personal">Personal</option>
-            </select>
-          </div>
-
-          <div>
-            <label for="taskPriority">Mission rank</label>
-            <select id="taskPriority">
-              <option value="S">S-Rank</option>
-              <option value="A">A-Rank</option>
-              <option value="B" selected>B-Rank</option>
-              <option value="C">C-Rank</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="form-two-column">
-          <div>
-            <label for="taskDeadline">Deadline</label>
-            <input id="taskDeadline" type="date">
-          </div>
-
-          <div>
-            <label for="taskAvatar">Task avatar</label>
-            <select id="taskAvatar">
-              <option value="naruto">Naruto</option>
-              <option value="sasuke">Sasuke</option>
-              <option value="sakura">Sakura</option>
-              <option value="kakashi">Kakashi</option>
-              <option value="itachi">Itachi</option>
-              <option value="gaara">Gaara</option>
-            </select>
-          </div>
-        </div>
-
-        <label for="taskNotes">Notes / description</label>
-        <textarea id="taskNotes" maxlength="500" rows="4" placeholder="Add intel, resources, or mission details..."></textarea>
-
-        <label class="checkbox-line">
-          <input id="reminderEnabled" type="checkbox">
-          <span>Enable deadline reminder notification</span>
-        </label>
-
-        <div class="modal-actions">
-          <button type="button" class="secondary-button" data-close-modal="taskModal">Cancel</button>
-          <button type="submit" class="primary-button">
-            <i class="fa-solid fa-feather-pointed"></i>
-            Save mission
-          </button>
-        </div>
-      </form>
+    <!-- ===== CHAKRA PARTICLES ===== -->
+    <div class="chakra-particles">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
     </div>
-  </div>
 
-  <div id="characterModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="characterModalTitle">
-    <div class="modal-card">
-      <button class="modal-close" data-close-modal="characterModal" aria-label="Close">
-        <i class="fa-solid fa-xmark"></i>
-      </button>
-
-      <div class="modal-heading">
-        <span class="modal-seal">影</span>
-        <div>
-          <p class="eyebrow">Choose your path</p>
-          <h2 id="characterModalTitle">Ninja character</h2>
+    <!-- ===== RASENGAN LOADER ===== -->
+    <div class="rasengan-loader" id="rasenganLoader">
+        <div class="rasengan">
+            <div class="rasengan-core"></div>
+            <div class="rasengan-ring"></div>
+            <div class="rasengan-ring r2"></div>
+            <div class="rasengan-ring r3"></div>
         </div>
-      </div>
-
-      <div id="characterGrid" class="character-grid"></div>
+        <p class="loading-text">Loading Ninja Data...</p>
     </div>
-  </div>
+
+    <div class="container" id="mainContainer" style="opacity:0;">
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <div class="logo">
+                <div class="konoha-symbol">
+                    <span>🍥</span>
+                </div>
+                <div class="logo-text">
+                    <h1>Ninja Mission Tracker</h1>
+                    <span class="subtitle">疾風伝 • Weekly Training Log</span>
+                </div>
+            </div>
+            <div class="header-buttons">
+                <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
+                    <i class="fas fa-moon"></i>
+                </button>
+                <button class="icon-btn logout-btn" onclick="logoutUser()" title="Logout">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== WEEK NAVIGATION ===== -->
+        <div class="week-nav">
+            <button class="nav-btn" id="prevWeekBtn">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <div class="week-label-wrap">
+                <span class="week-kanji">週</span>
+                <span id="weekLabel">This Week</span>
+            </div>
+            <button class="nav-btn" id="nextWeekBtn">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+            <button class="today-btn" id="todayBtn">
+                <i class="fas fa-bolt"></i> Today
+            </button>
+        </div>
+
+        <!-- ===== MINATO'S CHAKRA PROGRESS ===== -->
+        <div class="progress-section">
+            <div class="progress-header">
+                <span>
+                    <span class="char-badge minato-badge">💨</span>
+                    <strong class="char-title">Minato's</strong> Chakra Progress
+                </span>
+                <span id="progressPercent" class="chakra-percent">0%</span>
+            </div>
+            <div class="chakra-bar">
+                <div class="chakra-fill" id="progressFill">
+                    <div class="chakra-glow"></div>
+                </div>
+            </div>
+            <div class="progress-rank" id="rankLabel">🥷 Academy Student</div>
+        </div>
+
+        <!-- ===== STATS WITH CHARACTER NAMES ===== -->
+        <div class="stats-grid">
+            <div class="stat-card naruto-card">
+                <div class="stat-icon">🍥</div>
+                <div class="stat-info">
+                    <span class="char-name naruto-name">NARUTO</span>
+                    <span class="stat-label">Total Missions</span>
+                    <span class="stat-value" id="totalTasks">0</span>
+                </div>
+            </div>
+            <div class="stat-card sasuke-card">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-info">
+                    <span class="char-name sasuke-name">SASUKE</span>
+                    <span class="stat-label">Completed</span>
+                    <span class="stat-value" id="completedTasks">0</span>
+                </div>
+            </div>
+            <div class="stat-card sakura-card">
+                <div class="stat-icon">🌸</div>
+                <div class="stat-info">
+                    <span class="char-name sakura-name">SAKURA</span>
+                    <span class="stat-label">Pending</span>
+                    <span class="stat-value" id="pendingTasks">0</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ROTATING CHARACTER QUOTE ===== -->
+        <div class="quote-section">
+            <div class="quote-icon">💬</div>
+            <p class="quote-text" id="quoteText">"Those who abandon their mission are trash, but those who abandon their comrades are worse than trash."</p>
+            <p class="quote-author" id="quoteAuthor">— 🥷 Kakashi Hatake</p>
+        </div>
+
+        <!-- ===== KAKASHI'S ORDERS — ADD TASK ===== -->
+        <div class="add-section">
+            <div class="add-header">
+                <h2>
+                    <span class="char-badge kakashi-badge">🥷</span>
+                    <strong class="char-title">Kakashi's</strong> Orders
+                </h2>
+                <span class="hint">Press Enter to assign</span>
+            </div>
+            <div class="add-form">
+                <input type="text" id="taskInput" placeholder="What's your mission, shinobi?" class="main-input">
+                <button id="addBtn" class="add-btn">
+                    <i class="fas fa-bolt"></i> Assign
+                </button>
+            </div>
+        </div>
+
+        <!-- ===== WEEKLY TABLE ===== -->
+        <div class="table-container">
+            <table id="taskTable">
+                <thead>
+                    <tr>
+                        <th class="task-col"><i class="fas fa-list"></i> Mission</th>
+                        <th id="day1Header">Mon</th>
+                        <th id="day2Header">Tue</th>
+                        <th id="day3Header">Wed</th>
+                        <th id="day4Header">Thu</th>
+                        <th id="day5Header">Fri</th>
+                        <th id="day6Header">Sat</th>
+                        <th id="day7Header">Sun</th>
+                    </tr>
+                </thead>
+                <tbody id="taskTableBody"></tbody>
+            </table>
+        </div>
+
+        <!-- ===== LEGEND ===== -->
+        <div class="legend">
+            <span class="legend-item"><span class="legend-icon completed">🍥</span> Completed</span>
+            <span class="legend-item"><span class="legend-icon pending">💢</span> Failed</span>
+            <span class="legend-item"><span class="legend-icon today">⚔️</span> Active</span>
+            <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
+        </div>
+
+        <!-- ===== ITACHI & MADARA ACTIONS ===== -->
+        <div class="bottom-actions">
+            <button class="export-btn" id="backupBtn">
+                <i class="fas fa-download"></i> Itachi's Backup
+            </button>
+            <button class="clear-btn" id="clearBtn">
+                <i class="fas fa-trash-alt"></i> Madara's Clear All
+            </button>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
