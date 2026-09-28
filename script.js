@@ -1,6 +1,4 @@
-// ============================================
-// 🍥 Ninja Mission Tracker
-// ============================================
+// 🍥 Ninja Mission Tracker — Firebase + Naruto Theme
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
@@ -13,16 +11,15 @@ function getWeekStart(date) {
   d.setHours(0, 0, 0, 0);
   return d;
 }
-
 function formatDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
-
 function getToday() { return formatDate(new Date()); }
 
+// 🎯 FIX: Based on current week navigation
 function getTodayIndex() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -122,26 +119,31 @@ function renderTasks() {
       dayCell.className = 'checkbox';
 
       if (i > todayIndex) {
-        dayCell.textContent = '🔒';
+        dayCell.innerHTML = '<span class="cell-icon">🔒</span>';
         dayCell.classList.add('locked');
+        dayCell.title = 'Future day - locked';
         dayCell.style.cursor = 'not-allowed';
       } else if (i === todayIndex) {
         if (task.days[i]) {
-          dayCell.textContent = '🍥';
+          dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
+          dayCell.title = 'Completed today';
         } else {
-          dayCell.textContent = '⚔️';
+          dayCell.innerHTML = '<img src="images/kunai.jpg" class="cell-img" alt="today">';
           dayCell.classList.add('today');
+          dayCell.title = 'Today - click to complete';
         }
         dayCell.style.cursor = 'pointer';
         dayCell.onclick = () => toggleDay(task.id, i);
       } else {
         if (task.days[i]) {
-          dayCell.textContent = '🍥';
+          dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
+          dayCell.title = 'Completed - click to undo';
         } else {
-          dayCell.textContent = '💢';
+          dayCell.innerHTML = '<img src="images/failed.jpg" class="cell-img" alt="failed">';
           dayCell.classList.add('pending');
+          dayCell.title = 'Not completed';
         }
         dayCell.style.cursor = 'pointer';
         dayCell.onclick = () => toggleDay(task.id, i);
@@ -210,18 +212,15 @@ function toggleDarkMode() {
   document.getElementById('darkModeBtn').innerHTML = isDark ?
     '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 }
-
 function checkDarkMode() {
   if (localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark-mode');
     document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i>';
   }
 }
-
 function logoutUser() {
   if (confirm('Logout from Konoha?')) auth.signOut();
 }
-
 function backupData() {
   const dataStr = JSON.stringify(tasks, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
@@ -232,7 +231,6 @@ function backupData() {
   a.click();
   window.URL.revokeObjectURL(url);
 }
-
 async function clearAllTasks() {
   if (tasks.length === 0) { alert('No missions to clear!'); return; }
   if (confirm(`Delete ALL ${tasks.length} missions?`)) {
@@ -245,71 +243,21 @@ async function clearAllTasks() {
   }
 }
 
-// Character Quotes
-const characterQuotes = [
-  { text: "Those who abandon their mission are trash, but those who abandon their comrades are worse than trash.", author: "Kakashi Hatake", emoji: "🥷" },
-  { text: "The Yellow Flash of Konoha will always protect his village!", author: "Minato Namikaze", emoji: "💨" },
-  { text: "I'm not gonna run away, I never go back on my word! That's my nindo: my ninja way!", author: "Naruto Uzumaki", emoji: "🍥" },
-  { text: "A ninja's true power is not in the number of jutsu he knows, but in the will to never give up.", author: "Jiraiya", emoji: "🐸" },
-  { text: "Wake up to reality! Nothing ever goes as planned in this world.", author: "Madara Uchiha", emoji: "👁️" },
-  { text: "People live their lives bound by what they accept as correct and true.", author: "Itachi Uchiha", emoji: "🐦" },
-  { text: "I don't need to run from anyone. I have the will of fire in me.", author: "Sasuke Uchiha", emoji: "⚡" },
-  { text: "A woman's strength should never be underestimated.", author: "Sakura Haruno", emoji: "🌸" }
-];
-
-let currentQuoteIndex = 0;
-
-function rotateQuote() {
-  const quoteEl = document.getElementById('quoteText');
-  const authorEl = document.getElementById('quoteAuthor');
-  if (!quoteEl || !authorEl) return;
-  const q = characterQuotes[currentQuoteIndex];
-  quoteEl.style.opacity = '0';
-  authorEl.style.opacity = '0';
-  setTimeout(() => {
-    quoteEl.textContent = `"${q.text}"`;
-    authorEl.textContent = `— ${q.emoji} ${q.author}`;
-    quoteEl.style.opacity = '1';
-    authorEl.style.opacity = '1';
-  }, 400);
-  currentQuoteIndex = (currentQuoteIndex + 1) % characterQuotes.length;
-}
-
-// Init
 auth.onAuthStateChanged(async (user) => {
-  const loader = document.getElementById('rasenganLoader');
-  const main = document.getElementById('mainContainer');
-
-  // Force hide loader after 2 sec always
-  setTimeout(() => {
-    if (loader) loader.classList.add('hide');
-    if (main) main.style.opacity = '1';
-  }, 2000);
-
-  if (!user) {
-    window.location.href = 'login.html';
-    return;
-  }
+  if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
-
-  try {
-    await loadTasks();
-    updateWeekDisplay();
-    renderTasks();
-    updateStats();
-    checkDarkMode();
-    attachEventListeners();
-
+  await loadTasks();
+  updateWeekDisplay();
+  renderTasks();
+  updateStats();
+  checkDarkMode();
+  attachEventListeners();
+  setTimeout(() => {
+    const loader = document.getElementById('rasenganLoader');
+    const main = document.getElementById('mainContainer');
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
-
-    setTimeout(rotateQuote, 500);
-    setInterval(rotateQuote, 7000);
-  } catch (err) {
-    console.error('Init error:', err);
-    if (loader) loader.classList.add('hide');
-    if (main) main.style.opacity = '1';
-  }
+  }, 1500);
 });
 
 window.toggleDarkMode = toggleDarkMode;
@@ -339,5 +287,4 @@ function attachEventListeners() {
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 }
-
 console.log('🍥 Ninja Mission Tracker loaded!');
