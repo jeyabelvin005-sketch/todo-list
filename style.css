@@ -1309,3 +1309,56 @@ td:first-child {
     .legend-img { width: 20px; height: 20px; }
     .konoha-symbol { width: 50px; height: 50px; }
 }
+/* ============================================
+   🎌 LEGEND ICONS — Emoji with Colors
+   ============================================ */
+
+.legend-icon {
+    font-size: 20px !important;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    font-style: normal;
+    background-image: none !important;
+    width: auto !important;
+    height: auto !important;
+    text-shadow: 0 0 8px rgba(255, 165, 0, 0.5);
+}
+
+/* ✅ Completed — Cyan glow */
+.legend-icon.completed {
+    color: #00d9ff;
+    text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff;
+    animation: legendPulse 2s ease-in-out infinite;
+}
+
+/* ❌ Failed — Red glow */
+.legend-icon.pending {
+    color: #ff5555;
+    text-shadow: 0 0 10px #ff5555;
+}
+
+/* ⚔️ Active — Gold glow */
+.legend-icon.today {
+    color: #ffd700;
+    text-shadow: 0 0 10px #ffd700, 0 0 20px #ff6b1a;
+    animation: legendPulse 1.5s ease-in-out infinite;
+}
+
+/* 🔒 Locked — Grey */
+.legend-icon.locked {
+    color: #888;
+    text-shadow: 0 0 5px #000;
+    opacity: 0.85;
+}
+
+@keyframes legendPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.15); }
+}
+
+/* Legend item hover */
+.legend-item:hover .legend-icon {
+    transform: scale(1.2);
+    transition: transform 0.3s;
+}
