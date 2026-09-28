@@ -8,45 +8,23 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        /* Login-specific styles */
-        .login-body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
         .login-container {
-            width: 100%;
-            max-width: 460px;
+            width: 100%; max-width: 460px;
             background: linear-gradient(135deg, rgba(45, 27, 15, 0.95) 0%, rgba(30, 20, 12, 0.98) 100%);
             border: 2px solid rgba(255, 165, 0, 0.35);
             border-radius: 24px;
-            box-shadow: 
-                0 20px 60px rgba(0, 0, 0, 0.7),
-                0 0 100px rgba(255, 107, 26, 0.2),
-                inset 0 1px 0 rgba(255, 200, 100, 0.15);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7), 0 0 100px rgba(255, 107, 26, 0.2);
             padding: 40px 35px;
-            position: relative;
-            z-index: 2;
+            position: relative; z-index: 2;
             backdrop-filter: blur(12px);
             animation: containerEnter 1s ease-out;
         }
-
-        .login-logo {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
+        .login-logo { text-align: center; margin-bottom: 30px; }
         .login-logo .konoha-symbol {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 18px;
-            font-size: 42px;
-            border-width: 3px;
+            width: 80px; height: 80px; margin: 0 auto 18px;
+            font-size: 42px; border-width: 3px;
         }
-
         .login-logo h1 {
             font-size: 26px;
             background: linear-gradient(135deg, var(--naruto-orange), var(--gold), var(--naruto-orange));
@@ -55,207 +33,58 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             font-weight: 800;
-            letter-spacing: 0.5px;
             animation: gradientShift 3s ease infinite;
             margin-bottom: 6px;
         }
-
-        .login-logo .subtitle {
-            color: rgba(255, 200, 100, 0.7);
-            font-size: 12px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
-
-        /* Tabs */
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 25px;
-            border-bottom: 2px solid rgba(255, 165, 0, 0.25);
-            gap: 5px;
-        }
-
+        .login-logo .subtitle { color: rgba(255,200,100,0.7); font-size: 12px; letter-spacing: 4px; text-transform: uppercase; }
+        .auth-tabs { display: flex; margin-bottom: 25px; border-bottom: 2px solid rgba(255,165,0,0.25); gap: 5px; }
         .auth-tab {
-            flex: 1;
-            padding: 12px 10px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 700;
-            color: rgba(255, 200, 100, 0.6);
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-            font-family: inherit;
-            letter-spacing: 0.5px;
+            flex: 1; padding: 12px 10px; background: none; border: none;
+            cursor: pointer; font-size: 15px; font-weight: 700;
+            color: rgba(255,200,100,0.6); transition: all 0.3s;
+            border-bottom: 3px solid transparent; margin-bottom: -2px;
+            font-family: inherit; letter-spacing: 0.5px;
         }
-
-        .auth-tab.active {
-            color: var(--naruto-orange);
-            border-bottom-color: var(--naruto-orange);
-            text-shadow: 0 0 10px rgba(255, 107, 26, 0.6);
-        }
-
-        .auth-tab:hover {
-            color: var(--naruto-orange-light);
-        }
-
-        /* Forms */
-        .auth-form {
-            display: none;
-        }
-
-        .auth-form.active {
-            display: block;
-            animation: fadeIn 0.4s ease-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        .auth-tab.active { color: var(--naruto-orange); border-bottom-color: var(--naruto-orange); text-shadow: 0 0 10px rgba(255,107,26,0.6); }
+        .auth-tab:hover { color: var(--naruto-orange-light); }
+        .auth-form { display: none; }
+        .auth-form.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .auth-form input {
-            width: 100%;
-            padding: 14px 18px;
-            margin-bottom: 14px;
-            background: rgba(0, 0, 0, 0.4);
-            border: 2px solid rgba(255, 165, 0, 0.25);
-            border-radius: 12px;
-            font-size: 15px;
-            color: #fff;
-            font-family: inherit;
-            transition: all 0.3s;
+            width: 100%; padding: 14px 18px; margin-bottom: 14px;
+            background: rgba(0,0,0,0.4); border: 2px solid rgba(255,165,0,0.25);
+            border-radius: 12px; font-size: 15px; color: #fff;
+            font-family: inherit; transition: all 0.3s;
         }
-
-        .auth-form input::placeholder {
-            color: rgba(255, 200, 100, 0.4);
-        }
-
+        .auth-form input::placeholder { color: rgba(255,200,100,0.4); }
         .auth-form input:focus {
-            outline: none;
-            border-color: var(--naruto-orange);
-            background: rgba(0, 0, 0, 0.55);
-            box-shadow: 0 0 0 4px rgba(255, 107, 26, 0.15), 0 0 25px rgba(255, 107, 26, 0.3);
-            transform: translateY(-2px);
+            outline: none; border-color: var(--naruto-orange);
+            background: rgba(0,0,0,0.55);
+            box-shadow: 0 0 0 4px rgba(255,107,26,0.15), 0 0 25px rgba(255,107,26,0.3);
         }
-
         .auth-form button[type="submit"] {
-            width: 100%;
-            padding: 15px;
-            margin-top: 8px;
+            width: 100%; padding: 15px; margin-top: 8px;
             background: linear-gradient(135deg, var(--naruto-orange), #e55000);
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            box-shadow: 0 5px 20px rgba(255, 107, 26, 0.5);
-            position: relative;
-            overflow: hidden;
+            color: #fff; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
+            box-shadow: 0 5px 20px rgba(255,107,26,0.5);
         }
-
-        .auth-form button[type="submit"]::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.5s;
+        .auth-form button[type="submit"]:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(255,107,26,0.7); }
+        .auth-form button[type="submit"]:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .auth-error, .auth-success {
+            font-size: 13px; margin-bottom: 12px; min-height: 18px;
+            text-align: center; font-weight: 600;
         }
-
-        .auth-form button[type="submit"]:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(255, 107, 26, 0.7);
-        }
-
-        .auth-form button[type="submit"]:hover::before {
-            transform: translateX(100%);
-        }
-
-        .auth-form button[type="submit"]:active {
-            transform: translateY(-1px) scale(0.98);
-        }
-
-        .auth-form button[type="submit"]:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
-        }
-
-        /* Messages */
-        .auth-error,
-        .auth-success {
-            font-size: 13px;
-            margin-bottom: 12px;
-            min-height: 18px;
-            text-align: center;
-            font-weight: 600;
-            transition: all 0.3s;
-        }
-
-        .auth-error {
-            color: #ff5555;
-            text-shadow: 0 0 8px rgba(255, 85, 85, 0.5);
-        }
-
-        .auth-success {
-            color: #55d6a1;
-            text-shadow: 0 0 8px rgba(85, 214, 161, 0.5);
-        }
-
-        /* Quote at bottom */
-        .login-quote {
-            margin-top: 28px;
-            padding-top: 22px;
-            border-top: 1px solid rgba(255, 165, 0, 0.2);
-            text-align: center;
-        }
-
-        .login-quote p {
-            font-size: 13px;
-            font-style: italic;
-            color: rgba(255, 200, 100, 0.7);
-            line-height: 1.5;
-            margin-bottom: 6px;
-        }
-
-        .login-quote .quote-source {
-            font-size: 11px;
-            color: var(--gold);
-            letter-spacing: 2px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
-
-        @media (max-width: 550px) {
-            .login-container {
-                padding: 30px 22px;
-            }
-            .login-logo h1 {
-                font-size: 22px;
-            }
-            .login-logo .konoha-symbol {
-                width: 70px;
-                height: 70px;
-                font-size: 36px;
-            }
-        }
+        .auth-error { color: #ff5555; }
+        .auth-success { color: #55d6a1; }
+        .login-quote { margin-top: 28px; padding-top: 22px; border-top: 1px solid rgba(255,165,0,0.2); text-align: center; }
+        .login-quote p { font-size: 13px; font-style: italic; color: rgba(255,200,100,0.7); line-height: 1.5; margin-bottom: 6px; }
+        .login-quote .quote-source { font-size: 11px; color: var(--gold); letter-spacing: 2px; font-weight: 700; text-transform: uppercase; }
     </style>
 </head>
-<body class="login-body">
-
-    <!-- Floating Characters -->
+<body>
     <div class="character-layer">
         <div class="ninja-run naruto">🍥</div>
         <div class="ninja-run sasuke">⚡</div>
@@ -266,25 +95,12 @@
         <div class="ninja-run jiraiya">🐸</div>
     </div>
 
-    <!-- Chakra Particles -->
     <div class="chakra-particles">
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
     </div>
 
-    <!-- Rasengan Loader (small) -->
-    <div class="rasengan-loader hide" id="rasenganLoader">
-        <div class="rasengan">
-            <div class="rasengan-core"></div>
-            <div class="rasengan-ring"></div>
-            <div class="rasengan-ring r2"></div>
-            <div class="rasengan-ring r3"></div>
-        </div>
-        <p class="loading-text">Entering Konoha...</p>
-    </div>
-
-    <!-- Login Container -->
     <div class="login-container">
         <div class="login-logo">
             <div class="konoha-symbol">🍥</div>
@@ -292,66 +108,50 @@
             <span class="subtitle">疾風伝 • Weekly Training Log</span>
         </div>
 
-        <!-- Tabs -->
         <div class="auth-tabs">
-            <button class="auth-tab active" data-tab="login">
-                <i class="fas fa-sign-in-alt"></i> Login
-            </button>
-            <button class="auth-tab" data-tab="signup">
-                <i class="fas fa-user-plus"></i> Sign Up
-            </button>
+            <button class="auth-tab active" data-tab="login"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <button class="auth-tab" data-tab="signup"><i class="fas fa-user-plus"></i> Sign Up</button>
         </div>
 
-        <!-- Login Form -->
         <form id="loginForm" class="auth-form active">
             <div class="auth-error" id="loginError"></div>
             <input type="email" id="loginEmail" placeholder="📧 Email address" required autocomplete="email">
             <input type="password" id="loginPassword" placeholder="🔒 Password" required minlength="6" autocomplete="current-password">
-            <button type="submit" id="loginBtn">
-                <i class="fas fa-bolt"></i> Enter the Village
-            </button>
+            <button type="submit" id="loginBtn"><i class="fas fa-bolt"></i> Enter the Village</button>
         </form>
 
-        <!-- Signup Form -->
         <form id="signupForm" class="auth-form">
             <div class="auth-error" id="signupError"></div>
             <div class="auth-success" id="signupSuccess"></div>
             <input type="email" id="signupEmail" placeholder="📧 Email address" required autocomplete="email">
             <input type="password" id="signupPassword" placeholder="🔒 Password (min 6 chars)" required minlength="6" autocomplete="new-password">
             <input type="password" id="signupConfirm" placeholder="🔒 Confirm password" required minlength="6" autocomplete="new-password">
-            <button type="submit" id="signupBtn">
-                <i class="fas fa-user-ninja"></i> Begin Your Journey
-            </button>
+            <button type="submit" id="signupBtn"><i class="fas fa-user-ninja"></i> Begin Your Journey</button>
         </form>
 
-        <!-- Quote -->
         <div class="login-quote">
             <p>"Those who abandon their mission are trash, but those who abandon their comrades are worse than trash."</p>
             <span class="quote-source">— 🥷 Kakashi Hatake</span>
         </div>
     </div>
 
-    <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script>
-        // Tab switching
         document.querySelectorAll('.auth-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
-                // Clear messages
                 document.getElementById('loginError').textContent = '';
                 document.getElementById('signupError').textContent = '';
                 document.getElementById('signupSuccess').textContent = '';
             });
         });
 
-        // Login
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errEl = document.getElementById('loginError');
@@ -370,7 +170,6 @@
             }
         });
 
-        // Signup
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errEl = document.getElementById('signupError');
@@ -378,19 +177,13 @@
             const btn = document.getElementById('signupBtn');
             errEl.textContent = '';
             okEl.textContent = '';
-
             const pwd = document.getElementById('signupPassword').value;
             const conf = document.getElementById('signupConfirm').value;
-            if (pwd !== conf) {
-                errEl.textContent = 'Passwords do not match!';
-                return;
-            }
-
+            if (pwd !== conf) { errEl.textContent = 'Passwords do not match!'; return; }
             btn.disabled = true;
             try {
                 await auth.createUserWithEmailAndPassword(
-                    document.getElementById('signupEmail').value.trim(),
-                    pwd
+                    document.getElementById('signupEmail').value.trim(), pwd
                 );
                 okEl.textContent = '🍥 Welcome, shinobi! Redirecting...';
                 setTimeout(() => window.location.href = 'index.html', 800);
@@ -400,7 +193,6 @@
             }
         });
 
-        // Already logged in? Go to app
         auth.onAuthStateChanged(user => {
             if (user) window.location.href = 'index.html';
         });
