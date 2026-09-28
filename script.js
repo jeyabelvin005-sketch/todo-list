@@ -1,8 +1,11 @@
-// 🍥 Ninja Mission Tracker — Firebase + Naruto Theme
+// ============================================
+// 🍥 Ninja Mission Tracker — Firebase + Image Icons
+// ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 
+// ---------- Date helpers ----------
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -11,15 +14,16 @@ function getWeekStart(date) {
   d.setHours(0, 0, 0, 0);
   return d;
 }
+
 function formatDate(date) {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
 }
+
 function getToday() { return formatDate(new Date()); }
 
-// 🎯 FIX: Based on current week navigation
 function getTodayIndex() {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -31,6 +35,7 @@ function getTodayIndex() {
   return diffDays;
 }
 
+// ---------- Firestore ----------
 function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
 }
@@ -119,31 +124,29 @@ function renderTasks() {
       dayCell.className = 'checkbox';
 
       if (i > todayIndex) {
+        // Future — locked
         dayCell.innerHTML = '<span class="cell-icon">🔒</span>';
         dayCell.classList.add('locked');
-        dayCell.title = 'Future day - locked';
         dayCell.style.cursor = 'not-allowed';
       } else if (i === todayIndex) {
+        // Today — active or completed
         if (task.days[i]) {
           dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
-          dayCell.title = 'Completed today';
         } else {
           dayCell.innerHTML = '<img src="images/kunai.jpg" class="cell-img" alt="today">';
           dayCell.classList.add('today');
-          dayCell.title = 'Today - click to complete';
         }
         dayCell.style.cursor = 'pointer';
         dayCell.onclick = () => toggleDay(task.id, i);
       } else {
+        // Past — completed or failed
         if (task.days[i]) {
           dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
           dayCell.classList.add('completed');
-          dayCell.title = 'Completed - click to undo';
         } else {
           dayCell.innerHTML = '<img src="images/failed.jpg" class="cell-img" alt="failed">';
           dayCell.classList.add('pending');
-          dayCell.title = 'Not completed';
         }
         dayCell.style.cursor = 'pointer';
         dayCell.onclick = () => toggleDay(task.id, i);
@@ -212,15 +215,18 @@ function toggleDarkMode() {
   document.getElementById('darkModeBtn').innerHTML = isDark ?
     '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 }
+
 function checkDarkMode() {
   if (localStorage.getItem('darkMode') === 'true') {
     document.body.classList.add('dark-mode');
     document.getElementById('darkModeBtn').innerHTML = '<i class="fas fa-sun"></i>';
   }
 }
+
 function logoutUser() {
   if (confirm('Logout from Konoha?')) auth.signOut();
 }
+
 function backupData() {
   const dataStr = JSON.stringify(tasks, null, 2);
   const blob = new Blob([dataStr], { type: 'application/json' });
@@ -231,6 +237,7 @@ function backupData() {
   a.click();
   window.URL.revokeObjectURL(url);
 }
+
 async function clearAllTasks() {
   if (tasks.length === 0) { alert('No missions to clear!'); return; }
   if (confirm(`Delete ALL ${tasks.length} missions?`)) {
@@ -243,21 +250,40 @@ async function clearAllTasks() {
   }
 }
 
+// ============================================
+// AUTH + INIT
+// ============================================
 auth.onAuthStateChanged(async (user) => {
-  if (!user) { window.location.href = 'login.html'; return; }
-  currentUser = user;
-  await loadTasks();
-  updateWeekDisplay();
-  renderTasks();
-  updateStats();
-  checkDarkMode();
-  attachEventListeners();
+  const loader = document.getElementById('rasenganLoader');
+  const main = document.getElementById('mainContainer');
+
+  // Force-hide loader after 2 seconds
   setTimeout(() => {
-    const loader = document.getElementById('rasenganLoader');
-    const main = document.getElementById('mainContainer');
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
-  }, 1500);
+  }, 2000);
+
+  if (!user) {
+    window.location.href = 'login.html';
+    return;
+  }
+  currentUser = user;
+
+  try {
+    await loadTasks();
+    updateWeekDisplay();
+    renderTasks();
+    updateStats();
+    checkDarkMode();
+    attachEventListeners();
+
+    if (loader) loader.classList.add('hide');
+    if (main) main.style.opacity = '1';
+  } catch (err) {
+    console.error('Init error:', err);
+    if (loader) loader.classList.add('hide');
+    if (main) main.style.opacity = '1';
+  }
 });
 
 window.toggleDarkMode = toggleDarkMode;
@@ -268,6 +294,7 @@ let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
+
   document.getElementById('addBtn').addEventListener('click', addTask);
   document.getElementById('taskInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') addTask();
@@ -287,4 +314,5 @@ function attachEventListeners() {
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 }
+
 console.log('🍥 Ninja Mission Tracker loaded!');
