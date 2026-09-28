@@ -567,10 +567,7 @@ td:first-child {
     backdrop-filter: blur(10px);
 }
 
-/* ============================================
-   SIMPLE CHECKBOX SYMBOLS — Plain, No Effects
-   ============================================ */
-
+/* Checkbox symbols */
 .checkbox {
     font-size: 24px !important;
     font-weight: 700;
@@ -583,56 +580,14 @@ td:first-child {
     border: none;
     transition: transform 0.2s;
 }
+.checkbox:hover { transform: scale(1.2); }
+.checkbox.completed { color: #4ade80 !important; text-shadow: none !important; animation: none !important; filter: none !important; opacity: 1 !important; }
+.checkbox.pending { color: #ff5555 !important; text-shadow: none !important; animation: none !important; filter: none !important; opacity: 1 !important; }
+.checkbox.today { color: #00d9ff !important; text-shadow: none !important; animation: none !important; filter: none !important; opacity: 1 !important; }
+.checkbox.locked { font-size: 20px !important; color: #888 !important; text-shadow: none !important; animation: none !important; filter: none !important; opacity: 0.7 !important; cursor: not-allowed !important; }
+.checkbox .cell-img, .checkbox img { display: none !important; }
 
-.checkbox:hover {
-    transform: scale(1.2);
-}
-
-/* Completed — ✓ Green */
-.checkbox.completed {
-    color: #4ade80 !important;
-    text-shadow: none !important;
-    animation: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-}
-
-/* Failed — ✗ Red */
-.checkbox.pending {
-    color: #ff5555 !important;
-    text-shadow: none !important;
-    animation: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-}
-
-/* Today — ○ Cyan */
-.checkbox.today {
-    color: #00d9ff !important;
-    text-shadow: none !important;
-    animation: none !important;
-    filter: none !important;
-    opacity: 1 !important;
-}
-
-/* Locked — 🔒 Grey (emoji lock) */
-.checkbox.locked {
-    font-size: 20px !important;
-    color: #888 !important;
-    text-shadow: none !important;
-    animation: none !important;
-    filter: none !important;
-    opacity: 0.7 !important;
-    cursor: not-allowed !important;
-}
-
-/* Hide any leftover images */
-.checkbox .cell-img,
-.checkbox img {
-    display: none !important;
-}
-
-/* Delete button */
+/* Delete */
 .delete-btn {
     background: linear-gradient(135deg, #d32f2f, #b71c1c);
     color: white;
@@ -682,12 +637,7 @@ td:first-child {
 .legend-icon.locked { color: #888; font-size: 16px !important; }
 
 /* Bottom Actions */
-.bottom-actions {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
+.bottom-actions { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
 .export-btn, .clear-btn {
     padding: 14px 28px;
     border: none;
