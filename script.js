@@ -1,11 +1,10 @@
 // ============================================
-// 🍥 Ninja Mission Tracker — Firebase + Image Icons
+// 🍥 Ninja Mission Tracker
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 
-// ---------- Date helpers ----------
 function getWeekStart(date) {
   const d = new Date(date);
   const day = d.getDay();
@@ -35,7 +34,6 @@ function getTodayIndex() {
   return diffDays;
 }
 
-// ---------- Firestore ----------
 function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
 }
@@ -124,28 +122,25 @@ function renderTasks() {
       dayCell.className = 'checkbox';
 
       if (i > todayIndex) {
-        // Future — locked
-        dayCell.innerHTML = '<span class="cell-icon">🔒</span>';
+        dayCell.textContent = '🔒';
         dayCell.classList.add('locked');
         dayCell.style.cursor = 'not-allowed';
       } else if (i === todayIndex) {
-        // Today — active or completed
         if (task.days[i]) {
-          dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
+          dayCell.textContent = '✓';
           dayCell.classList.add('completed');
         } else {
-          dayCell.innerHTML = '<img src="images/kunai.jpg" class="cell-img" alt="today">';
+          dayCell.textContent = '○';
           dayCell.classList.add('today');
         }
         dayCell.style.cursor = 'pointer';
         dayCell.onclick = () => toggleDay(task.id, i);
       } else {
-        // Past — completed or failed
         if (task.days[i]) {
-          dayCell.innerHTML = '<img src="images/naruto-done.jpg" class="cell-img" alt="done">';
+          dayCell.textContent = '✓';
           dayCell.classList.add('completed');
         } else {
-          dayCell.innerHTML = '<img src="images/failed.jpg" class="cell-img" alt="failed">';
+          dayCell.textContent = '✗';
           dayCell.classList.add('pending');
         }
         dayCell.style.cursor = 'pointer';
@@ -257,7 +252,6 @@ auth.onAuthStateChanged(async (user) => {
   const loader = document.getElementById('rasenganLoader');
   const main = document.getElementById('mainContainer');
 
-  // Force-hide loader after 2 seconds
   setTimeout(() => {
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
