@@ -27,7 +27,9 @@ button, a, input, select, label, [onclick], .checkbox,
 }
 button i, a i, button span, a span { cursor: inherit !important; pointer-events: none; }
 
-/* Body — Background image kept */
+/* ==========================================
+   BODY — Light + Dark Background Images
+   ========================================== */
 html { min-height: 100vh; background: #1a0f0a; }
 
 body {
@@ -36,14 +38,17 @@ body {
     color: #f5e6d3;
     position: relative;
     overflow-x: hidden;
+    /* Light theme background */
     background-color: #1a0f0a;
     background-image: url('images/konoha-bg.png');
     background-size: cover;
     background-position: center center;
     background-repeat: no-repeat;
     background-attachment: fixed;
+    transition: background 0.6s ease;
 }
 
+/* Light overlay */
 body::before {
     content: '';
     position: fixed;
@@ -54,10 +59,18 @@ body::before {
         rgba(77, 45, 26, 0.35) 100%);
     z-index: 0;
     pointer-events: none;
+    transition: background 0.6s ease;
 }
 
+/* ===== DARK THEME ===== */
 body.dark-mode {
     background-color: #050810;
+    /* Dark theme background image — unga filename ah inga maathunga */
+    background-image: url('images/konoha-dark.png');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
 }
 
 body.dark-mode::before {
@@ -191,9 +204,7 @@ body.dark-mode::before {
 }
 @keyframes textPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
 
-/* ==========================================
-   CONTAINER — semi-transparent so bg shows
-   ========================================== */
+/* Container */
 .container {
     max-width: 1100px;
     margin: 0 auto;
@@ -210,9 +221,8 @@ body.dark-mode::before {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     animation: containerEnter 1s ease-out;
+    transition: background 0.6s ease;
 }
-
-/* Top decorative border */
 .container::before {
     content: '';
     position: absolute;
@@ -225,7 +235,6 @@ body.dark-mode::before {
     border-radius: 0 0 4px 4px;
     box-shadow: 0 0 20px var(--naruto-orange);
 }
-
 body.dark-mode .container {
     background: linear-gradient(135deg, rgba(10, 14, 26, 0.78) 0%, rgba(15, 20, 32, 0.85) 100%);
     border-color: rgba(0, 217, 255, 0.4);
@@ -247,8 +256,6 @@ body.dark-mode .container {
     border-bottom: 2px solid rgba(255, 165, 0, 0.25);
 }
 .logo { display: flex; align-items: center; gap: 15px; }
-
-/* Konoha logo — image with rotating ring */
 .konoha-symbol {
     width: 65px;
     height: 65px;
@@ -444,7 +451,7 @@ body.dark-mode .container {
     text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
 }
 
-/* Stats — Face images kept */
+/* Stats */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -481,12 +488,10 @@ body.dark-mode .container {
 }
 .stat-card:hover::before { width: 6px; }
 
-/* Stat icon — circular with image */
 .stat-icon {
     width: 70px;
     height: 70px;
     min-width: 70px;
-    height: 70px;
     border-radius: 50%;
     overflow: hidden;
     display: flex;
@@ -679,7 +684,7 @@ td:first-child {
     border-right: 1px solid rgba(255, 165, 0, 0.2);
 }
 
-/* ===== CHECKBOX SYMBOLS — No images ===== */
+/* Checkbox symbols */
 .checkbox {
     font-size: 22px !important;
     font-weight: 800;
@@ -727,7 +732,7 @@ td:first-child {
 }
 .checkbox .cell-img, .checkbox img { display: none !important; }
 
-/* Delete button */
+/* Delete */
 .delete-btn {
     background: linear-gradient(135deg, #d32f2f, #b71c1c);
     color: white;
@@ -742,7 +747,7 @@ td:first-child {
 }
 .delete-btn:hover { transform: scale(1.05); box-shadow: 0 4px 15px rgba(211, 47, 47, 0.6); }
 
-/* Legend — symbols */
+/* Legend */
 .legend {
     display: flex;
     gap: 20px;
@@ -819,6 +824,7 @@ td:first-child {
 @media (max-width: 768px) {
     body { padding: 12px; background-attachment: scroll; background-size: cover; background-position: center top; }
     .container { padding: 20px; border-radius: 16px; background: rgba(20, 12, 6, 0.82); }
+    body.dark-mode .container { background: rgba(10, 14, 26, 0.88); }
     .header { flex-direction: column; text-align: center; }
     .logo { flex-direction: column; gap: 10px; }
     .logo-text h1 { font-size: 20px; }
@@ -833,5 +839,5 @@ td:first-child {
     .checkbox { font-size: 18px !important; }
     th.task-col, td:first-child { min-width: 140px; }
     .ninja-run { font-size: 28px !important; }
-    .stat-icon { width: 55px; height: 55px; min-width: 55px; height: 55px; }
+    .stat-icon { width: 55px; height: 55px; min-width: 55px; }
 }
