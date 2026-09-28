@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍥 Ninja Mission Tracker</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍥</text></svg>">
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- ===== FLOATING NINJA CHARACTERS ===== -->
-    <div class="character-layer" id="characterLayer">
+    <div class="character-layer">
         <div class="ninja-run naruto">🍥</div>
         <div class="ninja-run sasuke">⚡</div>
         <div class="ninja-run sakura">🌸</div>
@@ -22,7 +22,6 @@
         <div class="ninja-run kunai">🗡️</div>
     </div>
 
-    <!-- ===== CHAKRA PARTICLES ===== -->
     <div class="chakra-particles">
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
@@ -30,7 +29,6 @@
         <span></span><span></span><span></span><span></span><span></span>
     </div>
 
-    <!-- ===== RASENGAN LOADER ===== -->
     <div class="rasengan-loader" id="rasenganLoader">
         <div class="rasengan">
             <div class="rasengan-core"></div>
@@ -42,12 +40,9 @@
     </div>
 
     <div class="container" id="mainContainer" style="opacity:0;">
-        <!-- ===== HEADER ===== -->
         <div class="header">
             <div class="logo">
-                <div class="konoha-symbol">
-                    <img src="images/naruto-face.jpg" alt="Konoha" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
-                </div>
+                <div class="konoha-symbol">🍥</div>
                 <div class="logo-text">
                     <h1>Ninja Mission Tracker</h1>
                     <span class="subtitle">疾風伝 • Weekly Training Log</span>
@@ -63,7 +58,6 @@
             </div>
         </div>
 
-        <!-- ===== WEEK NAVIGATION ===== -->
         <div class="week-nav">
             <button class="nav-btn" id="prevWeekBtn">
                 <i class="fas fa-chevron-left"></i>
@@ -80,7 +74,6 @@
             </button>
         </div>
 
-        <!-- ===== CHAKRA PROGRESS BAR ===== -->
         <div class="progress-section">
             <div class="progress-header">
                 <span><i class="fas fa-fire"></i> Chakra Progress</span>
@@ -91,33 +84,26 @@
                     <div class="chakra-glow"></div>
                 </div>
             </div>
-            <div class="progress-rank" id="rankLabel">🥷 Genin</div>
+            <div class="progress-rank" id="rankLabel">🥷 Academy Student</div>
         </div>
 
-        <!-- ===== STATS ===== -->
         <div class="stats-grid">
             <div class="stat-card naruto-card">
-                <div class="stat-icon">
-                    <img src="images/naruto-face.jpg" alt="Naruto">
-                </div>
+                <div class="stat-icon">🍥</div>
                 <div class="stat-info">
                     <span class="stat-label">Total Missions</span>
                     <span class="stat-value" id="totalTasks">0</span>
                 </div>
             </div>
             <div class="stat-card sasuke-card">
-                <div class="stat-icon">
-                    <img src="images/sasuke-face.jpg" alt="Sasuke">
-                </div>
+                <div class="stat-icon">⚡</div>
                 <div class="stat-info">
                     <span class="stat-label">Completed</span>
                     <span class="stat-value" id="completedTasks">0</span>
                 </div>
             </div>
             <div class="stat-card sakura-card">
-                <div class="stat-icon">
-                    <img src="images/sakura-face.jpg" alt="Sakura">
-                </div>
+                <div class="stat-icon">🌸</div>
                 <div class="stat-info">
                     <span class="stat-label">Pending</span>
                     <span class="stat-value" id="pendingTasks">0</span>
@@ -125,7 +111,6 @@
             </div>
         </div>
 
-        <!-- ===== ADD TASK ===== -->
         <div class="add-section">
             <div class="add-header">
                 <h2><i class="fas fa-scroll"></i> New Mission</h2>
@@ -139,7 +124,6 @@
             </div>
         </div>
 
-        <!-- ===== WEEKLY TABLE ===== -->
         <div class="table-container">
             <table id="taskTable">
                 <thead>
@@ -154,29 +138,17 @@
                         <th id="day7Header">Sun</th>
                     </tr>
                 </thead>
-                <tbody id="taskTableBody">
-                    <!-- Tasks appear here -->
-                </tbody>
+                <tbody id="taskTableBody"></tbody>
             </table>
         </div>
 
-        <!-- ===== LEGEND ===== -->
         <div class="legend">
-            <span class="legend-item">
-                <img src="images/naruto-done.jpg" class="legend-img" alt=""> Completed
-            </span>
-            <span class="legend-item">
-                <img src="images/failed.jpg" class="legend-img" alt=""> Failed
-            </span>
-            <span class="legend-item">
-                <img src="images/kunai.jpg" class="legend-img" alt=""> Active
-            </span>
-            <span class="legend-item">
-                <span class="legend-icon locked">🔒</span> Locked
-            </span>
+            <span class="legend-item"><span class="legend-icon completed">✓</span> Completed</span>
+            <span class="legend-item"><span class="legend-icon pending">✗</span> Failed</span>
+            <span class="legend-item"><span class="legend-icon today">○</span> Active</span>
+            <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
-        <!-- ===== BOTTOM ACTIONS ===== -->
         <div class="bottom-actions">
             <button class="export-btn" id="backupBtn">
                 <i class="fas fa-download"></i> Save Scroll
@@ -187,7 +159,6 @@
         </div>
     </div>
 
-    <!-- Firebase scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
