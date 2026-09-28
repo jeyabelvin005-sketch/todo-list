@@ -245,9 +245,7 @@ async function clearAllTasks() {
   }
 }
 
-// ============================================
-// AUTH + INIT
-// ============================================
+// Auth + Init
 auth.onAuthStateChanged(async (user) => {
   const loader = document.getElementById('rasenganLoader');
   const main = document.getElementById('mainContainer');
