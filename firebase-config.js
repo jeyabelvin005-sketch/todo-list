@@ -1,3 +1,4 @@
+// firebase-config.js
 const firebaseConfig = {
   apiKey: "AIzaSyAfaahiYJ4SZ3ffUEd-RgAfOWTiLsXh2qE",
   authDomain: "todo-tracker-69db1.firebaseapp.com",
@@ -8,12 +9,6 @@ const firebaseConfig = {
   measurementId: "G-B2DBM7EY8T"
 };
 
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
-
+firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-
-const serverTimestamp = () => firebase.firestore.FieldValue.serverTimestamp();
-const timestamp = () => firebase.firestore.Timestamp.now();
