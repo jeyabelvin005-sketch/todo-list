@@ -1,3 +1,4 @@
+// firebase-config.js
 const firebaseConfig = {
   apiKey: "AIzaSyAfaahiYJ4SZ3ffUEd-RgAfOWTiLsXh2qE",
   authDomain: "todo-tracker-69db1.firebaseapp.com",
@@ -8,7 +9,6 @@ const firebaseConfig = {
   measurementId: "G-B2DBM7EY8T"
 };
 
-// Initialize Firebase
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
