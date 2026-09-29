@@ -8,238 +8,249 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        body {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-        }
+        body { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
 
         .login-container {
-            width: 100%;
-            max-width: 460px;
-            background: rgba(20, 12, 6, 0.85);
-            border: 2px solid rgba(255, 165, 0, 0.45);
+            width: 100%; max-width: 460px;
+            background: linear-gradient(135deg, rgba(30, 18, 10, 0.85) 0%, rgba(20, 14, 8, 0.88) 100%);
+            border: 2px solid rgba(255, 165, 0, 0.5);
             border-radius: 24px;
-            box-shadow:
-                0 20px 60px rgba(0, 0, 0, 0.6),
-                0 0 80px rgba(255, 107, 26, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 80px rgba(255, 107, 26, 0.25), inset 0 1px 0 rgba(255, 200, 100, 0.2);
             padding: 40px 35px;
-            position: relative;
-            z-index: 2;
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            position: relative; z-index: 2;
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
             animation: containerEnter 1s ease-out;
         }
-
         body.dark-mode .login-container {
-            background: rgba(10, 14, 26, 0.85);
+            background: linear-gradient(135deg, rgba(10, 14, 26, 0.85) 0%, rgba(15, 20, 32, 0.88) 100%);
             border-color: rgba(0, 217, 255, 0.4);
         }
-
         @keyframes containerEnter {
             from { opacity: 0; transform: translateY(30px) scale(0.98); }
             to   { opacity: 1; transform: translateY(0) scale(1); }
         }
 
-        .login-logo {
-            text-align: center;
-            margin-bottom: 30px;
+        .login-logo { text-align: center; margin-bottom: 30px; }
+        .login-logo .logo-circle {
+            width: 100px; height: 100px; margin: 0 auto 20px;
+            position: relative; display: flex; align-items: center; justify-content: center;
         }
-
-        .login-logo .konoha-symbol {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 18px;
-            font-size: 42px;
-            border: 3px solid rgba(255, 165, 0, 0.7);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+        .login-logo .logo-circle::before {
+            content: ''; position: absolute; inset: -10px;
+            border-radius: 50%; border: 2px dashed rgba(255, 165, 0, 0.7);
+            animation: konohaRotate 20s linear infinite;
+        }
+        .login-logo .logo-circle::after {
+            content: ''; position: absolute; inset: -20px;
+            border-radius: 50%; border: 1px solid rgba(255, 165, 0, 0.3);
+        }
+        .login-logo .logo-image {
+            width: 100%; height: 100%; border-radius: 50%; overflow: hidden;
+            border: 3px solid rgba(255, 165, 0, 0.8);
+            box-shadow: 0 0 30px rgba(255, 107, 26, 0.7), 0 0 60px rgba(255, 165, 0, 0.4);
             background: radial-gradient(circle, rgba(255, 165, 0, 0.3), rgba(45, 122, 62, 0.4));
-            box-shadow: 0 0 25px rgba(45, 122, 62, 0.8);
-            animation: leafPulse 3s ease-in-out infinite;
+            animation: logoPulse 3s ease-in-out infinite;
+            display: flex; align-items: center; justify-content: center; font-size: 50px;
         }
-
-        @keyframes leafPulse {
-            0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(45, 122, 62, 0.8); }
-            50%      { transform: scale(1.05); box-shadow: 0 0 40px rgba(255, 165, 0, 1); }
+        .login-logo .logo-image img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        @keyframes logoPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(255, 107, 26, 0.7), 0 0 60px rgba(255, 165, 0, 0.4); }
+            50%      { transform: scale(1.05); box-shadow: 0 0 45px rgba(255, 107, 26, 1), 0 0 90px rgba(255, 215, 0, 0.6); }
         }
+        @keyframes konohaRotate { to { transform: rotate(360deg); } }
 
         .login-logo h1 {
             font-size: 24px;
             background: linear-gradient(135deg, #ff6b1a, #ffd700, #ff6b1a);
             background-size: 200% auto;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            font-weight: 800;
-            animation: gradientShift 3s ease infinite;
-            margin-bottom: 6px;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text; font-weight: 800;
+            animation: gradientShift 3s ease infinite; margin-bottom: 6px;
         }
-
         @keyframes gradientShift {
             0%, 100% { background-position: 0% center; }
             50%      { background-position: 100% center; }
         }
-
-        .login-logo .subtitle {
-            color: rgba(255, 200, 100, 0.7);
-            font-size: 12px;
-            letter-spacing: 4px;
-            text-transform: uppercase;
-        }
+        .login-logo .subtitle { color: rgba(255, 200, 100, 0.85); font-size: 12px; letter-spacing: 4px; text-transform: uppercase; }
 
         .auth-tabs {
-            display: flex;
-            margin-bottom: 25px;
-            border-bottom: 2px solid rgba(255, 165, 0, 0.25);
-            gap: 5px;
+            display: flex; margin-bottom: 25px;
+            border-bottom: 2px solid rgba(255, 165, 0, 0.25); gap: 5px;
         }
-
         .auth-tab {
-            flex: 1;
-            padding: 12px 10px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: 700;
-            color: rgba(255, 200, 100, 0.6);
-            transition: all 0.3s;
-            border-bottom: 3px solid transparent;
-            margin-bottom: -2px;
-            font-family: inherit;
-            letter-spacing: 0.5px;
+            flex: 1; padding: 12px 10px; background: none; border: none; cursor: pointer;
+            font-size: 15px; font-weight: 700; color: rgba(255, 200, 100, 0.6);
+            transition: all 0.3s; border-bottom: 3px solid transparent;
+            margin-bottom: -2px; font-family: inherit; letter-spacing: 0.5px;
         }
-
         .auth-tab.active {
-            color: #ff6b1a;
-            border-bottom-color: #ff6b1a;
-            text-shadow: 0 0 10px rgba(255, 107, 26, 0.6);
+            color: #ff6b1a; border-bottom-color: #ff6b1a;
+            text-shadow: 0 0 12px rgba(255, 107, 26, 0.8);
         }
+        .auth-tab:hover { color: #ffa500; }
 
-        .auth-tab:hover {
-            color: #ffa500;
-        }
-
-        .auth-form {
-            display: none;
-        }
-
-        .auth-form.active {
-            display: block;
-            animation: fadeIn 0.4s ease-out;
-        }
-
+        .auth-form { display: none; }
+        .auth-form.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to   { opacity: 1; transform: translateY(0); }
         }
 
         .auth-form input {
-            width: 100%;
-            padding: 14px 18px;
-            margin-bottom: 14px;
-            background: rgba(0, 0, 0, 0.45);
-            border: 2px solid rgba(255, 165, 0, 0.3);
-            border-radius: 12px;
-            font-size: 15px;
-            color: #fff;
-            font-family: inherit;
-            transition: all 0.3s;
+            width: 100%; padding: 14px 18px; margin-bottom: 14px;
+            background: rgba(0, 0, 0, 0.5); border: 2px solid rgba(255, 165, 0, 0.35);
+            border-radius: 12px; font-size: 15px; color: #fff;
+            font-family: inherit; transition: all 0.3s;
         }
-
-        .auth-form input::placeholder {
-            color: rgba(255, 200, 100, 0.5);
-        }
-
+        .auth-form input::placeholder { color: rgba(255, 200, 100, 0.5); }
         .auth-form input:focus {
-            outline: none;
-            border-color: #ff6b1a;
-            background: rgba(0, 0, 0, 0.6);
+            outline: none; border-color: #ff6b1a; background: rgba(0, 0, 0, 0.65);
             box-shadow: 0 0 0 4px rgba(255, 107, 26, 0.2), 0 0 25px rgba(255, 107, 26, 0.4);
+            transform: translateY(-2px);
         }
 
         .auth-form button[type="submit"] {
-            width: 100%;
-            padding: 15px;
-            margin-top: 8px;
+            width: 100%; padding: 15px; margin-top: 8px;
             background: linear-gradient(135deg, #ff6b1a, #e55000);
-            color: #fff;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 700;
-            letter-spacing: 0.8px;
-            cursor: pointer;
-            font-family: inherit;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
+            color: #fff; border: none; border-radius: 12px;
+            font-size: 16px; font-weight: 700; letter-spacing: 0.8px;
+            cursor: pointer; font-family: inherit; transition: all 0.3s;
+            display: flex; align-items: center; justify-content: center; gap: 8px;
             box-shadow: 0 5px 20px rgba(255, 107, 26, 0.5);
         }
-
         .auth-form button[type="submit"]:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 12px 30px rgba(255, 107, 26, 0.8);
+            transform: translateY(-3px); box-shadow: 0 12px 35px rgba(255, 107, 26, 0.8);
+        }
+        .auth-form button[type="submit"]:disabled {
+            opacity: 0.6; cursor: not-allowed; transform: none;
         }
 
-        .auth-form button[type="submit"]:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none;
+        .forgot-password { text-align: right; margin-top: -6px; margin-bottom: 12px; }
+        .forgot-password a {
+            color: rgba(255, 200, 100, 0.85); font-size: 13px;
+            text-decoration: none; font-weight: 600; transition: all 0.3s;
+            display: inline-flex; align-items: center; gap: 5px;
         }
+        .forgot-password a:hover {
+            color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+        }
+        .forgot-password a i { font-size: 11px; }
 
         .auth-error, .auth-success {
-            font-size: 13px;
-            margin-bottom: 12px;
-            min-height: 18px;
-            text-align: center;
-            font-weight: 600;
+            font-size: 13px; margin-bottom: 12px; padding: 10px 12px;
+            min-height: 18px; text-align: center; font-weight: 600;
+            border-radius: 10px; transition: all 0.3s; display: none;
         }
-
-        .auth-error { color: #ff5555; text-shadow: 0 0 8px rgba(255, 85, 85, 0.5); }
-        .auth-success { color: #55d6a1; text-shadow: 0 0 8px rgba(85, 214, 161, 0.5); }
+        .auth-error.show, .auth-success.show { display: block; animation: messageSlide 0.4s ease-out; }
+        .auth-error {
+            color: #ff5555; background: rgba(255, 85, 85, 0.1);
+            border: 1px solid rgba(255, 85, 85, 0.4);
+        }
+        .auth-success {
+            color: #55d6a1; background: rgba(85, 214, 161, 0.1);
+            border: 1px solid rgba(85, 214, 161, 0.4);
+        }
+        @keyframes messageSlide {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
 
         .login-quote {
-            margin-top: 28px;
-            padding-top: 22px;
-            border-top: 1px solid rgba(255, 165, 0, 0.2);
-            text-align: center;
+            margin-top: 28px; padding-top: 22px;
+            border-top: 1px solid rgba(255, 165, 0, 0.25); text-align: center;
         }
-
         .login-quote p {
-            font-size: 13px;
-            font-style: italic;
-            color: rgba(255, 200, 100, 0.75);
-            line-height: 1.5;
-            margin-bottom: 6px;
+            font-size: 13px; font-style: italic;
+            color: rgba(255, 200, 100, 0.85); line-height: 1.5; margin-bottom: 6px;
+        }
+        .login-quote .quote-source {
+            font-size: 11px; color: #ffd700; letter-spacing: 2px;
+            font-weight: 700; text-transform: uppercase;
         }
 
-        .login-quote .quote-source {
-            font-size: 11px;
-            color: #ffd700;
-            letter-spacing: 2px;
-            font-weight: 700;
-            text-transform: uppercase;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        .modal-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(5, 8, 16, 0.9); backdrop-filter: blur(8px);
+            z-index: 1000; align-items: center; justify-content: center; padding: 20px;
+        }
+        .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+        .modal-box {
+            background: linear-gradient(135deg, rgba(30, 18, 10, 0.98) 0%, rgba(20, 14, 8, 1) 100%);
+            border: 2px solid rgba(255, 165, 0, 0.5);
+            border-radius: 20px; padding: 32px 28px;
+            max-width: 420px; width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8), 0 0 80px rgba(255, 107, 26, 0.3);
+            animation: containerEnter 0.5s ease-out;
+        }
+        .modal-icon {
+            width: 70px; height: 70px; margin: 0 auto 20px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 165, 0, 0.3), rgba(255, 107, 26, 0.15));
+            border: 2px solid rgba(255, 165, 0, 0.7);
+            display: flex; align-items: center; justify-content: center; font-size: 32px;
+            box-shadow: 0 0 25px rgba(255, 107, 26, 0.6);
+        }
+        .modal-box h3 {
+            text-align: center; color: #f5e6d3; font-size: 20px;
+            margin-bottom: 10px; font-weight: 700;
+        }
+        .modal-box p {
+            text-align: center; color: rgba(255, 200, 100, 0.8);
+            font-size: 13px; margin-bottom: 22px; line-height: 1.5;
+        }
+        .modal-box input {
+            width: 100%; padding: 14px 18px;
+            background: rgba(0, 0, 0, 0.5); border: 2px solid rgba(255, 165, 0, 0.35);
+            border-radius: 12px; font-size: 15px; color: #fff;
+            font-family: inherit; margin-bottom: 14px; transition: all 0.3s;
+        }
+        .modal-box input:focus {
+            outline: none; border-color: #ff6b1a; background: rgba(0, 0, 0, 0.65);
+            box-shadow: 0 0 0 4px rgba(255, 107, 26, 0.2), 0 0 25px rgba(255, 107, 26, 0.4);
+        }
+        .modal-buttons { display: flex; gap: 12px; margin-top: 6px; }
+        .modal-buttons button {
+            flex: 1; padding: 13px; border-radius: 12px;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: all 0.3s; border: none;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b1a, #e55000);
+            color: #fff; box-shadow: 0 5px 20px rgba(255, 107, 26, 0.5);
+        }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(255, 107, 26, 0.8); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.08); color: rgba(255, 200, 100, 0.9);
+            border: 2px solid rgba(255, 165, 0, 0.3);
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 165, 0, 0.15);
+            border-color: rgba(255, 165, 0, 0.6); color: #ffd700;
+        }
+        .modal-message {
+            font-size: 13px; margin-bottom: 12px; padding: 10px 12px;
+            text-align: center; font-weight: 600; border-radius: 10px; display: none;
+        }
+        .modal-message.show { display: block; }
+        .modal-message.error {
+            color: #ff5555; background: rgba(255, 85, 85, 0.1);
+            border: 1px solid rgba(255, 85, 85, 0.4);
+        }
+        .modal-message.success {
+            color: #55d6a1; background: rgba(85, 214, 161, 0.1);
+            border: 1px solid rgba(85, 214, 161, 0.4);
         }
 
         @media (max-width: 550px) {
             .login-container { padding: 30px 22px; }
             .login-logo h1 { font-size: 20px; }
-            .login-logo .konoha-symbol { width: 65px; height: 65px; font-size: 34px; }
+            .login-logo .logo-circle { width: 85px; height: 85px; }
+            .login-logo .logo-image { font-size: 40px; }
         }
     </style>
 </head>
 <body>
-
-    <!-- Floating Characters -->
     <div class="character-layer">
         <div class="ninja-run naruto">🍥</div>
         <div class="ninja-run sasuke">⚡</div>
@@ -249,84 +260,97 @@
         <div class="ninja-run scroll">📜</div>
     </div>
 
-    <!-- Chakra Particles -->
     <div class="chakra-particles">
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
     </div>
 
-    <!-- Login Container -->
     <div class="login-container">
         <div class="login-logo">
-            <div class="konoha-symbol">🍥</div>
+            <div class="logo-circle">
+                <div class="logo-image">
+                    <img src="images/naruto-face.jpg" alt="Konoha Logo" onerror="this.style.display='none';this.parentElement.innerHTML='🍥';">
+                </div>
+            </div>
             <h1>Ninja Mission Tracker</h1>
             <span class="subtitle">疾風伝 • Shinobi Login</span>
         </div>
 
         <div class="auth-tabs">
-            <button class="auth-tab active" data-tab="login">
-                <i class="fas fa-sign-in-alt"></i> Login
-            </button>
-            <button class="auth-tab" data-tab="signup">
-                <i class="fas fa-user-plus"></i> Sign Up
-            </button>
+            <button class="auth-tab active" data-tab="login"><i class="fas fa-sign-in-alt"></i> Login</button>
+            <button class="auth-tab" data-tab="signup"><i class="fas fa-user-plus"></i> Sign Up</button>
         </div>
 
-        <!-- Login Form -->
         <form id="loginForm" class="auth-form active">
             <div class="auth-error" id="loginError"></div>
             <input type="email" id="loginEmail" placeholder="📧 Email address" required autocomplete="email">
             <input type="password" id="loginPassword" placeholder="🔒 Password" required minlength="6" autocomplete="current-password">
-            <button type="submit" id="loginBtn">
-                <i class="fas fa-bolt"></i> Enter Konoha
-            </button>
+            <div class="forgot-password">
+                <a href="#" id="forgotPasswordLink"><i class="fas fa-key"></i> Forgot Password?</a>
+            </div>
+            <button type="submit" id="loginBtn"><i class="fas fa-bolt"></i> Enter Konoha</button>
         </form>
 
-        <!-- Signup Form -->
         <form id="signupForm" class="auth-form">
             <div class="auth-error" id="signupError"></div>
             <div class="auth-success" id="signupSuccess"></div>
             <input type="email" id="signupEmail" placeholder="📧 Email address" required autocomplete="email">
             <input type="password" id="signupPassword" placeholder="🔒 Password (min 6 chars)" required minlength="6" autocomplete="new-password">
             <input type="password" id="signupConfirm" placeholder="🔒 Confirm password" required minlength="6" autocomplete="new-password">
-            <button type="submit" id="signupBtn">
-                <i class="fas fa-user-ninja"></i> Begin Your Journey
-            </button>
+            <button type="submit" id="signupBtn"><i class="fas fa-user-ninja"></i> Begin Your Journey</button>
         </form>
 
-        <!-- Quote -->
         <div class="login-quote">
             <p>"Those who abandon their mission are trash, but those who abandon their comrades are worse than trash."</p>
             <span class="quote-source">— 🥷 Kakashi Hatake</span>
         </div>
     </div>
 
-    <!-- Firebase -->
+    <div class="modal-overlay" id="forgotModal">
+        <div class="modal-box">
+            <div class="modal-icon">🔑</div>
+            <h3>Forgot Your Password?</h3>
+            <p>Enter your registered email. We'll send you a <strong style="color:#ffd700;">password reset link</strong> to set a new password.</p>
+            <div class="modal-message" id="forgotMessage"></div>
+            <input type="email" id="forgotEmail" placeholder="📧 Enter your registered email" autocomplete="email">
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" id="cancelForgot"><i class="fas fa-times"></i> Cancel</button>
+                <button type="button" class="btn-primary" id="sendResetBtn"><i class="fas fa-paper-plane"></i> Send Link</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script>
-        // Tab Switching
         document.querySelectorAll('.auth-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
-                document.getElementById('loginError').textContent = '';
-                document.getElementById('signupError').textContent = '';
-                document.getElementById('signupSuccess').textContent = '';
+                ['loginError', 'signupError', 'signupSuccess'].forEach(id => {
+                    document.getElementById(id).className = 'auth-error';
+                });
             });
         });
 
-        // Login
+        function showMessage(id, text, type) {
+            const el = document.getElementById(id);
+            el.textContent = text;
+            el.className = 'auth-' + type + ' show';
+        }
+        function hideMessage(id) {
+            document.getElementById(id).className = 'auth-error';
+        }
+
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const errEl = document.getElementById('loginError');
             const btn = document.getElementById('loginBtn');
-            errEl.textContent = '';
+            hideMessage('loginError');
             btn.disabled = true;
             try {
                 await auth.signInWithEmailAndPassword(
@@ -335,40 +359,111 @@
                 );
                 window.location.href = 'index.html';
             } catch (err) {
-                errEl.textContent = friendlyError(err.code);
+                showMessage('loginError', friendlyError(err.code), 'error');
                 btn.disabled = false;
             }
         });
 
-        // Signup
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const errEl = document.getElementById('signupError');
-            const okEl = document.getElementById('signupSuccess');
             const btn = document.getElementById('signupBtn');
-            errEl.textContent = '';
-            okEl.textContent = '';
+            hideMessage('signupError');
+            document.getElementById('signupSuccess').className = 'auth-success';
             const pwd = document.getElementById('signupPassword').value;
             const conf = document.getElementById('signupConfirm').value;
-            if (pwd !== conf) { errEl.textContent = 'Passwords do not match!'; return; }
+            if (pwd !== conf) {
+                showMessage('signupError', 'Passwords do not match!', 'error');
+                return;
+            }
             btn.disabled = true;
             try {
                 await auth.createUserWithEmailAndPassword(
-                    document.getElementById('signupEmail').value.trim(),
-                    pwd
+                    document.getElementById('signupEmail').value.trim(), pwd
                 );
-                okEl.textContent = '🍥 Welcome, shinobi! Entering Konoha...';
-                setTimeout(() => window.location.href = 'index.html', 800);
+                showMessage('signupSuccess', '🍥 Welcome, shinobi! Entering Konoha...', 'success');
+                setTimeout(() => window.location.href = 'index.html', 1000);
             } catch (err) {
-                errEl.textContent = friendlyError(err.code);
+                showMessage('signupError', friendlyError(err.code), 'error');
                 btn.disabled = false;
             }
         });
 
-        // Already logged in? Go to app
         auth.onAuthStateChanged(user => {
             if (user) window.location.href = 'index.html';
         });
+
+        // ===== Forgot Password =====
+        const forgotModal = document.getElementById('forgotModal');
+        const forgotEmail = document.getElementById('forgotEmail');
+        const forgotMessage = document.getElementById('forgotMessage');
+        const sendResetBtn = document.getElementById('sendResetBtn');
+
+        document.getElementById('forgotPasswordLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            const loginEmail = document.getElementById('loginEmail').value.trim();
+            if (loginEmail) forgotEmail.value = loginEmail;
+            forgotModal.classList.add('show');
+            forgotMessage.className = 'modal-message';
+        });
+
+        document.getElementById('cancelForgot').addEventListener('click', () => {
+            forgotModal.classList.remove('show');
+        });
+
+        forgotModal.addEventListener('click', (e) => {
+            if (e.target === forgotModal) forgotModal.classList.remove('show');
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && forgotModal.classList.contains('show')) {
+                forgotModal.classList.remove('show');
+            }
+        });
+
+        sendResetBtn.addEventListener('click', async () => {
+            const email = forgotEmail.value.trim();
+            if (!email) {
+                showForgotMessage('Please enter your email address.', 'error');
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                showForgotMessage('Please enter a valid email address.', 'error');
+                return;
+            }
+            sendResetBtn.disabled = true;
+            sendResetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+            forgotMessage.className = 'modal-message';
+            try {
+                await auth.sendPasswordResetEmail(email);
+                showForgotMessage('✅ Reset link sent! Check your email inbox (and spam folder).', 'success');
+                sendResetBtn.innerHTML = '<i class="fas fa-check"></i> Sent!';
+                setTimeout(() => {
+                    forgotModal.classList.remove('show');
+                    sendResetBtn.disabled = false;
+                    sendResetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Link';
+                    forgotEmail.value = '';
+                    forgotMessage.className = 'modal-message';
+                }, 4000);
+            } catch (err) {
+                let msg = 'Something went wrong. Try again.';
+                if (err.code === 'auth/user-not-found') msg = 'No account found with this email.';
+                else if (err.code === 'auth/invalid-email') msg = 'Invalid email address.';
+                else if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try again later.';
+                else if (err.code === 'auth/network-request-failed') msg = 'Network error. Check your connection.';
+                showForgotMessage(msg, 'error');
+                sendResetBtn.disabled = false;
+                sendResetBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Link';
+            }
+        });
+
+        forgotEmail.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); sendResetBtn.click(); }
+        });
+
+        function showForgotMessage(text, type) {
+            forgotMessage.textContent = text;
+            forgotMessage.className = 'modal-message show ' + type;
+        }
 
         function friendlyError(code) {
             const map = {
