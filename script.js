@@ -245,7 +245,6 @@ async function clearAllTasks() {
   }
 }
 
-// Auth + Init
 auth.onAuthStateChanged(async (user) => {
   const loader = document.getElementById('rasenganLoader');
   const main = document.getElementById('mainContainer');
@@ -268,7 +267,6 @@ auth.onAuthStateChanged(async (user) => {
     updateStats();
     checkDarkMode();
     attachEventListeners();
-
     if (loader) loader.classList.add('hide');
     if (main) main.style.opacity = '1';
   } catch (err) {
@@ -286,7 +284,6 @@ let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
-
   document.getElementById('addBtn').addEventListener('click', addTask);
   document.getElementById('taskInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') addTask();
