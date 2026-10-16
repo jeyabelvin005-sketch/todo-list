@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍥 Ninja Mission Tracker - Login</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍥</text></svg>">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ff6b1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -131,9 +134,7 @@
             text-decoration: none; font-weight: 600; transition: all 0.3s;
             display: inline-flex; align-items: center; gap: 5px;
         }
-        .forgot-password a:hover {
-            color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
-        }
+        .forgot-password a:hover { color: #ffd700; text-shadow: 0 0 10px rgba(255, 215, 0, 0.7); }
         .forgot-password a i { font-size: 11px; }
 
         .auth-error, .auth-success {
@@ -282,6 +283,7 @@
             <button class="auth-tab" data-tab="signup"><i class="fas fa-user-plus"></i> Sign Up</button>
         </div>
 
+        <!-- Login Form -->
         <form id="loginForm" class="auth-form active">
             <div class="auth-error" id="loginError"></div>
             <input type="email" id="loginEmail" placeholder="📧 Email address" required autocomplete="email">
@@ -292,12 +294,18 @@
             <button type="submit" id="loginBtn"><i class="fas fa-bolt"></i> Enter Konoha</button>
         </form>
 
+        <!-- Signup Form — NOW WITH USERNAME -->
         <form id="signupForm" class="auth-form">
             <div class="auth-error" id="signupError"></div>
             <div class="auth-success" id="signupSuccess"></div>
+
+            <!-- 🆕 Username field -->
+            <input type="text" id="signupUsername" placeholder="🥷 Choose your ninja name" required maxlength="20" minlength="2" autocomplete="off">
+
             <input type="email" id="signupEmail" placeholder="📧 Email address" required autocomplete="email">
             <input type="password" id="signupPassword" placeholder="🔒 Password (min 6 chars)" required minlength="6" autocomplete="new-password">
             <input type="password" id="signupConfirm" placeholder="🔒 Confirm password" required minlength="6" autocomplete="new-password">
+
             <button type="submit" id="signupBtn"><i class="fas fa-user-ninja"></i> Begin Your Journey</button>
         </form>
 
@@ -307,6 +315,7 @@
         </div>
     </div>
 
+    <!-- Forgot Password Modal -->
     <div class="modal-overlay" id="forgotModal">
         <div class="modal-box">
             <div class="modal-icon">🔑</div>
@@ -326,6 +335,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
     <script src="firebase-config.js"></script>
     <script>
+        // ===== Tab Switching =====
         document.querySelectorAll('.auth-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -333,7 +343,7 @@
                 tab.classList.add('active');
                 document.getElementById(tab.dataset.tab + 'Form').classList.add('active');
                 ['loginError', 'signupError', 'signupSuccess'].forEach(id => {
-                    document.getElementById(id).className = 'auth-error';
+                    document.getElementById(id).className = id === 'signupSuccess' ? 'auth-success' : 'auth-error';
                 });
             });
         });
@@ -341,12 +351,13 @@
         function showMessage(id, text, type) {
             const el = document.getElementById(id);
             el.textContent = text;
-            el.className = 'auth-' + type + ' show';
+            el.className = (id === 'signupSuccess' ? 'auth-success' : 'auth-error') + ' show';
         }
         function hideMessage(id) {
-            document.getElementById(id).className = 'auth-error';
+            document.getElementById(id).className = id === 'signupSuccess' ? 'auth-success' : 'auth-error';
         }
 
+        // ===== Login =====
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('loginBtn');
@@ -364,27 +375,58 @@
             }
         });
 
+        // ===== Signup — WITH USERNAME SAVE =====
         document.getElementById('signupForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('signupBtn');
             hideMessage('signupError');
-            document.getElementById('signupSuccess').className = 'auth-success';
+            hideMessage('signupSuccess');
+
+            const username = document.getElementById('signupUsername').value.trim();
+            const email = document.getElementById('signupEmail').value.trim();
             const pwd = document.getElementById('signupPassword').value;
             const conf = document.getElementById('signupConfirm').value;
+
+            // Validation
+            if (username.length < 2) {
+                showMessage('signupError', 'Ninja name should be at least 2 characters.', 'error');
+                return;
+            }
+            if (username.length > 20) {
+                showMessage('signupError', 'Ninja name should be under 20 characters.', 'error');
+                return;
+            }
+            if (!/^[a-zA-Z0-9_ ]+$/.test(username)) {
+                showMessage('signupError', 'Use letters, numbers, spaces, and underscore only.', 'error');
+                return;
+            }
             if (pwd !== conf) {
                 showMessage('signupError', 'Passwords do not match!', 'error');
                 return;
             }
+
             btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+
             try {
-                await auth.createUserWithEmailAndPassword(
-                    document.getElementById('signupEmail').value.trim(), pwd
-                );
-                showMessage('signupSuccess', '🍥 Welcome, shinobi! Entering Konoha...', 'success');
-                setTimeout(() => window.location.href = 'index.html', 1000);
+                // Create Firebase Auth user
+                const credential = await auth.createUserWithEmailAndPassword(email, pwd);
+
+                // 💾 Save profile with USERNAME to Firestore
+                await db.collection('users').doc(credential.user.uid).set({
+                    email: email,
+                    displayName: username,
+                    createdAt: Date.now(),
+                    updatedAt: Date.now()
+                }, { merge: true });
+
+                showMessage('signupSuccess', `🍥 Welcome, ${username}! Entering Konoha...`, 'success');
+                setTimeout(() => window.location.href = 'index.html', 1200);
             } catch (err) {
+                console.error(err);
                 showMessage('signupError', friendlyError(err.code), 'error');
                 btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-user-ninja"></i> Begin Your Journey';
             }
         });
 
@@ -422,13 +464,9 @@
 
         sendResetBtn.addEventListener('click', async () => {
             const email = forgotEmail.value.trim();
-            if (!email) {
-                showForgotMessage('Please enter your email address.', 'error');
-                return;
-            }
+            if (!email) { showForgotMessage('Please enter your email address.', 'error'); return; }
             if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-                showForgotMessage('Please enter a valid email address.', 'error');
-                return;
+                showForgotMessage('Please enter a valid email address.', 'error'); return;
             }
             sendResetBtn.disabled = true;
             sendResetBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
