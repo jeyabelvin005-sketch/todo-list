@@ -61,6 +61,10 @@
                 </div>
             </div>
             <div class="header-buttons">
+                <button class="icon-btn username-btn" id="usernameBtn" onclick="openUsernameModal()" title="Change Username">
+                    <i class="fas fa-user-ninja"></i>
+                    <span id="headerUsername">Shinobi</span>
+                </button>
                 <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
                     <i class="fas fa-moon"></i>
                 </button>
@@ -87,7 +91,7 @@
             </button>
         </div>
 
-        <!-- ===== WEEK COMPARISON (Replaces Chakra Progress) ===== -->
+        <!-- ===== WEEK COMPARISON ===== -->
         <div class="week-compare-section">
             <div class="compare-header">
                 <span><i class="fas fa-chart-line"></i> Week Progress</span>
@@ -181,22 +185,39 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
+        <!-- ===== INCOMING CHALLENGES ===== -->
+        <div class="incoming-section" id="incomingSection" style="display:none;">
+            <div class="incoming-header">
+                <h2><i class="fas fa-envelope"></i> Incoming Challenges</h2>
+                <span class="incoming-count" id="incomingCount">0</span>
+            </div>
+            <div class="incoming-list" id="incomingList"></div>
+        </div>
+
         <!-- ===== FRIEND CHALLENGE ===== -->
         <div class="friend-section">
             <div class="friend-header">
                 <h2><i class="fas fa-users"></i> Friend Challenge</h2>
                 <span class="friend-count" id="friendCount">0 shinobi</span>
             </div>
-            
+
+            <div class="challenge-info">
+                <i class="fas fa-info-circle"></i>
+                Send a challenge to a friend for a specific mission. They need to <strong>accept</strong> it to appear in the leaderboard.
+            </div>
+
             <div class="add-friend-form">
-                <input type="email" id="friendEmail" placeholder="Friend's email address" class="friend-input">
+                <select id="challengeTaskSelect" class="friend-select">
+                    <option value="">Select a mission to challenge...</option>
+                </select>
+                <input type="email" id="friendEmail" placeholder="Friend's email" class="friend-input">
                 <button id="addFriendBtn" class="add-friend-btn">
-                    <i class="fas fa-user-plus"></i> Challenge
+                    <i class="fas fa-bolt"></i> Challenge
                 </button>
             </div>
-            
+
             <div id="friendMessage" class="friend-message"></div>
-            
+
             <div class="leaderboard" id="leaderboard">
                 <!-- Leaderboard items dynamically add aagum -->
             </div>
@@ -210,6 +231,25 @@
             <button class="clear-btn" id="clearBtn">
                 <i class="fas fa-trash-alt"></i> Clear All
             </button>
+        </div>
+    </div>
+
+    <!-- ===== USERNAME MODAL ===== -->
+    <div class="modal-overlay" id="usernameModal">
+        <div class="modal-box">
+            <div class="modal-icon">🥷</div>
+            <h3>Choose Your Ninja Name</h3>
+            <p>This name will be shown to your friends on the leaderboard.</p>
+            <div class="modal-message" id="usernameMessage"></div>
+            <input type="text" id="usernameInput" placeholder="Enter your ninja name" maxlength="20" autocomplete="off">
+            <div class="modal-buttons">
+                <button type="button" class="btn-secondary" onclick="closeUsernameModal()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="button" class="btn-primary" id="saveUsernameBtn">
+                    <i class="fas fa-check"></i> Save
+                </button>
+            </div>
         </div>
     </div>
 
