@@ -1050,3 +1050,365 @@ td:first-child {
         font-size: 17px;
     }
 }
+/* ============================================
+   🥷 USERNAME BUTTON (Header)
+   ============================================ */
+.username-btn {
+    display: flex !important;
+    align-items: center;
+    gap: 6px;
+    padding: 0 14px !important;
+    min-width: auto !important;
+    width: auto !important;
+    background: linear-gradient(135deg, rgba(255, 107, 26, 0.25), rgba(255, 165, 0, 0.15)) !important;
+    border-color: rgba(255, 165, 0, 0.6) !important;
+    font-size: 13px !important;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    color: #ffd700 !important;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.username-btn span {
+    max-width: 90px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.username-btn:hover {
+    background: linear-gradient(135deg, var(--naruto-orange), #e55000) !important;
+    color: #fff !important;
+    border-color: var(--naruto-orange) !important;
+    box-shadow: 0 8px 20px rgba(255, 107, 26, 0.7);
+}
+
+.username-btn i {
+    font-size: 14px;
+}
+
+/* ============================================
+   📨 INCOMING CHALLENGES
+   ============================================ */
+.incoming-section {
+    background: linear-gradient(135deg, rgba(255, 107, 26, 0.15), rgba(255, 215, 0, 0.08));
+    padding: 22px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    border: 2px solid rgba(255, 215, 0, 0.6);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.25);
+    animation: incomingPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes incomingPulse {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(255, 215, 0, 0.25);
+        border-color: rgba(255, 215, 0, 0.6);
+    }
+    50% {
+        box-shadow: 0 0 45px rgba(255, 215, 0, 0.5);
+        border-color: rgba(255, 215, 0, 0.9);
+    }
+}
+
+.incoming-section::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #ffd700, #ff6b1a, #ffd700, transparent);
+    background-size: 200% 100%;
+    animation: scrollShine 3s linear infinite;
+}
+
+.incoming-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.incoming-header h2 {
+    color: #ffd700;
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 0 12px rgba(255, 215, 0, 0.7);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.incoming-header h2 i {
+    animation: envelopeShake 2s ease-in-out infinite;
+}
+
+@keyframes envelopeShake {
+    0%, 90%, 100% { transform: rotate(0deg); }
+    95%           { transform: rotate(-10deg); }
+}
+
+.incoming-count {
+    background: linear-gradient(135deg, #ff6b1a, #e55000);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    min-width: 28px;
+    text-align: center;
+    box-shadow: 0 0 15px rgba(255, 107, 26, 0.8);
+    animation: badgeBounce 1.5s ease-in-out infinite;
+}
+
+@keyframes badgeBounce {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.1); }
+}
+
+.incoming-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.incoming-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 12px;
+    flex-wrap: wrap;
+    transition: all 0.3s;
+}
+
+.incoming-item:hover {
+    background: rgba(0, 0, 0, 0.65);
+    border-color: rgba(255, 215, 0, 0.7);
+    transform: translateX(4px);
+}
+
+.incoming-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.incoming-from {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffd700;
+    margin-bottom: 4px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
+}
+
+.incoming-task {
+    display: block;
+    font-size: 13px;
+    color: rgba(255, 200, 100, 0.9);
+}
+
+.incoming-task strong {
+    color: #f5e6d3;
+    font-style: italic;
+}
+
+.incoming-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.accept-btn,
+.reject-btn {
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    letter-spacing: 0.3px;
+    border: none;
+}
+
+.accept-btn {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #fff;
+    box-shadow: 0 3px 15px rgba(34, 197, 94, 0.5);
+}
+
+.accept-btn:hover {
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.8);
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+}
+
+.reject-btn {
+    background: rgba(255, 85, 85, 0.15);
+    color: #ff5555;
+    border: 1.5px solid rgba(255, 85, 85, 0.5);
+}
+
+.reject-btn:hover {
+    background: #ff5555;
+    color: #fff;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(255, 85, 85, 0.7);
+}
+
+/* ============================================
+   💡 CHALLENGE INFO MESSAGE
+   ============================================ */
+.challenge-info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(0, 217, 255, 0.08);
+    border: 1px solid rgba(0, 217, 255, 0.35);
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-size: 12px;
+    color: rgba(255, 200, 100, 0.9);
+    line-height: 1.5;
+    text-shadow: 0 0 5px rgba(0, 0, 0, 0.6);
+}
+
+.challenge-info i {
+    color: #00d9ff;
+    font-size: 16px;
+    margin-top: 1px;
+    flex-shrink: 0;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.7);
+}
+
+.challenge-info strong {
+    color: #ffd700;
+    font-weight: 800;
+}
+
+/* ============================================
+   🎯 CHALLENGE FORM (Task + Email)
+   ============================================ */
+.friend-select {
+    flex: 1.2;
+    min-width: 200px;
+    padding: 13px 16px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 2px solid rgba(255, 165, 0, 0.4);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 14px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.3s;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image:
+        url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'><path d='M2 4 L6 8 L10 4' stroke='%23ffa500' stroke-width='2' fill='none' stroke-linecap='round'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 38px;
+}
+
+.friend-select:hover {
+    border-color: rgba(255, 165, 0, 0.6);
+}
+
+.friend-select:focus {
+    outline: none;
+    border-color: var(--naruto-orange);
+    background-color: rgba(0, 0, 0, 0.7);
+    box-shadow: 0 0 0 4px rgba(255, 107, 26, 0.2), 0 0 25px rgba(255, 107, 26, 0.4);
+}
+
+.friend-select option {
+    background: #1a0f0a;
+    color: #f5e6d3;
+    padding: 10px;
+}
+
+body.dark-mode .friend-select option {
+    background: #0a0e1a;
+    color: #e0f7ff;
+}
+
+/* ============================================
+   🎨 SCROLL BLINK FIX
+   ============================================ */
+/* Prevent flicker/blink on smooth scroll */
+html {
+    scroll-behavior: smooth;
+}
+
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent table container shake / blink */
+.table-container {
+    overflow-y: hidden !important;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    will-change: auto !important;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}
+
+/* Prevent dropdown reflow blink */
+.friend-select,
+.friend-input,
+.add-friend-form {
+    will-change: auto !important;
+    transform: translateZ(0);
+}
+
+/* ============================================
+   📱 MOBILE — New sections
+   ============================================ */
+@media (max-width: 768px) {
+    .username-btn {
+        padding: 0 10px !important;
+        font-size: 12px !important;
+    }
+
+    .username-btn span {
+        max-width: 65px;
+    }
+
+    .incoming-item {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .incoming-actions {
+        width: 100%;
+    }
+
+    .accept-btn,
+    .reject-btn {
+        flex: 1;
+        justify-content: center;
+    }
+
+    .friend-select {
+        width: 100%;
+        min-width: auto;
+    }
+
+    .challenge-info {
+        font-size: 11px;
+        padding: 10px 12px;
+    }
+}
