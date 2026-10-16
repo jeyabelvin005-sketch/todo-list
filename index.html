@@ -5,10 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🍥 Ninja Mission Tracker</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍥</text></svg>">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ff6b1a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Ninja Tracker">
+    <meta name="mobile-web-app-capable" content="yes">
     <link rel="stylesheet" href="style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
+    <!-- Floating Ninja Characters -->
     <div class="character-layer">
         <div class="ninja-run naruto">🍥</div>
         <div class="ninja-run sasuke">⚡</div>
@@ -22,6 +29,7 @@
         <div class="ninja-run kunai">🗡️</div>
     </div>
 
+    <!-- Chakra Particles -->
     <div class="chakra-particles">
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
@@ -29,6 +37,7 @@
         <span></span><span></span><span></span><span></span><span></span>
     </div>
 
+    <!-- Rasengan Loader -->
     <div class="rasengan-loader" id="rasenganLoader">
         <div class="rasengan">
             <div class="rasengan-core"></div>
@@ -40,6 +49,7 @@
     </div>
 
     <div class="container" id="mainContainer" style="opacity:0;">
+        <!-- ===== HEADER ===== -->
         <div class="header">
             <div class="logo">
                 <div class="konoha-symbol">
@@ -60,6 +70,7 @@
             </div>
         </div>
 
+        <!-- ===== WEEK NAVIGATION ===== -->
         <div class="week-nav">
             <button class="nav-btn" id="prevWeekBtn">
                 <i class="fas fa-chevron-left"></i>
@@ -76,19 +87,29 @@
             </button>
         </div>
 
-        <div class="progress-section">
-            <div class="progress-header">
-                <span><i class="fas fa-fire"></i> Chakra Progress</span>
-                <span id="progressPercent" class="chakra-percent">0%</span>
+        <!-- ===== WEEK COMPARISON (Replaces Chakra Progress) ===== -->
+        <div class="week-compare-section">
+            <div class="compare-header">
+                <span><i class="fas fa-chart-line"></i> Week Progress</span>
+                <span class="improvement-badge" id="improvementBadge">—</span>
             </div>
-            <div class="chakra-bar">
-                <div class="chakra-fill" id="progressFill">
-                    <div class="chakra-glow"></div>
+            <div class="compare-grid">
+                <div class="compare-card last-week">
+                    <span class="compare-label">📅 Last Week</span>
+                    <span class="compare-value" id="lastWeekPercent">0%</span>
+                    <span class="compare-sub" id="lastWeekCount">0 completed</span>
+                </div>
+                <div class="compare-arrow">→</div>
+                <div class="compare-card this-week">
+                    <span class="compare-label">🔥 This Week</span>
+                    <span class="compare-value" id="thisWeekPercent">0%</span>
+                    <span class="compare-sub" id="thisWeekCount">0 completed</span>
                 </div>
             </div>
-            <div class="progress-rank" id="rankLabel">🥷 Academy Student</div>
+            <div class="compare-message" id="compareMessage">Keep going, shinobi!</div>
         </div>
 
+        <!-- ===== STATS ===== -->
         <div class="stats-grid">
             <div class="stat-card naruto-card">
                 <div class="stat-icon">
@@ -119,6 +140,7 @@
             </div>
         </div>
 
+        <!-- ===== ADD TASK ===== -->
         <div class="add-section">
             <div class="add-header">
                 <h2><i class="fas fa-scroll"></i> New Mission</h2>
@@ -132,6 +154,7 @@
             </div>
         </div>
 
+        <!-- ===== WEEKLY TABLE ===== -->
         <div class="table-container">
             <table id="taskTable">
                 <thead>
@@ -150,6 +173,7 @@
             </table>
         </div>
 
+        <!-- ===== LEGEND ===== -->
         <div class="legend">
             <span class="legend-item"><span class="legend-icon completed">✓</span> Completed</span>
             <span class="legend-item"><span class="legend-icon pending">✗</span> Failed</span>
@@ -157,6 +181,28 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
+        <!-- ===== FRIEND CHALLENGE ===== -->
+        <div class="friend-section">
+            <div class="friend-header">
+                <h2><i class="fas fa-users"></i> Friend Challenge</h2>
+                <span class="friend-count" id="friendCount">0 shinobi</span>
+            </div>
+            
+            <div class="add-friend-form">
+                <input type="email" id="friendEmail" placeholder="Friend's email address" class="friend-input">
+                <button id="addFriendBtn" class="add-friend-btn">
+                    <i class="fas fa-user-plus"></i> Challenge
+                </button>
+            </div>
+            
+            <div id="friendMessage" class="friend-message"></div>
+            
+            <div class="leaderboard" id="leaderboard">
+                <!-- Leaderboard items dynamically add aagum -->
+            </div>
+        </div>
+
+        <!-- ===== BOTTOM ACTIONS ===== -->
         <div class="bottom-actions">
             <button class="export-btn" id="backupBtn">
                 <i class="fas fa-download"></i> Save Scroll
@@ -167,6 +213,7 @@
         </div>
     </div>
 
+    <!-- Firebase Scripts -->
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
