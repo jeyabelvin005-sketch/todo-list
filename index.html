@@ -61,16 +61,45 @@
                 </div>
             </div>
             <div class="header-buttons">
-                <button class="icon-btn username-btn" id="usernameBtn" onclick="openUsernameModal()" title="Change Username">
-                    <i class="fas fa-user-ninja"></i>
-                    <span id="headerUsername">Shinobi</span>
-                </button>
                 <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
                     <i class="fas fa-moon"></i>
                 </button>
-                <button class="icon-btn logout-btn" onclick="logoutUser()" title="Logout">
-                    <i class="fas fa-sign-out-alt"></i>
-                </button>
+
+                <!-- 🆕 PROFILE DROPDOWN MENU -->
+                <div class="profile-wrapper" id="profileWrapper">
+                    <button class="profile-btn" id="profileBtn" aria-expanded="false" title="Profile menu">
+                        <span class="profile-avatar" id="profileAvatar">N</span>
+                        <span class="profile-name" id="profileName">Shinobi</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+
+                    <div class="profile-dropdown" id="profileDropdown">
+                        <!-- Dropdown header -->
+                        <div class="dropdown-header">
+                            <span class="dropdown-header-label">Signed in as</span>
+                            <span class="dropdown-header-name" id="dropdownHeaderName">Shinobi</span>
+                            <span class="dropdown-header-email" id="dropdownHeaderEmail">user@email.com</span>
+                        </div>
+
+                        <!-- Menu items -->
+                        <button class="dropdown-item" onclick="openUsernameModal()">
+                            <i class="fas fa-user-edit"></i>
+                            <span>Change Ninja Name</span>
+                        </button>
+
+                        <button class="dropdown-item" onclick="exportBackupFromMenu()">
+                            <i class="fas fa-download"></i>
+                            <span>Save Missions Backup</span>
+                        </button>
+
+                        <hr class="dropdown-divider">
+
+                        <button class="dropdown-item logout-item" onclick="logoutUser()">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Logout</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -241,7 +270,7 @@
             <h3>Choose Your Ninja Name</h3>
             <p>This name will be shown to your friends on the leaderboard.</p>
             <div class="modal-message" id="usernameMessage"></div>
-            <input type="text" id="usernameInput" placeholder="Enter your ninja name" maxlength="20" autocomplete="off">
+            <input type="text" id="usernameInput" placeholder="Enter your ninja name" maxlength="20" minlength="2" autocomplete="off">
             <div class="modal-buttons">
                 <button type="button" class="btn-secondary" onclick="closeUsernameModal()">
                     <i class="fas fa-times"></i> Cancel
