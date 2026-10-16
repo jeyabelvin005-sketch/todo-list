@@ -5,6 +5,8 @@ let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 let userProfile = { email: '', displayName: '' };
+let incomingChallenges = [];
+let outgoingChallenges = [];
 
 // ---------- Date Helpers ----------
 function getWeekStart(date) {
@@ -36,7 +38,6 @@ function getTodayIndex() {
   return diffDays;
 }
 
-// 🔑 Get ISO week key like "2026-W43"
 function getWeekKey(date = new Date()) {
   const d = new Date(date);
   const day = d.getDay() || 7;
@@ -57,8 +58,110 @@ function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
 }
 
-function leaderboardDoc(uid) {
-  return db.collection('leaderboard').doc(uid);
+function userDoc(uid) {
+  return db.collection('users').doc(uid);
+}
+
+function challengesCol() {
+  return db.collection('challenges');
+}
+
+// ---------- Load Profile ----------
+async function loadProfile() {
+  try {
+    const snap = await userDoc(currentUser.uid).get();
+    if (snap.exists && snap.data().displayName) {
+      userProfile.displayName = snap.data().displayName;
+    } else {
+      // Default: email name part
+      const defaultName = (currentUser.email || 'shinobi').split('@')[0];
+      userProfile.displayName = defaultName;
+      await userDoc(currentUser.uid).set({
+        email: currentUser.email,
+        displayName: defaultName,
+        createdAt: Date.now()
+      }, { merge: true });
+    }
+    userProfile.email = currentUser.email;
+    updateUsernameUI();
+  } catch (err) {
+    console.error('Profile load error:', err);
+  }
+}
+
+function updateUsernameUI() {
+  const el = document.getElementById('headerUsername');
+  if (el) el.textContent = userProfile.displayName || 'Shinobi';
+}
+
+// ---------- Username Modal ----------
+function openUsernameModal() {
+  const modal = document.getElementById('usernameModal');
+  const input = document.getElementById('usernameInput');
+  const msg = document.getElementById('usernameMessage');
+  msg.className = 'modal-message';
+  input.value = userProfile.displayName || '';
+  modal.classList.add('show');
+  setTimeout(() => input.focus(), 150);
+}
+
+function closeUsernameModal() {
+  document.getElementById('usernameModal').classList.remove('show');
+}
+
+async function saveUsername() {
+  const input = document.getElementById('usernameInput');
+  const msg = document.getElementById('usernameMessage');
+  const btn = document.getElementById('saveUsernameBtn');
+  const name = input.value.trim();
+
+  if (!name) {
+    msg.textContent = 'Please enter a name.';
+    msg.className = 'modal-message show error';
+    return;
+  }
+  if (name.length < 2) {
+    msg.textContent = 'Name should be at least 2 characters.';
+    msg.className = 'modal-message show error';
+    return;
+  }
+  if (name.length > 20) {
+    msg.textContent = 'Name should be under 20 characters.';
+    msg.className = 'modal-message show error';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+  try {
+    await userDoc(currentUser.uid).set({
+      displayName: name,
+      email: currentUser.email,
+      updatedAt: Date.now()
+    }, { merge: true });
+
+    userProfile.displayName = name;
+    updateUsernameUI();
+
+    msg.textContent = '✓ Ninja name updated!';
+    msg.className = 'modal-message show success';
+
+    setTimeout(() => {
+      closeUsernameModal();
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-check"></i> Save';
+      // Refresh challenge displays since name changed
+      await loadChallenges();
+      await loadLeaderboard();
+    }, 1000);
+  } catch (err) {
+    console.error(err);
+    msg.textContent = 'Could not save. Try again.';
+    msg.className = 'modal-message show error';
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i> Save';
+  }
 }
 
 // ---------- Load Tasks ----------
@@ -101,8 +204,7 @@ async function addTask() {
   renderTasks();
   updateStats();
   updateWeekComparison();
-  await updateLeaderboardStats();
-  await loadLeaderboard();
+  updateTaskDropdown();
 }
 
 async function toggleDay(taskId, dayIndex) {
@@ -118,8 +220,6 @@ async function toggleDay(taskId, dayIndex) {
   renderTasks();
   updateStats();
   updateWeekComparison();
-  await updateLeaderboardStats();
-  await loadLeaderboard();
 }
 
 async function deleteTask(taskId) {
@@ -129,8 +229,7 @@ async function deleteTask(taskId) {
   renderTasks();
   updateStats();
   updateWeekComparison();
-  await updateLeaderboardStats();
-  await loadLeaderboard();
+  updateTaskDropdown();
 }
 
 // ---------- Render Tasks ----------
@@ -200,11 +299,19 @@ function updateStats() {
   document.getElementById('pendingTasks').textContent = pending;
 }
 
+// ---------- Task Dropdown for Challenge ----------
+function updateTaskDropdown() {
+  const select = document.getElementById('challengeTaskSelect');
+  if (!select) return;
+  const current = select.value;
+  select.innerHTML = '<option value="">Select a mission to challenge...</option>' +
+    tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
+  if (current) select.value = current;
+}
+
 // ---------- Week Comparison ----------
 function getWeekStats(weekOffset) {
-  // weekOffset: 0 = this week, -1 = last week
   const todayIndex = getTodayIndex();
-  // For last week, all 7 days are considered "past"
   const effectiveIndex = weekOffset === 0 ? todayIndex : 6;
 
   let completed = 0, total = 0;
@@ -216,7 +323,6 @@ function getWeekStats(weekOffset) {
   weekEndCheck.setHours(23, 59, 59, 999);
 
   tasks.forEach(task => {
-    // Check task created before end of that week
     const taskCreatedDate = task.createdDate
       ? new Date(task.createdDate)
       : new Date(task.createdAt || Date.now());
@@ -261,156 +367,256 @@ function updateWeekComparison() {
   }
 }
 
-// ---------- Leaderboard & Friends ----------
+// ============================================
+// 🎯 CHALLENGES SYSTEM
+// ============================================
 
-// Update own stats in public leaderboard
-async function updateLeaderboardStats() {
-  if (!currentUser) return;
-
-  const weeklyStats = {};
-  const thisWeekKey = getWeekKey();
-  const thisWeekStats = getWeekStats(0);
-  weeklyStats[thisWeekKey] = thisWeekStats.completed;
-
-  const lastWeekKey = getLastWeekKey();
-  const lastWeekStats = getWeekStats(-1);
-  weeklyStats[lastWeekKey] = lastWeekStats.completed;
-
-  try {
-    const docRef = leaderboardDoc(currentUser.uid);
-    const docSnap = await docRef.get();
-
-    const existing = docSnap.exists ? docSnap.data() : {};
-    const mergedStats = { ...(existing.weeklyStats || {}), ...weeklyStats };
-
-    await docRef.set({
-      email: (userProfile.email || currentUser.email || '').toLowerCase(),
-      displayName: userProfile.displayName || (currentUser.email || '').split('@')[0],
-      weeklyStats: mergedStats,
-      friends: existing.friends || [],
-      updatedAt: Date.now()
-    }, { merge: true });
-  } catch (err) {
-    console.error('Leaderboard update error:', err);
-  }
-}
-
-// Add friend by email
-async function addFriend() {
+// Send a challenge
+async function sendChallenge() {
   const emailInput = document.getElementById('friendEmail');
+  const select = document.getElementById('challengeTaskSelect');
   const email = emailInput.value.trim().toLowerCase();
-  const msgEl = document.getElementById('friendMessage');
+  const taskId = select.value;
+  const taskText = select.options[select.selectedIndex]?.dataset.text || '';
 
+  if (!taskId) {
+    showFriendMessage('Please select a mission to challenge.', 'error');
+    return;
+  }
   if (!email) {
-    showFriendMessage('Please enter an email address.', 'error');
+    showFriendMessage('Please enter a friend\'s email.', 'error');
     return;
   }
-
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showFriendMessage('Please enter a valid email address.', 'error');
+    showFriendMessage('Please enter a valid email.', 'error');
     return;
   }
-
-  if (email === (userProfile.email || currentUser.email || '').toLowerCase()) {
+  if (email === (currentUser.email || '').toLowerCase()) {
     showFriendMessage("You can't challenge yourself! 😅", 'error');
     return;
   }
 
-  showFriendMessage('Searching for shinobi...', 'info');
+  showFriendMessage('Sending challenge...', 'info');
 
   try {
-    const snapshot = await db.collection('leaderboard')
+    // Check if friend exists
+    const userSnap = await db.collection('users')
       .where('email', '==', email)
       .limit(1)
       .get();
 
-    if (snapshot.empty) {
+    if (userSnap.empty) {
       showFriendMessage(`No shinobi found with "${email}". They need to signup first!`, 'error');
       return;
     }
 
-    const friendDoc = snapshot.docs[0];
-    const friendUid = friendDoc.id;
+    // Check if already challenged for this task
+    const existing = await challengesCol()
+      .where('fromUid', '==', currentUser.uid)
+      .where('toEmail', '==', email)
+      .where('taskText', '==', taskText)
+      .where('status', '==', 'pending')
+      .get();
 
-    const myDoc = leaderboardDoc(currentUser.uid);
-    const mySnap = await myDoc.get();
-    const existingFriends = mySnap.exists ? (mySnap.data().friends || []) : [];
-
-    if (existingFriends.includes(friendUid)) {
-      showFriendMessage('Already challenging this shinobi!', 'error');
+    if (!existing.empty) {
+      showFriendMessage('You already have a pending challenge for this mission!', 'error');
       return;
     }
 
-    const updatedFriends = [...existingFriends, friendUid];
-    await myDoc.set({ friends: updatedFriends }, { merge: true });
+    // Create challenge
+    await challengesCol().add({
+      fromUid: currentUser.uid,
+      fromName: userProfile.displayName,
+      fromEmail: currentUser.email,
+      toEmail: email,
+      toUid: userSnap.docs[0].id,
+      taskText: taskText,
+      weekKey: getWeekKey(),
+      status: 'pending',
+      createdAt: Date.now()
+    });
 
-    showFriendMessage(`🍥 ${friendDoc.data().displayName} added to challenge!`, 'success');
+    showFriendMessage(`🍥 Challenge sent to ${email} for "${taskText}"!`, 'success');
     emailInput.value = '';
-    await loadLeaderboard();
+    select.value = '';
+    await loadChallenges();
   } catch (err) {
     console.error(err);
     showFriendMessage('Something went wrong. Try again.', 'error');
   }
 }
 
-// Remove friend
-async function removeFriend(friendUid) {
-  if (!confirm('Remove this shinobi from your challenge?')) return;
+// Load challenges (incoming + outgoing)
+async function loadChallenges() {
+  if (!currentUser) return;
+
   try {
-    const myDoc = leaderboardDoc(currentUser.uid);
-    const mySnap = await myDoc.get();
-    const existingFriends = mySnap.exists ? (mySnap.data().friends || []) : [];
-    const updatedFriends = existingFriends.filter(id => id !== friendUid);
-    await myDoc.set({ friends: updatedFriends }, { merge: true });
+    // Incoming: toEmail = my email
+    const incomingSnap = await challengesCol()
+      .where('toEmail', '==', currentUser.email)
+      .get();
+
+    incomingChallenges = incomingSnap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(c => c.status === 'pending');
+
+    // Outgoing: fromUid = my uid
+    const outgoingSnap = await challengesCol()
+      .where('fromUid', '==', currentUser.uid)
+      .get();
+
+    outgoingChallenges = outgoingSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    renderIncomingChallenges();
+  } catch (err) {
+    console.error('Load challenges error:', err);
+  }
+}
+
+function renderIncomingChallenges() {
+  const section = document.getElementById('incomingSection');
+  const list = document.getElementById('incomingList');
+  const count = document.getElementById('incomingCount');
+
+  if (incomingChallenges.length === 0) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  count.textContent = incomingChallenges.length;
+
+  list.innerHTML = incomingChallenges.map(c => `
+    <div class="incoming-item">
+      <div class="incoming-info">
+        <span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span>
+        <span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span>
+      </div>
+      <div class="incoming-actions">
+        <button class="accept-btn" onclick="acceptChallenge('${c.id}')">
+          <i class="fas fa-check"></i> Accept
+        </button>
+        <button class="reject-btn" onclick="rejectChallenge('${c.id}')">
+          <i class="fas fa-times"></i> Reject
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function acceptChallenge(challengeId) {
+  try {
+    await challengesCol().doc(challengeId).update({
+      status: 'accepted',
+      acceptedAt: Date.now()
+    });
+    await loadChallenges();
     await loadLeaderboard();
+    showFriendMessage('🍥 Challenge accepted! Now compare on the leaderboard.', 'success');
   } catch (err) {
     console.error(err);
   }
 }
 
-// Load leaderboard
+async function rejectChallenge(challengeId) {
+  if (!confirm('Reject this challenge?')) return;
+  try {
+    await challengesCol().doc(challengeId).update({
+      status: 'rejected',
+      rejectedAt: Date.now()
+    });
+    await loadChallenges();
+    showFriendMessage('Challenge rejected.', 'info');
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+// ============================================
+// 🏆 LEADERBOARD
+// ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard');
   const thisWeekKey = getWeekKey();
 
   try {
-    const myDoc = leaderboardDoc(currentUser.uid);
-    const mySnap = await myDoc.get();
-    const myFriends = mySnap.exists ? (mySnap.data().friends || []) : [];
+    // Get accepted challenges involving me
+    const [sentSnap, receivedSnap] = await Promise.all([
+      challengesCol()
+        .where('fromUid', '==', currentUser.uid)
+        .where('status', '==', 'accepted')
+        .get(),
+      challengesCol()
+        .where('toEmail', '==', currentUser.email)
+        .where('status', '==', 'accepted')
+        .get()
+    ]);
 
-    const allUids = [currentUser.uid, ...myFriends];
+    // Collect friend UIDs
+    const friendUids = new Set();
+    sentSnap.docs.forEach(d => friendUids.add(d.data().toUid));
+    receivedSnap.docs.forEach(d => friendUids.add(d.data().fromUid));
 
-    const docs = await Promise.all(
-      allUids.map(uid => leaderboardDoc(uid).get())
-    );
+    const allUids = [currentUser.uid, ...Array.from(friendUids)];
 
-    const entries = docs
-      .filter(d => d.exists)
-      .map(d => {
-        const data = d.data();
-        const weeklyStats = data.weeklyStats || {};
-        const thisWeekCompleted = weeklyStats[thisWeekKey] || 0;
-        return {
-          uid: d.id,
-          displayName: data.displayName || 'Shinobi',
-          email: data.email || '',
-          thisWeek: thisWeekCompleted,
-          isSelf: d.id === currentUser.uid
-        };
-      })
-      .sort((a, b) => b.thisWeek - a.thisWeek);
-
-    document.getElementById('friendCount').textContent = `${entries.length} shinobi`;
-
-    if (entries.length === 1) {
+    if (allUids.length === 1) {
       container.innerHTML = `
         <div class="empty-leaderboard">
           <span>🥷</span>
-          <p>No friends yet. Add a shinobi to start the challenge!</p>
+          <p>No accepted challenges yet. Send a challenge and wait for them to accept!</p>
         </div>
       `;
+      document.getElementById('friendCount').textContent = '0 shinobi';
       return;
     }
+
+    // Get user docs
+    const userDocs = await Promise.all(
+      allUids.map(uid => userDoc(uid).get())
+    );
+
+    // Compute this week's completions for each user
+    const entries = [];
+
+    for (const docSnap of userDocs) {
+      if (!docSnap.exists) continue;
+      const uid = docSnap.id;
+      const data = docSnap.data();
+
+      let weeklyCount = 0;
+
+      if (uid === currentUser.uid) {
+        // For self: use local tasks
+        weeklyCount = getWeekStats(0).completed;
+      } else {
+        // For friends: read their tasks
+        try {
+          const taskSnap = await userDoc(uid).collection('tasks').get();
+          const todayIdx = getTodayIndex();
+          taskSnap.docs.forEach(td => {
+            const t = td.data();
+            const days = t.days || [];
+            for (let i = 0; i <= todayIdx && i < 7; i++) {
+              if (days[i]) weeklyCount++;
+            }
+          });
+        } catch (err) {
+          console.warn('Cannot read friend tasks:', err);
+        }
+      }
+
+      entries.push({
+        uid,
+        displayName: data.displayName || 'Shinobi',
+        email: data.email || '',
+        thisWeek: weeklyCount,
+        isSelf: uid === currentUser.uid
+      });
+    }
+
+    entries.sort((a, b) => b.thisWeek - a.thisWeek);
+
+    document.getElementById('friendCount').textContent = `${entries.length} shinobi`;
 
     container.innerHTML = entries.map((entry, index) => {
       const rank = index + 1;
@@ -429,25 +635,26 @@ async function loadLeaderboard() {
             <span class="score-value">${entry.thisWeek}</span>
             <span class="score-label">completed</span>
           </div>
-          ${!entry.isSelf ? `<button class="remove-friend" onclick="removeFriend('${entry.uid}')" title="Remove">✕</button>` : ''}
         </div>
       `;
     }).join('');
 
   } catch (err) {
-    console.error(err);
+    console.error('Leaderboard error:', err);
     container.innerHTML = `<div class="empty-leaderboard"><p>Could not load leaderboard.</p></div>`;
   }
 }
 
+// ---------- Helpers ----------
 function showFriendMessage(text, type) {
   const el = document.getElementById('friendMessage');
+  if (!el) return;
   el.textContent = text;
   el.className = `friend-message show ${type}`;
-  if (type === 'success') {
+  if (type === 'success' || type === 'info') {
     setTimeout(() => {
       el.className = 'friend-message';
-    }, 4000);
+    }, 4500);
   }
 }
 
@@ -523,7 +730,7 @@ async function clearAllTasks() {
     renderTasks();
     updateStats();
     updateWeekComparison();
-    await updateLeaderboardStats();
+    updateTaskDropdown();
     await loadLeaderboard();
   }
 }
@@ -543,20 +750,18 @@ auth.onAuthStateChanged(async (user) => {
     return;
   }
   currentUser = user;
-  userProfile = {
-    email: user.email,
-    displayName: (user.email || '').split('@')[0]
-  };
 
   try {
+    await loadProfile();
     await loadTasks();
     updateWeekDisplay();
     renderTasks();
     updateStats();
     updateWeekComparison();
+    updateTaskDropdown();
     checkDarkMode();
     attachEventListeners();
-    await updateLeaderboardStats();
+    await loadChallenges();
     await loadLeaderboard();
 
     if (loader) loader.classList.add('hide');
@@ -571,7 +776,10 @@ auth.onAuthStateChanged(async (user) => {
 window.toggleDarkMode = toggleDarkMode;
 window.deleteTask = deleteTask;
 window.logoutUser = logoutUser;
-window.removeFriend = removeFriend;
+window.openUsernameModal = openUsernameModal;
+window.closeUsernameModal = closeUsernameModal;
+window.acceptChallenge = acceptChallenge;
+window.rejectChallenge = rejectChallenge;
 
 let listenersAttached = false;
 function attachEventListeners() {
@@ -596,9 +804,26 @@ function attachEventListeners() {
   });
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
-  document.getElementById('addFriendBtn').addEventListener('click', addFriend);
+  document.getElementById('addFriendBtn').addEventListener('click', sendChallenge);
   document.getElementById('friendEmail').addEventListener('keypress', e => {
-    if (e.key === 'Enter') addFriend();
+    if (e.key === 'Enter') sendChallenge();
+  });
+  document.getElementById('saveUsernameBtn').addEventListener('click', saveUsername);
+  document.getElementById('usernameInput').addEventListener('keypress', e => {
+    if (e.key === 'Enter') saveUsername();
+  });
+
+  // Username modal — click outside
+  document.getElementById('usernameModal').addEventListener('click', (e) => {
+    if (e.target.id === 'usernameModal') closeUsernameModal();
+  });
+
+  // ESC to close modals
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      const um = document.getElementById('usernameModal');
+      if (um.classList.contains('show')) closeUsernameModal();
+    }
   });
 }
 
