@@ -66,6 +66,52 @@ function challengesCol() {
   return db.collection('challenges');
 }
 
+// ============================================
+// 👤 PROFILE DROPDOWN MENU
+// ============================================
+function toggleProfileMenu() {
+  const wrapper = document.getElementById('profileWrapper');
+  const btn = document.getElementById('profileBtn');
+  const isOpen = wrapper.classList.contains('open');
+
+  if (isOpen) {
+    wrapper.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  } else {
+    wrapper.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+  }
+}
+
+function closeProfileMenu() {
+  const wrapper = document.getElementById('profileWrapper');
+  const btn = document.getElementById('profileBtn');
+  if (wrapper) wrapper.classList.remove('open');
+  if (btn) btn.setAttribute('aria-expanded', 'false');
+}
+
+function updateProfileUI() {
+  const name = userProfile.displayName || 'Shinobi';
+  const email = userProfile.email || currentUser?.email || '';
+  const initial = (name || 'S')[0].toUpperCase();
+
+  const avatarEl = document.getElementById('profileAvatar');
+  const nameEl = document.getElementById('profileName');
+  const headerNameEl = document.getElementById('dropdownHeaderName');
+  const headerEmailEl = document.getElementById('dropdownHeaderEmail');
+
+  if (avatarEl) avatarEl.textContent = initial;
+  if (nameEl) nameEl.textContent = name;
+  if (headerNameEl) headerNameEl.textContent = name;
+  if (headerEmailEl) headerEmailEl.textContent = email;
+}
+
+// Export backup from menu (alias)
+function exportBackupFromMenu() {
+  closeProfileMenu();
+  backupData();
+}
+
 // ---------- Load Profile ----------
 async function loadProfile() {
   try {
@@ -73,7 +119,6 @@ async function loadProfile() {
     if (snap.exists && snap.data().displayName) {
       userProfile.displayName = snap.data().displayName;
     } else {
-      // Default: email name part
       const defaultName = (currentUser.email || 'shinobi').split('@')[0];
       userProfile.displayName = defaultName;
       await userDoc(currentUser.uid).set({
@@ -83,30 +128,31 @@ async function loadProfile() {
       }, { merge: true });
     }
     userProfile.email = currentUser.email;
-    updateUsernameUI();
+    updateProfileUI();
   } catch (err) {
     console.error('Profile load error:', err);
+    userProfile.displayName = (currentUser.email || 'shinobi').split('@')[0];
+    userProfile.email = currentUser.email;
+    updateProfileUI();
   }
-}
-
-function updateUsernameUI() {
-  const el = document.getElementById('headerUsername');
-  if (el) el.textContent = userProfile.displayName || 'Shinobi';
 }
 
 // ---------- Username Modal ----------
 function openUsernameModal() {
+  closeProfileMenu();
   const modal = document.getElementById('usernameModal');
   const input = document.getElementById('usernameInput');
   const msg = document.getElementById('usernameMessage');
   msg.className = 'modal-message';
   input.value = userProfile.displayName || '';
   modal.classList.add('show');
+  document.body.classList.add('modal-open');
   setTimeout(() => input.focus(), 150);
 }
 
 function closeUsernameModal() {
   document.getElementById('usernameModal').classList.remove('show');
+  document.body.classList.remove('modal-open');
 }
 
 async function saveUsername() {
@@ -130,6 +176,11 @@ async function saveUsername() {
     msg.className = 'modal-message show error';
     return;
   }
+  if (!/^[a-zA-Z0-9_ ]+$/.test(name)) {
+    msg.textContent = 'Use letters, numbers, spaces, and underscore only.';
+    msg.className = 'modal-message show error';
+    return;
+  }
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
@@ -142,7 +193,7 @@ async function saveUsername() {
     }, { merge: true });
 
     userProfile.displayName = name;
-    updateUsernameUI();
+    updateProfileUI();
 
     msg.textContent = '✓ Ninja name updated!';
     msg.className = 'modal-message show success';
@@ -151,7 +202,6 @@ async function saveUsername() {
       closeUsernameModal();
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-check"></i> Save';
-      // Refresh challenge displays since name changed
       await loadChallenges();
       await loadLeaderboard();
     }, 1000);
@@ -299,7 +349,7 @@ function updateStats() {
   document.getElementById('pendingTasks').textContent = pending;
 }
 
-// ---------- Task Dropdown for Challenge ----------
+// ---------- Task Dropdown ----------
 function updateTaskDropdown() {
   const select = document.getElementById('challengeTaskSelect');
   if (!select) return;
@@ -371,7 +421,6 @@ function updateWeekComparison() {
 // 🎯 CHALLENGES SYSTEM
 // ============================================
 
-// Send a challenge
 async function sendChallenge() {
   const emailInput = document.getElementById('friendEmail');
   const select = document.getElementById('challengeTaskSelect');
@@ -399,7 +448,6 @@ async function sendChallenge() {
   showFriendMessage('Sending challenge...', 'info');
 
   try {
-    // Check if friend exists
     const userSnap = await db.collection('users')
       .where('email', '==', email)
       .limit(1)
@@ -410,7 +458,6 @@ async function sendChallenge() {
       return;
     }
 
-    // Check if already challenged for this task
     const existing = await challengesCol()
       .where('fromUid', '==', currentUser.uid)
       .where('toEmail', '==', email)
@@ -423,7 +470,6 @@ async function sendChallenge() {
       return;
     }
 
-    // Create challenge
     await challengesCol().add({
       fromUid: currentUser.uid,
       fromName: userProfile.displayName,
@@ -446,12 +492,10 @@ async function sendChallenge() {
   }
 }
 
-// Load challenges (incoming + outgoing)
 async function loadChallenges() {
   if (!currentUser) return;
 
   try {
-    // Incoming: toEmail = my email
     const incomingSnap = await challengesCol()
       .where('toEmail', '==', currentUser.email)
       .get();
@@ -460,7 +504,6 @@ async function loadChallenges() {
       .map(d => ({ id: d.id, ...d.data() }))
       .filter(c => c.status === 'pending');
 
-    // Outgoing: fromUid = my uid
     const outgoingSnap = await challengesCol()
       .where('fromUid', '==', currentUser.uid)
       .get();
@@ -537,10 +580,8 @@ async function rejectChallenge(challengeId) {
 // ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard');
-  const thisWeekKey = getWeekKey();
 
   try {
-    // Get accepted challenges involving me
     const [sentSnap, receivedSnap] = await Promise.all([
       challengesCol()
         .where('fromUid', '==', currentUser.uid)
@@ -552,7 +593,6 @@ async function loadLeaderboard() {
         .get()
     ]);
 
-    // Collect friend UIDs
     const friendUids = new Set();
     sentSnap.docs.forEach(d => friendUids.add(d.data().toUid));
     receivedSnap.docs.forEach(d => friendUids.add(d.data().fromUid));
@@ -570,12 +610,10 @@ async function loadLeaderboard() {
       return;
     }
 
-    // Get user docs
     const userDocs = await Promise.all(
       allUids.map(uid => userDoc(uid).get())
     );
 
-    // Compute this week's completions for each user
     const entries = [];
 
     for (const docSnap of userDocs) {
@@ -586,10 +624,8 @@ async function loadLeaderboard() {
       let weeklyCount = 0;
 
       if (uid === currentUser.uid) {
-        // For self: use local tasks
         weeklyCount = getWeekStats(0).completed;
       } else {
-        // For friends: read their tasks
         try {
           const taskSnap = await userDoc(uid).collection('tasks').get();
           const todayIdx = getTodayIndex();
@@ -706,6 +742,7 @@ function checkDarkMode() {
 
 // ---------- Other Actions ----------
 function logoutUser() {
+  closeProfileMenu();
   if (confirm('Logout from Konoha?')) auth.signOut();
 }
 
@@ -773,6 +810,7 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
+// ---------- Global functions (onclick handlers) ----------
 window.toggleDarkMode = toggleDarkMode;
 window.deleteTask = deleteTask;
 window.logoutUser = logoutUser;
@@ -780,16 +818,54 @@ window.openUsernameModal = openUsernameModal;
 window.closeUsernameModal = closeUsernameModal;
 window.acceptChallenge = acceptChallenge;
 window.rejectChallenge = rejectChallenge;
+window.exportBackupFromMenu = exportBackupFromMenu;
 
 let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
 
+  // Profile dropdown toggle
+  const profileBtn = document.getElementById('profileBtn');
+  if (profileBtn) {
+    profileBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleProfileMenu();
+    });
+  }
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', (e) => {
+    const wrapper = document.getElementById('profileWrapper');
+    if (wrapper && !wrapper.contains(e.target)) {
+      closeProfileMenu();
+    }
+  });
+
+  // Close dropdown on ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closeProfileMenu();
+      const um = document.getElementById('usernameModal');
+      if (um && um.classList.contains('show')) closeUsernameModal();
+    }
+  });
+
+  // Username modal — click outside to close
+  const usernameModal = document.getElementById('usernameModal');
+  if (usernameModal) {
+    usernameModal.addEventListener('click', (e) => {
+      if (e.target.id === 'usernameModal') closeUsernameModal();
+    });
+  }
+
+  // Add task
   document.getElementById('addBtn').addEventListener('click', addTask);
   document.getElementById('taskInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') addTask();
   });
+
+  // Week navigation
   document.getElementById('prevWeekBtn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
     updateWeekDisplay(); renderTasks(); updateStats(); updateWeekComparison();
@@ -802,28 +878,21 @@ function attachEventListeners() {
     currentWeekStart = getWeekStart(new Date());
     updateWeekDisplay(); renderTasks(); updateStats(); updateWeekComparison();
   });
+
+  // Backup + Clear
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
+
+  // Challenge
   document.getElementById('addFriendBtn').addEventListener('click', sendChallenge);
   document.getElementById('friendEmail').addEventListener('keypress', e => {
     if (e.key === 'Enter') sendChallenge();
   });
+
+  // Username save
   document.getElementById('saveUsernameBtn').addEventListener('click', saveUsername);
   document.getElementById('usernameInput').addEventListener('keypress', e => {
     if (e.key === 'Enter') saveUsername();
-  });
-
-  // Username modal — click outside
-  document.getElementById('usernameModal').addEventListener('click', (e) => {
-    if (e.target.id === 'usernameModal') closeUsernameModal();
-  });
-
-  // ESC to close modals
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
-      const um = document.getElementById('usernameModal');
-      if (um.classList.contains('show')) closeUsernameModal();
-    }
   });
 }
 
