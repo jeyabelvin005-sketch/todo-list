@@ -147,7 +147,7 @@ async function saveUsername() {
     msg.textContent = '✓ Ninja name updated!';
     msg.className = 'modal-message show success';
 
-    setTimeout(() => {
+    setTimeout(async () => {
       closeUsernameModal();
       btn.disabled = false;
       btn.innerHTML = '<i class="fas fa-check"></i> Save';
