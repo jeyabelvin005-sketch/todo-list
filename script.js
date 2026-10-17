@@ -80,17 +80,14 @@ window.closeMyProfilePage = function() {
 };
 
 window.switchProfileTab = function(tabId) {
-  // Hide all tabs
   document.querySelectorAll('.profile-tab-content').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.profile-tabs .profile-tab').forEach(el => el.classList.remove('active'));
   
-  // Show selected
   const content = document.getElementById(`profileTab-${tabId}`);
   const btn = document.getElementById(`tabBtn-${tabId}`);
   if(content) content.style.display = 'block';
   if(btn) btn.classList.add('active');
 
-  // Initialize specific tab data
   if(tabId === 'network') renderProfileUsers();
   if(tabId === 'avatar') {
       if (userProfile.avatarConfig) currentAvatar = { ...userProfile.avatarConfig };
@@ -682,33 +679,59 @@ window.removeFriend = async function(friendUid) {
   } catch (err) { console.error(err); }
 };
 
+// ============================================
+// 🏆 LEADERBOARD (FIXED: ONLY SHARED MISSIONS)
+// ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
   try {
-    const [sSnap, rSnap] = await Promise.all([challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(), challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()]);
+    const [sSnap, rSnap] = await Promise.all([
+      challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
+      challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
+    ]);
+    
     const fUids = new Set();
     sSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().toUid); });
     rSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().fromUid); });
+
     const allUids = [currentUser.uid, ...Array.from(fUids)];
-    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet.</p></div>`; document.getElementById('friendCount').textContent = '0 friends'; return; }
-    
+
+    if (allUids.length === 1) { 
+        container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet. Leaderboard will show when a task is shared.</p></div>`; 
+        const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; 
+        return; 
+    }
+
     const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
     const entries = [];
+    
     for (const doc of userDocs) {
       if (!doc.exists) continue;
-      let count = 0; const tIdx = getTodayIndex();
-      if (doc.id === currentUser.uid) {
-        for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); tasks.forEach(t => { if (t.completions && t.completions[ds]) count++; }); }
-      } else {
-        const tSnap = await userDoc(doc.id).collection('tasks').get();
-        tSnap.docs.forEach(td => { const t = td.data(); for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (t.completions && t.completions[ds]) count++; } });
-      }
+      let count = 0; 
+      const tIdx = getTodayIndex();
+
+      // 🆕 Ippo Personal Tasks count aagathu. Shared Missions (Challenges) mattum thaan count aagum.
       const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
-      sharedSnap.docs.forEach(sd => { const c = sd.data(); if (c.taskText === 'Follow Request') return; for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (c.completions && c.completions[ds]) count++; } });
+      sharedSnap.docs.forEach(sd => {
+        const c = sd.data(); 
+        if (c.taskText === 'Follow Request') return; // Follow requests ah count panna koodathu
+        
+        for (let i = 0; i <= tIdx && i < 7; i++) {
+          const d = new Date(currentWeekStart); 
+          d.setDate(d.getDate() + i); 
+          const ds = formatDate(d);
+          
+          // Ithu antha specific week la task complete pannirukangala nu check panrathu
+          if (c.completions && c.completions[ds]) count++;
+        }
+      });
+      
       entries.push({ uid: doc.id, name: doc.data().displayName, email: doc.data().email, count, self: doc.id === currentUser.uid });
     }
+
     entries.sort((a,b) => b.count - a.count);
-    document.getElementById('friendCount').textContent = `${entries.length} friends`;
+    const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
+    
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
