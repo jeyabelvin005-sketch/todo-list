@@ -5,9 +5,13 @@ let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 let userProfile = { email: '', displayName: '' };
+
+// Challenge States
 let incomingChallenges = [];
+let incomingFollowRequests = []; // 🆕 Separate Follow Requests
+let incomingTaskChallenges = []; // 🆕 Separate Task Challenges
 let acceptedChallenges = []; 
-let outgoingChallenges = []; // 🆕 For Pending status
+let outgoingChallenges = []; 
 let searchedUser = null;
 
 // Calendar States
@@ -52,15 +56,45 @@ function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
 
 // ============================================
-// 🔔 NOTIFICATION LOGIC
+// 🔔 FOLLOW REQUESTS PAGE
 // ============================================
-function scrollToIncoming() {
-  const section = document.getElementById('incomingSection');
-  if (section && section.style.display !== 'none') {
-    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  } else {
-    alert('No new notifications.');
+function openFollowRequestsPage() {
+  const page = document.getElementById('followRequestsPage');
+  if (page) page.classList.add('active');
+  document.body.classList.add('modal-open');
+  renderFollowRequests();
+}
+
+function closeFollowRequestsPage() {
+  const page = document.getElementById('followRequestsPage');
+  if (page) page.classList.remove('active');
+  document.body.classList.remove('modal-open');
+}
+
+function renderFollowRequests() {
+  const list = document.getElementById('followRequestsList');
+  if (!list) return;
+
+  if (incomingFollowRequests.length === 0) {
+    list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new follow requests.</p></div>`;
+    return;
   }
+
+  list.innerHTML = incomingFollowRequests.map(c => `
+    <div class="follow-req-item">
+      <div class="follow-req-info">
+        <div class="follow-req-avatar">${(c.fromName || 'S')[0].toUpperCase()}</div>
+        <div>
+          <div class="follow-req-name">${escapeHtml(c.fromName)}</div>
+          <div class="follow-req-text">Wants to follow you</div>
+        </div>
+      </div>
+      <div class="incoming-actions">
+        <button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button>
+        <button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button>
+      </div>
+    </div>
+  `).join('');
 }
 
 // ============================================
@@ -318,11 +352,9 @@ async function searchFriend() {
       if(actionArea) actionArea.innerHTML = `<button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-minus"></i> Unfollow</button>`;
       if(taskForm) taskForm.style.display = 'block';
     } else if (isPending) {
-      // 🆕 Pending Button
       if(actionArea) actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
       if(taskForm) taskForm.style.display = 'none';
     } else {
-      // 🆕 Heart Icon Follow Button
       if(actionArea) actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
       if(taskForm) taskForm.style.display = 'none';
     }
@@ -337,8 +369,8 @@ async function followFriend(uid) {
       weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
     });
     showFriendMessage(`🍥 Follow request sent to ${searchedUser.displayName}!`, 'success');
-    await loadChallenges(); // Load outgoing challenges to update UI
-    searchFriend(); // Refresh UI
+    await loadChallenges(); 
+    searchFriend(); 
   } catch (err) { console.error(err); }
 }
 
@@ -363,43 +395,46 @@ async function sendChallenge() {
 async function loadChallenges() {
   if (!currentUser) return;
   try {
-    // Incoming (toUid == me)
     const toSnap = await challengesCol().where('toUid', '==', currentUser.uid).get();
     const incomingAll = toSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     
-    // Outgoing (fromUid == me)
     const fromSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
     outgoingChallenges = fromSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     incomingChallenges = incomingAll.filter(c => c.status === 'pending');
     acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
     
+    // 🆕 Split Follow vs Tasks
+    incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request');
+    incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
+    
     renderIncomingChallenges();
+    renderFollowRequests();
     renderSharedMissions(); 
+    
+    // 🆕 Update Red Dot
+    const dot = document.getElementById('notificationDot');
+    if (dot) {
+      dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
+    }
   } catch (err) { console.error('Load challenges error:', err); }
 }
 
 function renderIncomingChallenges() {
   const section = document.getElementById('incomingSection');
   const list = document.getElementById('incomingList');
-  const dot = document.getElementById('notificationDot');
   
-  // 🔔 Toggle Notification Dot
-  if (dot) {
-    dot.style.display = incomingChallenges.length > 0 ? 'block' : 'none';
-  }
-
   if (!section || !list) return;
-  if (incomingChallenges.length === 0) { section.style.display = 'none'; return; }
+  if (incomingTaskChallenges.length === 0) { section.style.display = 'none'; return; }
   
   section.style.display = 'block';
-  const ic = document.getElementById('incomingCount'); if(ic) ic.textContent = incomingChallenges.length;
+  const ic = document.getElementById('incomingCount'); if(ic) ic.textContent = incomingTaskChallenges.length;
   
-  list.innerHTML = incomingChallenges.map(c => `
+  list.innerHTML = incomingTaskChallenges.map(c => `
     <div class="incoming-item">
       <div class="incoming-info">
         <span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span>
-        <span class="incoming-task">${c.taskText === 'Follow Request' ? 'wants to follow you!' : `challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"`}</span>
+        <span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span>
       </div>
       <div class="incoming-actions">
         <button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button>
@@ -610,7 +645,8 @@ window.selectDate = selectDate;
 window.toggleSharedDay = toggleSharedDay; 
 window.removeFriend = removeFriend;
 window.followFriend = followFriend;
-window.scrollToIncoming = scrollToIncoming;
+window.openFollowRequestsPage = openFollowRequestsPage;
+window.closeFollowRequestsPage = closeFollowRequestsPage;
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
