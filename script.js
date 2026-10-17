@@ -6,7 +6,7 @@ let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 let userProfile = { email: '', displayName: '' };
 let incomingChallenges = [];
-let acceptedChallenges = []; // 🆕 Shared Missions
+let acceptedChallenges = []; 
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
@@ -87,10 +87,8 @@ function changeMonth(period, dir) {
 
 function selectDate(period, dateStr) {
   const state = period === 1 ? p1State : p2State;
-  
   if (!state.start || (state.start && state.end)) {
-    state.start = dateStr;
-    state.end = null;
+    state.start = dateStr; state.end = null;
   } else if (dateStr >= state.start) {
     state.end = dateStr;
   } else {
@@ -117,22 +115,16 @@ function renderCalendar(period) {
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${state.year}-${String(state.month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     let classes = 'cal-day';
-
     if (state.start === dateStr) classes += ' selected start';
     if (state.end === dateStr) classes += ' selected end';
     if (state.start && state.end && dateStr > state.start && dateStr < state.end) classes += ' in-range';
-
     html += `<div class="${classes}" onclick="selectDate(${period}, '${dateStr}')">${d}</div>`;
   }
   container.innerHTML = html;
 
-  if (state.start && state.end) {
-    rangeLabel.textContent = `${state.start} → ${state.end}`;
-  } else if (state.start) {
-    rangeLabel.textContent = `Start: ${state.start} (Select end date)`;
-  } else {
-    rangeLabel.textContent = `Select start date`;
-  }
+  if (state.start && state.end) rangeLabel.textContent = `${state.start} → ${state.end}`;
+  else if (state.start) rangeLabel.textContent = `Start: ${state.start} (Select end)`;
+  else rangeLabel.textContent = `Select start date`;
 }
 
 // ============================================
@@ -146,11 +138,9 @@ function getStatsForRange(startStr, endStr) {
   if (isNaN(start) || isNaN(end) || start > end) return { total: 0, completed: 0, failed: 0, rate: 0 };
 
   let total = 0, completed = 0, failed = 0;
-
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     if (d > today) continue; 
     const dateStr = formatDate(d);
-
     tasks.forEach(task => {
       const taskCreated = new Date(task.createdDate || task.createdAt);
       if (taskCreated <= d) {
@@ -160,14 +150,13 @@ function getStatsForRange(startStr, endStr) {
       }
     });
   }
-
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { total, completed, failed, rate };
 }
 
 function runComparison() {
-  if (!p1State.start || !p1State.end) { alert('Please select complete dates for Period 1.'); return; }
-  if (!p2State.start || !p2State.end) { alert('Please select complete dates for Period 2.'); return; }
+  if (!p1State.start || !p1State.end) { alert('Select complete dates for Period 1.'); return; }
+  if (!p2State.start || !p2State.end) { alert('Select complete dates for Period 2.'); return; }
 
   const stats1 = getStatsForRange(p1State.start, p1State.end);
   const stats2 = getStatsForRange(p2State.start, p2State.end);
@@ -193,7 +182,6 @@ function runComparison() {
     verdictEl.textContent = `⚖️ Both periods have the same success rate.`;
     verdictEl.className = 'verdict-message verdict-tie';
   }
-
   document.getElementById('compareResults').classList.remove('hidden');
 }
 
@@ -209,24 +197,18 @@ async function addTask() {
   const input = document.getElementById('taskInput');
   const text = input.value.trim();
   if (!text) { alert('Please enter a mission!'); return; }
-  
-  const newTask = {
-    text, createdDate: getToday(), completions: {}, createdAt: Date.now()
-  };
+  const newTask = { text, createdDate: getToday(), completions: {}, createdAt: Date.now() };
   const ref = await tasksCol().add(newTask);
   tasks.push({ id: ref.id, ...newTask });
-  input.value = '';
-  renderTasks(); updateStats(); updateTaskDropdown();
+  input.value = ''; renderTasks(); updateStats(); updateTaskDropdown();
 }
 
 async function toggleDay(taskId, dateStr) {
   const task = tasks.find(t => t.id === taskId);
   if (!task) return;
-  
   if (!task.completions) task.completions = {};
   if (task.completions[dateStr]) delete task.completions[dateStr];
   else task.completions[dateStr] = true;
-  
   await tasksCol().doc(taskId).update({ completions: task.completions });
   renderTasks(); updateStats();
 }
@@ -258,7 +240,6 @@ function renderTasks() {
     for (let i = 0; i < 7; i++) {
       const dayCell = document.createElement('td');
       dayCell.className = 'checkbox';
-      
       const cellDate = new Date(currentWeekStart);
       cellDate.setDate(cellDate.getDate() + i);
       const dateStr = formatDate(cellDate);
@@ -410,7 +391,6 @@ async function sendChallenge() {
 async function loadChallenges() {
   if (!currentUser) return;
   try {
-    // Get all challenges sent TO me
     const snap = await challengesCol().where('toUid', '==', currentUser.uid).get();
     const allChallenges = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     
@@ -419,9 +399,7 @@ async function loadChallenges() {
     
     renderIncomingChallenges();
     renderSharedMissions(); 
-  } catch (err) {
-    console.error('Load challenges error:', err);
-  }
+  } catch (err) { console.error('Load challenges error:', err); }
 }
 
 function renderIncomingChallenges() {
@@ -477,14 +455,13 @@ async function toggleSharedDay(challengeId, dateStr) {
   if (!challenge) return;
 
   if (!challenge.completions) challenge.completions = {};
-
   if (challenge.completions[dateStr]) delete challenge.completions[dateStr];
   else challenge.completions[dateStr] = true;
 
   try {
     await challengesCol().doc(challengeId).update({ completions: challenge.completions });
-    renderSharedMissions(); // Refresh UI
-    loadLeaderboard(); // Update score
+    renderSharedMissions(); 
+    loadLeaderboard(); 
   } catch (err) { console.error('Error updating shared task:', err); }
 }
 
@@ -498,6 +475,39 @@ async function acceptChallenge(id) {
 async function rejectChallenge(id) { 
   await challengesCol().doc(id).update({ status: 'rejected' }); 
   loadChallenges(); 
+}
+
+// 🆕 REMOVE FRIEND LOGIC
+async function removeFriend(friendUid) {
+  if (!confirm('Are you sure you want to remove this shinobi from your challenge? This will delete all shared missions between you.')) return;
+
+  try {
+    // Delete challenges sent by me to them
+    const sentSnap = await challengesCol()
+      .where('fromUid', '==', currentUser.uid)
+      .where('toUid', '==', friendUid)
+      .get();
+
+    // Delete challenges sent by them to me
+    const recvSnap = await challengesCol()
+      .where('fromUid', '==', friendUid)
+      .where('toUid', '==', currentUser.uid)
+      .get();
+
+    const batch = db.batch();
+    sentSnap.forEach(doc => batch.delete(doc.ref));
+    recvSnap.forEach(doc => batch.delete(doc.ref));
+
+    await batch.commit();
+
+    await loadChallenges(); 
+    await loadLeaderboard();
+    showFriendMessage('Shinobi removed from challenge.', 'info');
+
+  } catch (err) {
+    console.error('Error removing friend:', err);
+    alert('Could not remove friend. Please try again.');
+  }
 }
 
 // ============================================
@@ -541,7 +551,6 @@ async function loadLeaderboard() {
         });
       }
       
-      // Add shared missions to count
       const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
       sharedSnap.docs.forEach(sd => {
         const c = sd.data();
@@ -556,12 +565,15 @@ async function loadLeaderboard() {
 
     entries.sort((a,b) => b.count - a.count);
     document.getElementById('friendCount').textContent = `${entries.length} shinobi`;
+    
+    // 🆕 Added Remove button in HTML template
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
         <div class="friend-avatar">${(e.name||'S')[0].toUpperCase()}</div>
         <div class="friend-info"><span class="friend-name">${escapeHtml(e.name)}${e.self?' (You)':''}</span><span class="friend-email">${escapeHtml(e.email)}</span></div>
         <div class="friend-score"><span class="score-value">${e.count}</span><span class="score-label">completed</span></div>
+        ${!e.self ? `<button class="remove-friend-btn" onclick="removeFriend('${e.uid}')" title="Remove Friend"><i class="fas fa-user-minus"></i></button>` : ''}
       </div>`).join('');
   } catch(e) { console.error(e); }
 }
@@ -616,13 +628,21 @@ auth.onAuthStateChanged(async (user) => {
   } catch (err) { console.error(err); if (loader) loader.classList.add('hide'); if (main) main.style.opacity = '1'; }
 });
 
-window.toggleDarkMode = toggleDarkMode; window.deleteTask = deleteTask; window.logoutUser = logoutUser;
-window.openUsernameModal = openUsernameModal; window.closeUsernameModal = closeUsernameModal;
-window.acceptChallenge = acceptChallenge; window.rejectChallenge = rejectChallenge;
+window.toggleDarkMode = toggleDarkMode; 
+window.deleteTask = deleteTask; 
+window.logoutUser = logoutUser;
+window.openUsernameModal = openUsernameModal; 
+window.closeUsernameModal = closeUsernameModal;
+window.acceptChallenge = acceptChallenge; 
+window.rejectChallenge = rejectChallenge;
 window.exportBackupFromMenu = exportBackupFromMenu;
-window.openComparePage = openComparePage; window.closeComparePage = closeComparePage;
-window.runComparison = runComparison; window.changeMonth = changeMonth; window.selectDate = selectDate;
-window.toggleSharedDay = toggleSharedDay; // 🆕 Expose this!
+window.openComparePage = openComparePage; 
+window.closeComparePage = closeComparePage;
+window.runComparison = runComparison; 
+window.changeMonth = changeMonth; 
+window.selectDate = selectDate;
+window.toggleSharedDay = toggleSharedDay; 
+window.removeFriend = removeFriend; // 🆕 Expose Remove Friend
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
