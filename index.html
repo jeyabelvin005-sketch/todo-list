@@ -159,7 +159,7 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
-        <!-- Incoming Task Challenges (Tasks only, not Follows) -->
+        <!-- Incoming Task Challenges (Tasks only) -->
         <div class="incoming-section" id="incomingSection" style="display:none;">
             <div class="incoming-header">
                 <h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2>
@@ -168,7 +168,7 @@
             <div class="incoming-list" id="incomingList"></div>
         </div>
 
-        <!-- Shared Missions -->
+        <!-- Shared Missions (Week Grid) -->
         <div class="shared-missions-section" id="sharedMissionsSection" style="display:none;">
             <div class="shared-header">
                 <h2><i class="fas fa-handshake"></i> Shared Missions</h2>
@@ -206,17 +206,6 @@
                 <div id="searchActionArea"></div>
             </div>
 
-            <!-- Challenge Task Form (Only shows if they are friends) -->
-            <div id="challengeTaskForm" style="display: none; margin-top: 15px; padding-top: 15px; border-top: 1px dashed rgba(255,165,0,0.3);">
-                <p style="font-size: 12px; color: #00d9ff; margin-bottom: 10px;">Send a specific mission to this shinobi:</p>
-                <div class="add-friend-form">
-                    <select id="challengeTaskSelect" class="friend-select">
-                        <option value="">Select a mission...</option>
-                    </select>
-                    <button id="sendChallengeBtn" class="add-friend-btn"><i class="fas fa-bolt"></i> Send Mission</button>
-                </div>
-            </div>
-
             <div id="friendMessage" class="friend-message"></div>
 
             <!-- Leaderboard -->
@@ -244,10 +233,7 @@
                 </div>
                 <div style="width: 45px;"></div>
             </div>
-            
-            <div id="followRequestsList" class="incoming-list" style="margin-top: 20px;">
-                <!-- JS will fill this -->
-            </div>
+            <div id="followRequestsList" class="incoming-list" style="margin-top: 20px;"></div>
         </div>
     </div>
 
@@ -320,6 +306,37 @@
                     </div>
                 </div>
                 <div class="verdict-message" id="verdictMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 👤 NEW MODAL: FRIEND PROFILE               -->
+    <!-- ========================================== -->
+    <div class="modal-overlay" id="friendProfileModal">
+        <div class="modal-box">
+            <div class="modal-icon" id="friendProfileAvatar">🥷</div>
+            <h3 id="friendProfileName">Shinobi Name</h3>
+            <p id="friendProfileEmail">email@example.com</p>
+            
+            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed rgba(255,165,0,0.3);">
+                <p style="font-size: 13px; color: #00d9ff; margin-bottom: 10px; text-align: left;">
+                    <i class="fas fa-bolt"></i> Send a Mission Challenge:
+                </p>
+                <select id="profileTaskSelect" class="friend-select" style="margin-bottom: 15px; width: 100%;">
+                    <option value="">Select one of your missions...</option>
+                </select>
+                <button type="button" class="btn-primary" id="sendMissionFromProfileBtn" style="width: 100%;">
+                    <i class="fas fa-paper-plane"></i> Send Invite
+                </button>
+            </div>
+
+            <div class="modal-message" id="profileMessage" style="margin-top: 15px;"></div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeFriendProfileModal()" style="width: 100%;">
+                    <i class="fas fa-times"></i> Close
+                </button>
             </div>
         </div>
     </div>
