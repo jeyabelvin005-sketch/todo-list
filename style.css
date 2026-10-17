@@ -2338,3 +2338,68 @@ body.dark-mode .modal-box {
 }
 
 .unfollow-btn:hover { background: #ff5555; color: #fff; }
+/* ============================================
+   🔔 NOTIFICATION DOT
+   ============================================ */
+.notification-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.notification-dot {
+    position: absolute;
+    top: 6px;
+    right: 8px;
+    width: 10px;
+    height: 10px;
+    background: #ff4444;
+    border-radius: 50%;
+    border: 2px solid #1a0f0a; /* Matches background to look like a cutout */
+    box-shadow: 0 0 10px rgba(255, 68, 68, 0.8);
+    animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(255, 68, 68, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 68, 68, 0); }
+}
+
+/* ============================================
+   ❤️ INSTAGRAM STYLE FOLLOW / PENDING BUTTONS
+   ============================================ */
+.follow-btn {
+    background: linear-gradient(135deg, #ff4757, #ff6b81);
+    color: #fff;
+    border: none;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(255, 71, 87, 0.4);
+    display: flex; 
+    align-items: center; 
+    gap: 6px;
+}
+
+.follow-btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 20px rgba(255, 71, 87, 0.7); 
+}
+
+.pending-btn {
+    background: rgba(255, 165, 0, 0.15);
+    color: #ffa500;
+    border: 1px solid #ffa500;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 800;
+    font-size: 13px;
+    cursor: not-allowed;
+    display: flex; 
+    align-items: center; 
+    gap: 6px;
+}
