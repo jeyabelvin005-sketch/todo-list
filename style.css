@@ -2222,3 +2222,38 @@ body.dark-mode .modal-box {
     border-color: #00d9ff;
     box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
 }
+/* 🆕 Remove Friend Button in Leaderboard */
+.remove-friend-btn {
+    background: rgba(255, 85, 85, 0.15);
+    border: 1px solid rgba(255, 85, 85, 0.4);
+    color: #ff5555;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    margin-left: 10px;
+}
+
+.remove-friend-btn:hover {
+    background: #ff5555;
+    color: #fff;
+    transform: scale(1.1);
+    box-shadow: 0 0 15px rgba(255, 85, 85, 0.6);
+}
+
+/* 🆕 Fix Shared Missions Desktop Visibility */
+.shared-missions-section {
+    display: block !important; /* Forces it to show */
+    width: 100%;
+    margin-top: 25px;
+}
+
+.shared-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px;
+}
