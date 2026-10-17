@@ -63,6 +63,92 @@ function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
 
 // ============================================
+// 🔍 SEARCH MENU LOGIC
+// ============================================
+window.openSearchMenu = function() {
+  closeProfileMenu();
+  document.getElementById('searchModal').classList.add('show');
+  document.body.classList.add('modal-open');
+  setTimeout(() => document.getElementById('searchFriendName').focus(), 150);
+};
+
+window.closeSearchMenu = function() {
+  document.getElementById('searchModal').classList.remove('show');
+  document.body.classList.remove('modal-open');
+  // Reset search fields
+  document.getElementById('searchFriendName').value = '';
+  document.getElementById('searchSuggestions').style.display = 'none';
+  document.getElementById('searchResultCard').style.display = 'none';
+  document.getElementById('friendMessage').className = 'friend-message';
+};
+
+function onSearchInput() {
+  const input = document.getElementById('searchFriendName');
+  const suggestions = document.getElementById('searchSuggestions');
+  if (!input || !suggestions) return;
+  
+  const query = input.value.trim();
+  clearTimeout(searchTimeout);
+  
+  if (query.length === 0) { suggestions.style.display = 'none'; return; }
+  
+  searchTimeout = setTimeout(async () => {
+    try {
+      const snap = await db.collection('users').where('displayName', '>=', query).where('displayName', '<=', query + '\uf8ff').limit(5).get();
+      if (snap.empty) { suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>'; suggestions.style.display = 'block'; return; }
+      
+      let html = '';
+      snap.docs.forEach(doc => {
+        if (doc.id === currentUser.uid) return; 
+        const data = doc.data();
+        html += `<div class="suggestion-item" onclick="selectSearchedUser('${doc.id}', '${escapeHtml(data.displayName)}', '${escapeHtml(data.email)}')"><div class="suggestion-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div><div class="suggestion-name">${escapeHtml(data.displayName)}</div></div>`;
+      });
+      suggestions.innerHTML = html === '' ? '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No other found</div>' : html;
+      suggestions.style.display = 'block';
+    } catch (err) { console.error(err); }
+  }, 300);
+}
+
+window.selectSearchedUser = function(uid, name, email) {
+  document.getElementById('searchSuggestions').style.display = 'none';
+  document.getElementById('searchFriendName').value = name;
+  searchedUser = { uid: uid, displayName: name, email: email };
+  showFriendResultCard();
+};
+
+function showFriendResultCard() {
+  const resultCard = document.getElementById('searchResultCard');
+  if (!resultCard || !searchedUser) return;
+  
+  document.getElementById('searchAvatar').textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
+  document.getElementById('searchName').textContent = searchedUser.displayName || 'Shinobi';
+  document.getElementById('searchEmail').textContent = searchedUser.email;
+  resultCard.style.display = 'flex';
+
+  const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
+  const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
+  const actionArea = document.getElementById('searchActionArea');
+  if(!actionArea) return;
+
+  if (isFriend) {
+    actionArea.innerHTML = `<div style="display:flex; gap:8px;"><button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button><button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button></div>`;
+  } else if (isPending) {
+    actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
+  } else {
+    actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
+  }
+}
+
+async function followFriend(uid) {
+  try {
+    await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: searchedUser.email, toUid: searchedUser.uid, taskText: "Follow Request", weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
+    showFriendMessage(`🍥 Follow request sent!`, 'success'); 
+    await loadChallenges(); 
+    showFriendResultCard(); 
+  } catch (err) { console.error(err); }
+}
+
+// ============================================
 // 👤 MY PROFILE PAGE & TABS
 // ============================================
 window.openMyProfilePage = function() {
@@ -221,53 +307,6 @@ window.saveUsernameFromProfile = async function() {
     userProfile.displayName = name; updateProfileUI(); msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success'; input.value = '';
   } catch (err) { msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; }
 };
-
-// ============================================
-// 🔍 LIVE SEARCH
-// ============================================
-function onSearchInput() {
-  const input = document.getElementById('searchFriendName');
-  const suggestions = document.getElementById('searchSuggestions');
-  if (!input || !suggestions) return;
-  const query = input.value.trim();
-  clearTimeout(searchTimeout);
-  if (query.length === 0) { suggestions.style.display = 'none'; return; }
-  searchTimeout = setTimeout(async () => {
-    try {
-      const snap = await db.collection('users').where('displayName', '>=', query).where('displayName', '<=', query + '\uf8ff').limit(5).get();
-      if (snap.empty) { suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>'; suggestions.style.display = 'block'; return; }
-      let html = '';
-      snap.docs.forEach(doc => {
-        if (doc.id === currentUser.uid) return; 
-        const data = doc.data();
-        html += `<div class="suggestion-item" onclick="selectSearchedUser('${doc.id}', '${escapeHtml(data.displayName)}', '${escapeHtml(data.email)}')"><div class="suggestion-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div><div class="suggestion-name">${escapeHtml(data.displayName)}</div></div>`;
-      });
-      suggestions.innerHTML = html === '' ? '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No other found</div>' : html;
-      suggestions.style.display = 'block';
-    } catch (err) { console.error(err); }
-  }, 300);
-}
-window.selectSearchedUser = function(uid, name, email) {
-  document.getElementById('searchSuggestions').style.display = 'none';
-  document.getElementById('searchFriendName').value = name;
-  searchedUser = { uid: uid, displayName: name, email: email };
-  showFriendResultCard();
-};
-function showFriendResultCard() {
-  const resultCard = document.getElementById('searchResultCard');
-  if (!resultCard || !searchedUser) return;
-  document.getElementById('searchAvatar').textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
-  document.getElementById('searchName').textContent = searchedUser.displayName || 'Shinobi';
-  document.getElementById('searchEmail').textContent = searchedUser.email;
-  resultCard.style.display = 'flex';
-  const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
-  const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
-  const actionArea = document.getElementById('searchActionArea');
-  if(!actionArea) return;
-  if (isFriend) { actionArea.innerHTML = `<div style="display:flex; gap:8px;"><button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button><button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button></div>`; }
-  else if (isPending) { actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`; }
-  else { actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`; }
-}
 
 // ============================================
 // 🔔 NOTIFICATIONS PAGE
@@ -549,13 +588,6 @@ async function loadProfile() {
   } catch (err) { updateProfileUI(); }
 }
 
-async function followFriend(uid) {
-  try {
-    await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: searchedUser.email, toUid: searchedUser.uid, taskText: "Follow Request", weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
-    showFriendMessage(`🍥 Follow request sent!`, 'success'); await loadChallenges(); showFriendResultCard(); 
-  } catch (err) { console.error(err); }
-}
-
 async function loadChallenges() {
   if (!currentUser) return;
   try {
@@ -622,7 +654,6 @@ async function renderSharedMissions(incoming, outgoing) {
       daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
     
-    // 🆕 Added Remove Button
     html += `<div class="shared-card">
         <div class="shared-info" style="display:flex; justify-content:space-between; align-items:flex-start;">
           <div>
@@ -637,17 +668,13 @@ async function renderSharedMissions(incoming, outgoing) {
   list.innerHTML = html;
 }
 
-// 🆕 Function to Remove Shared Mission
 window.removeSharedMission = async function(challengeId) {
   if (!confirm('Remove this shared mission? It will be deleted for both of you.')) return;
   try {
     await challengesCol().doc(challengeId).delete();
     await loadChallenges();
     await loadLeaderboard();
-  } catch (err) {
-    console.error('Error removing mission:', err);
-    alert('Failed to remove mission.');
-  }
+  } catch (err) { console.error('Error removing mission:', err); alert('Failed to remove mission.'); }
 };
 
 async function toggleSharedDay(challengeId, dateStr) {
@@ -687,7 +714,7 @@ window.removeFriend = async function(friendUid) {
 };
 
 // ============================================
-// 🏆 LEADERBOARD (Clean UI, No Remove Button)
+// 🏆 LEADERBOARD
 // ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
@@ -733,7 +760,6 @@ async function loadLeaderboard() {
     entries.sort((a,b) => b.count - a.count);
     const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
     
-    // 🆕 Removed the `remove-friend-btn` from here completely
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
@@ -767,7 +793,22 @@ auth.onAuthStateChanged(async (user) => {
     await loadProfile(); await loadTasks(); updateWeekDisplay(); renderTasks(); updateStats(); checkDarkMode();
     
     on('profileBtn', 'click', (e) => { e.stopPropagation(); toggleProfileMenu(); });
-    document.addEventListener('click', (e) => { const pw = document.getElementById('profileWrapper'); if (pw && !pw.contains(e.target)) closeProfileMenu(); });
+    
+    document.addEventListener('click', (e) => { 
+        const pw = document.getElementById('profileWrapper'); 
+        if (pw && !pw.contains(e.target)) closeProfileMenu(); 
+        
+        const suggestions = document.getElementById('searchSuggestions');
+        const input = document.getElementById('searchFriendName');
+        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) {
+            suggestions.style.display = 'none';
+        }
+        
+        const searchModal = document.getElementById('searchModal');
+        if (searchModal && e.target === searchModal) {
+            closeSearchMenu();
+        }
+    });
     
     on('addBtn', 'click', addTask);
     on('taskInput', 'keypress', e => { if (e.key === 'Enter') addTask(); });
@@ -778,12 +819,8 @@ auth.onAuthStateChanged(async (user) => {
     on('backupBtn', 'click', backupData);
     on('clearBtn', 'click', clearAllTasks);
     
+    // 🆕 Search input listener inside modal
     on('searchFriendName', 'input', onSearchInput);
-    document.addEventListener('click', (e) => {
-        const suggestions = document.getElementById('searchSuggestions');
-        const input = document.getElementById('searchFriendName');
-        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) suggestions.style.display = 'none';
-    });
     
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
     on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveUsernameFromProfile(); });
