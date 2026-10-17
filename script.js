@@ -1,10 +1,10 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Date Based
+// 🍥 Ninja Mission Tracker - Main Logic
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
-let userProfile = { email: '', displayName: '' };
+let userProfile = { email: '', displayName: '', avatarConfig: null };
 
 // Challenge States
 let incomingChallenges = [];
@@ -15,11 +15,20 @@ let outgoingChallenges = [];
 let searchedUser = null;
 let activeProfileUser = null; 
 let searchTimeout = null; 
-let currentProfileTab = 'followers'; // 'followers' or 'following'
+let currentProfileTab = 'followers';
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
+
+// Avatar State
+let currentAvatar = {
+    skin: "#f1c27d",
+    hairStyle: "short",
+    hairColor: "#2c1b18",
+    eyeColor: "#222",
+    expression: "happy"
+};
 
 function on(id, event, callback) {
   const el = document.getElementById(id);
@@ -58,138 +67,159 @@ function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
 
 // ============================================
-// 👤 MY PROFILE PAGE (Followers/Following)
+// 👤 AVATAR CUSTOMIZER LOGIC
 // ============================================
-function openMyProfilePage() {
+function openAvatarModal() {
   closeProfileMenu();
-  document.getElementById('myProfilePage').classList.add('active');
-  document.body.classList.add('modal-open');
-  switchProfileTab('followers'); // Default tab
-}
-
-function closeMyProfilePage() {
-  document.getElementById('myProfilePage').classList.remove('active');
-  document.body.classList.remove('modal-open');
-}
-
-function switchProfileTab(tab) {
-  currentProfileTab = tab;
-  document.getElementById('tabFollowersBtn').classList.toggle('active', tab === 'followers');
-  document.getElementById('tabFollowingBtn').classList.toggle('active', tab === 'following');
-  renderProfileUsers();
-}
-
-async function renderProfileUsers() {
-  const container = document.getElementById('profileUserList');
-  container.innerHTML = '<p style="text-align:center; color:#aaa;">Loading...</p>';
   
-  const uids = new Set();
-  const tempList = [];
-
-  if (currentProfileTab === 'followers') {
-    // People who follow me
-    const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
-    snap.docs.forEach(d => {
-      const data = d.data();
-      if (data.taskText === 'Follow Request' && !uids.has(data.fromUid)) {
-        uids.add(data.fromUid);
-        tempList.push({ uid: data.fromUid, name: data.fromName });
-      }
-    });
-  } else {
-    // People I follow
-    const snap = await challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
-    snap.docs.forEach(d => {
-      const data = d.data();
-      if (data.taskText === 'Follow Request' && !uids.has(data.toUid)) {
-        uids.add(data.toUid);
-        tempList.push({ uid: data.toUid, email: data.toEmail });
-      }
-    });
+  // Set current state from saved config or default
+  if (userProfile.avatarConfig) {
+    currentAvatar = { ...userProfile.avatarConfig };
   }
 
-  if (tempList.length === 0) {
-    container.innerHTML = `<p style="text-align:center; color:#aaa;">No users found here yet.</p>`;
-    return;
-  }
+  // Update UI active classes based on current state
+  setActiveColor('skin-palette', currentAvatar.skin);
+  setActiveColor('hair-palette', currentAvatar.hairColor);
+  setActiveColor('eye-palette', currentAvatar.eyeColor);
+  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style');
+  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
 
-  // Fetch fresh user data for all UIDs
-  const userDocs = await Promise.all(tempList.map(item => userDoc(item.uid).get()));
-  
-  container.innerHTML = '';
-  userDocs.forEach(doc => {
-    if (!doc.exists) return;
-    const data = doc.data();
-    container.innerHTML += `
-      <div class="user-list-item">
-        <div class="user-list-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div>
-        <div class="user-list-info">
-          <div class="user-list-name">${escapeHtml(data.displayName)}</div>
-          <div class="user-list-email">${escapeHtml(data.email)}</div>
-        </div>
-        <button class="follow-btn" style="background:transparent; border:1px solid #ffd700; color:#ffd700;" onclick="openFriendProfile('${doc.id}', '${data.displayName}', '${data.email}')">View</button>
-      </div>
-    `;
+  renderAvatarPreview();
+  document.getElementById('avatarModal').classList.add('show');
+}
+
+function closeAvatarModal() {
+  document.getElementById('avatarModal').classList.remove('show');
+}
+
+function setActiveColor(paletteId, color) {
+  const palette = document.getElementById(paletteId);
+  if(!palette) return;
+  palette.querySelectorAll('.color-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-color') === color);
   });
-
-  // Populate Broadcast Dropdown
-  const select = document.getElementById('broadcastTaskSelect');
-  select.innerHTML = '<option value="">Select one of your missions...</option>' + 
-    tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
 }
 
-// 🆕 BROADCAST TASK TO ALL FOLLOWERS
-async function broadcastTask() {
-  const select = document.getElementById('broadcastTaskSelect');
-  if (!select.value) { alert('Please select a task to broadcast.'); return; }
+function setActiveBtn(groupId, value, attrName) {
+  const group = document.getElementById(groupId);
+  if(!group) return;
+  group.querySelectorAll('.style-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute(attrName) === value);
+  });
+}
 
-  const taskText = select.options[select.selectedIndex].dataset.text;
-  const btn = document.querySelector('#myProfilePage .add-btn');
+// The SVG Template for the Avatar
+function getAvatarSVG(config) {
+  const hairStyles = {
+      short: {
+          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z",
+          back: ""
+      },
+      long: {
+          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z",
+          back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z"
+      },
+      spiky: {
+          front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z",
+          back: ""
+      }
+  };
+
+  const expressions = {
+      happy: {
+          eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`,
+          mouth: "M 85 120 Q 100 135 115 120"
+      },
+      neutral: {
+          eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`,
+          mouth: "M 85 125 L 115 125"
+      },
+      angry: {
+          eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`,
+          mouth: "M 85 130 Q 100 115 115 130"
+      }
+  };
+
+  return `
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="200" height="200" fill="#f0f4f8" />
+        <path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].back}" />
+        <path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" />
+        <rect x="85" y="140" width="30" height="30" fill="${config.skin}" />
+        <circle cx="100" cy="100" r="50" fill="${config.skin}" />
+        <g style="color: ${config.eyeColor}">${expressions[config.expression].eyes}</g>
+        <path d="${expressions[config.expression].mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" />
+        <path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].front}" />
+    </svg>
+  `;
+}
+
+function renderAvatarPreview() {
+  const container = document.getElementById('avatar-svg-container');
+  if(container) {
+    container.innerHTML = getAvatarSVG(currentAvatar);
+  }
+}
+
+async function saveAvatar() {
+  const btn = document.getElementById('saveAvatarBtn');
   btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
 
   try {
-    // Get all followers
-    const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
-    const followerUids = new Set();
-    snap.docs.forEach(d => {
-      const data = d.data();
-      if (data.taskText === 'Follow Request') followerUids.add(data.fromUid);
-    });
+    await userDoc(currentUser.uid).set({
+      avatarConfig: currentAvatar,
+      updatedAt: Date.now()
+    }, { merge: true });
 
-    if (followerUids.size === 0) {
-      alert("You don't have any followers yet to share with!");
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task';
-      return;
-    }
-
-    const promises = [];
-    for (const uid of followerUids) {
-      // Fetch follower email to send challenge
-      const uDoc = await userDoc(uid).get();
-      if(uDoc.exists) {
-        promises.push(
-          challengesCol().add({
-            fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
-            toEmail: uDoc.data().email, toUid: uid, taskText: taskText,
-            weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
-          })
-        );
-      }
-    }
-
-    await Promise.all(promises);
-    alert(`🍥 Mission shared successfully to ${followerUids.size} followers!`);
-    select.value = '';
+    userProfile.avatarConfig = currentAvatar;
+    updateProfileUI(); // Re-render the header avatar
+    closeAvatarModal();
   } catch (err) {
-    console.error(err);
-    alert('Error sharing task.');
+    console.error("Error saving avatar:", err);
+    alert("Failed to save avatar.");
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task';
+    btn.innerHTML = 'Save Avatar';
   }
 }
+
+// Event Listeners for Avatar Modal
+document.getElementById('skin-palette').addEventListener('click', (e) => {
+  if(e.target.classList.contains('color-btn')) {
+      setActiveColor('skin-palette', e.target.getAttribute('data-color'));
+      currentAvatar.skin = e.target.getAttribute('data-color');
+      renderAvatarPreview();
+  }
+});
+document.getElementById('hair-palette').addEventListener('click', (e) => {
+  if(e.target.classList.contains('color-btn')) {
+      setActiveColor('hair-palette', e.target.getAttribute('data-color'));
+      currentAvatar.hairColor = e.target.getAttribute('data-color');
+      renderAvatarPreview();
+  }
+});
+document.getElementById('eye-palette').addEventListener('click', (e) => {
+  if(e.target.classList.contains('color-btn')) {
+      setActiveColor('eye-palette', e.target.getAttribute('data-color'));
+      currentAvatar.eyeColor = e.target.getAttribute('data-color');
+      renderAvatarPreview();
+  }
+});
+document.getElementById('hair-style-options').addEventListener('click', (e) => {
+  if(e.target.classList.contains('style-btn')) {
+      setActiveBtn('hair-style-options', e.target.getAttribute('data-style'), 'data-style');
+      currentAvatar.hairStyle = e.target.getAttribute('data-style');
+      renderAvatarPreview();
+  }
+});
+document.getElementById('expression-options').addEventListener('click', (e) => {
+  if(e.target.classList.contains('style-btn')) {
+      setActiveBtn('expression-options', e.target.getAttribute('data-expr'), 'data-expr');
+      currentAvatar.expression = e.target.getAttribute('data-expr');
+      renderAvatarPreview();
+  }
+});
 
 
 // ============================================
@@ -446,6 +476,9 @@ function renderCalendar(period) {
   else rangeLabel.textContent = `Select start date`;
 }
 
+// ============================================
+// 📊 COMPARE LOGIC
+// ============================================
 function getStatsForRange(startStr, endStr) {
   const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
   const today = new Date(); today.setHours(23,59,59,999); 
@@ -560,24 +593,51 @@ function updateWeekDisplay() {
   }
 }
 
-// ---------- Profile Dropdown ----------
+// ---------- Profile UI ----------
 function toggleProfileMenu() { const pw = document.getElementById('profileWrapper'); if(pw) pw.classList.toggle('open'); }
 function closeProfileMenu() { const pw = document.getElementById('profileWrapper'); if(pw) pw.classList.remove('open'); }
+
 function updateProfileUI() {
-  const name = userProfile.displayName || 'Shinobi'; const email = userProfile.email || currentUser?.email || ''; const initial = (name || 'S')[0].toUpperCase();
-  const pa = document.getElementById('profileAvatar'); if(pa) pa.textContent = initial;
+  const name = userProfile.displayName || 'Shinobi'; 
+  const email = userProfile.email || currentUser?.email || ''; 
+  
+  // Update Profile Avatar
+  const pa = document.getElementById('profileAvatar'); 
+  if(pa) {
+    if(userProfile.avatarConfig) {
+      // If custom avatar exists, render SVG inside the profile circle
+      pa.innerHTML = getAvatarSVG(userProfile.avatarConfig);
+      pa.style.background = 'transparent'; // remove default background
+      pa.style.border = '2px solid rgba(255, 215, 0, 0.7)';
+    } else {
+      // Default letter avatar
+      pa.innerHTML = (name || 'S')[0].toUpperCase();
+      pa.style.background = 'radial-gradient(circle, #ffd700, var(--naruto-orange))';
+    }
+  }
+
   const pn = document.getElementById('profileName'); if(pn) pn.textContent = name;
   const dhn = document.getElementById('dropdownHeaderName'); if(dhn) dhn.textContent = name;
   const dhe = document.getElementById('dropdownHeaderEmail'); if(dhe) dhe.textContent = email;
 }
+
 async function loadProfile() {
   try {
     const snap = await userDoc(currentUser.uid).get();
-    if (snap.exists && snap.data().displayName) { userProfile.displayName = snap.data().displayName; }
-    else { const defaultName = (currentUser.email || 'shinobi').split('@')[0]; userProfile.displayName = defaultName; await userDoc(currentUser.uid).set({ email: currentUser.email, displayName: defaultName, createdAt: Date.now() }, { merge: true }); }
-    userProfile.email = currentUser.email; updateProfileUI();
+    if (snap.exists) {
+      const data = snap.data();
+      userProfile.displayName = data.displayName || (currentUser.email || 'shinobi').split('@')[0];
+      userProfile.avatarConfig = data.avatarConfig || null; // Load Avatar Config
+    } else { 
+      const defaultName = (currentUser.email || 'shinobi').split('@')[0]; 
+      userProfile.displayName = defaultName; 
+      await userDoc(currentUser.uid).set({ email: currentUser.email, displayName: defaultName, createdAt: Date.now() }, { merge: true }); 
+    }
+    userProfile.email = currentUser.email; 
+    updateProfileUI();
   } catch (err) { updateProfileUI(); }
 }
+
 function openUsernameModal() {
   closeProfileMenu(); 
   const um = document.getElementById('usernameModal'); if(um) um.classList.add('show'); 
@@ -905,11 +965,9 @@ window.closeFollowRequestsPage = closeFollowRequestsPage;
 window.openFriendProfile = openFriendProfile;
 window.closeFriendProfileModal = closeFriendProfileModal;
 window.selectSearchedUser = selectSearchedUser;
-// New Profile Functions
-window.openMyProfilePage = openMyProfilePage;
-window.closeMyProfilePage = closeMyProfilePage;
-window.switchProfileTab = switchProfileTab;
-window.broadcastTask = broadcastTask;
+window.openAvatarModal = openAvatarModal;
+window.closeAvatarModal = closeAvatarModal;
+window.saveAvatar = saveAvatar;
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
