@@ -6,8 +6,9 @@ let currentWeekStart = getWeekStart(new Date());
 let currentUser = null;
 let userProfile = { email: '', displayName: '' };
 let incomingChallenges = [];
+let acceptedChallenges = []; // 🆕 Shared Missions
 
-// 🆕 Calendar States
+// Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 
@@ -63,7 +64,6 @@ function openComparePage() {
   document.getElementById('comparePage').classList.add('active');
   document.body.classList.add('modal-open');
   
-  // Default: This Month
   const now = new Date();
   p1State.month = now.getMonth(); p1State.year = now.getFullYear();
   p2State.month = now.getMonth(); p2State.year = now.getFullYear();
@@ -89,15 +89,13 @@ function selectDate(period, dateStr) {
   const state = period === 1 ? p1State : p2State;
   
   if (!state.start || (state.start && state.end)) {
-    // Reset and start new
     state.start = dateStr;
     state.end = null;
   } else if (dateStr >= state.start) {
     state.end = dateStr;
   } else {
-    state.start = dateStr; // If clicked earlier date, restart
+    state.start = dateStr; 
   }
-  
   renderCalendar(period);
 }
 
@@ -107,7 +105,7 @@ function renderCalendar(period) {
   const monthLabel = document.getElementById(`p${period}MonthLabel`);
   const rangeLabel = document.getElementById(`p${period}RangeLabel`);
 
-  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   monthLabel.textContent = `${monthNames[state.month]} ${state.year}`;
 
   const firstDay = new Date(state.year, state.month, 1).getDay();
@@ -150,7 +148,7 @@ function getStatsForRange(startStr, endStr) {
   let total = 0, completed = 0, failed = 0;
 
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    if (d > today) continue; // Don't count future
+    if (d > today) continue; 
     const dateStr = formatDate(d);
 
     tasks.forEach(task => {
@@ -200,7 +198,7 @@ function runComparison() {
 }
 
 // ============================================
-// ✅ TASKS LOGIC (Date-Based)
+// ✅ TASKS LOGIC
 // ============================================
 async function loadTasks() {
   const snap = await tasksCol().orderBy('createdAt', 'asc').get();
@@ -325,12 +323,9 @@ function updateWeekDisplay() {
 }
 
 // ---------- Profile Dropdown ----------
-function toggleProfileMenu() {
-  document.getElementById('profileWrapper').classList.toggle('open');
-}
-function closeProfileMenu() {
-  document.getElementById('profileWrapper').classList.remove('open');
-}
+function toggleProfileMenu() { document.getElementById('profileWrapper').classList.toggle('open'); }
+function closeProfileMenu() { document.getElementById('profileWrapper').classList.remove('open'); }
+
 function updateProfileUI() {
   const name = userProfile.displayName || 'Shinobi';
   const email = userProfile.email || currentUser?.email || '';
@@ -363,9 +358,7 @@ function openUsernameModal() {
   document.getElementById('usernameMessage').className = 'modal-message';
   setTimeout(() => document.getElementById('usernameInput').focus(), 150);
 }
-function closeUsernameModal() {
-  document.getElementById('usernameModal').classList.remove('show');
-}
+function closeUsernameModal() { document.getElementById('usernameModal').classList.remove('show'); }
 
 async function saveUsername() {
   const input = document.getElementById('usernameInput');
@@ -388,7 +381,9 @@ async function saveUsername() {
   }
 }
 
-// ---------- Friend Challenge ----------
+// ============================================
+// 🤝 FRIEND CHALLENGES & SHARED MISSIONS
+// ============================================
 async function sendChallenge() {
   const email = document.getElementById('friendEmail').value.trim().toLowerCase();
   const select = document.getElementById('challengeTaskSelect');
@@ -399,7 +394,7 @@ async function sendChallenge() {
   
   try {
     const userSnap = await db.collection('users').where('email', '==', email).limit(1).get();
-    if (userSnap.empty) { showFriendMessage(`No shinobi found with "${email}".`, 'error'); return; }
+    if (userSnap.empty) { showFriendMessage(`No shinobi found.`, 'error'); return; }
 
     await challengesCol().add({
       fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
@@ -407,14 +402,26 @@ async function sendChallenge() {
       weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
     });
     showFriendMessage(`🍥 Challenge sent!`, 'success');
-    document.getElementById('friendEmail').value = ''; select.value = ''; loadChallenges();
+    document.getElementById('friendEmail').value = ''; select.value = ''; 
+    loadChallenges();
   } catch (err) { showFriendMessage('Error. Try again.', 'error'); }
 }
 
 async function loadChallenges() {
-  const snap = await challengesCol().where('toEmail', '==', currentUser.email).get();
-  incomingChallenges = snap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.status === 'pending');
-  renderIncomingChallenges();
+  if (!currentUser) return;
+  try {
+    // Get all challenges sent TO me
+    const snap = await challengesCol().where('toUid', '==', currentUser.uid).get();
+    const allChallenges = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    incomingChallenges = allChallenges.filter(c => c.status === 'pending');
+    acceptedChallenges = allChallenges.filter(c => c.status === 'accepted'); 
+    
+    renderIncomingChallenges();
+    renderSharedMissions(); 
+  } catch (err) {
+    console.error('Load challenges error:', err);
+  }
 }
 
 function renderIncomingChallenges() {
@@ -425,62 +432,138 @@ function renderIncomingChallenges() {
   document.getElementById('incomingCount').textContent = incomingChallenges.length;
   list.innerHTML = incomingChallenges.map(c => `
     <div class="incoming-item">
-      <div class="incoming-info"><span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span><span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span></div>
-      <div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
+      <div class="incoming-info">
+        <span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span>
+        <span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span>
+      </div>
+      <div class="incoming-actions">
+        <button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button>
+        <button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button>
+      </div>
     </div>`).join('');
 }
 
-async function acceptChallenge(id) { await challengesCol().doc(id).update({ status: 'accepted' }); loadChallenges(); loadLeaderboard(); }
-async function rejectChallenge(id) { await challengesCol().doc(id).update({ status: 'rejected' }); loadChallenges(); }
+// 🆕 SHARED MISSIONS (Accepted Tasks)
+function renderSharedMissions() {
+  const section = document.getElementById('sharedMissionsSection');
+  const list = document.getElementById('sharedMissionsList');
+  const count = document.getElementById('sharedCount');
 
+  if (acceptedChallenges.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block';
+  count.textContent = acceptedChallenges.length;
+
+  const todayStr = getToday();
+
+  list.innerHTML = acceptedChallenges.map(c => {
+    const isCompleted = c.completions && c.completions[todayStr];
+    return `
+      <div class="shared-item">
+        <div class="shared-info">
+          <span class="shared-from">🥷 From ${escapeHtml(c.fromName)}</span>
+          <span class="shared-task">${escapeHtml(c.taskText)}</span>
+        </div>
+        <button class="shared-toggle ${isCompleted ? 'done' : ''}" onclick="toggleSharedDay('${c.id}', '${todayStr}')">
+          ${isCompleted ? '<i class="fas fa-check"></i> Done Today' : '<i class="fas fa-circle"></i> Mark Done'}
+        </button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function toggleSharedDay(challengeId, dateStr) {
+  const challenge = acceptedChallenges.find(c => c.id === challengeId);
+  if (!challenge) return;
+
+  if (!challenge.completions) challenge.completions = {};
+
+  if (challenge.completions[dateStr]) delete challenge.completions[dateStr];
+  else challenge.completions[dateStr] = true;
+
+  try {
+    await challengesCol().doc(challengeId).update({ completions: challenge.completions });
+    renderSharedMissions(); // Refresh UI
+    loadLeaderboard(); // Update score
+  } catch (err) { console.error('Error updating shared task:', err); }
+}
+
+async function acceptChallenge(id) { 
+  await challengesCol().doc(id).update({ status: 'accepted' }); 
+  loadChallenges(); 
+  loadLeaderboard(); 
+  showFriendMessage('🍥 Challenge accepted! Check Shared Missions.', 'success');
+}
+
+async function rejectChallenge(id) { 
+  await challengesCol().doc(id).update({ status: 'rejected' }); 
+  loadChallenges(); 
+}
+
+// ============================================
+// 🏆 LEADERBOARD
+// ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard');
-  const [sSnap, rSnap] = await Promise.all([
-    challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
-    challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
-  ]);
-  const friendUids = new Set();
-  sSnap.docs.forEach(d => friendUids.add(d.data().toUid));
-  rSnap.docs.forEach(d => friendUids.add(d.data().fromUid));
-  const allUids = [currentUser.uid, ...Array.from(friendUids)];
+  try {
+    const [sSnap, rSnap] = await Promise.all([
+      challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
+      challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
+    ]);
+    const friendUids = new Set();
+    sSnap.docs.forEach(d => friendUids.add(d.data().toUid));
+    rSnap.docs.forEach(d => friendUids.add(d.data().fromUid));
+    const allUids = [currentUser.uid, ...Array.from(friendUids)];
 
-  if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No challenges yet.</p></div>`; document.getElementById('friendCount').textContent = '0 shinobi'; return; }
+    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No challenges yet.</p></div>`; document.getElementById('friendCount').textContent = '0 shinobi'; return; }
 
-  const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
-  const entries = [];
+    const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
+    const entries = [];
 
-  for (const doc of userDocs) {
-    if (!doc.exists) continue;
-    let count = 0;
-    if (doc.id === currentUser.uid) {
+    for (const doc of userDocs) {
+      if (!doc.exists) continue;
+      let count = 0;
       const tIdx = getTodayIndex();
-      for (let i = 0; i <= tIdx && i < 7; i++) {
-        const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
-        tasks.forEach(t => { if (t.completions && t.completions[ds]) count++; });
-      }
-    } else {
-      const tSnap = await userDoc(doc.id).collection('tasks').get();
-      const tIdx = getTodayIndex();
-      tSnap.docs.forEach(td => {
-        const t = td.data();
+      
+      if (doc.id === currentUser.uid) {
         for (let i = 0; i <= tIdx && i < 7; i++) {
           const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
-          if (t.completions && t.completions[ds]) count++;
+          tasks.forEach(t => { if (t.completions && t.completions[ds]) count++; });
+        }
+      } else {
+        const tSnap = await userDoc(doc.id).collection('tasks').get();
+        tSnap.docs.forEach(td => {
+          const t = td.data();
+          for (let i = 0; i <= tIdx && i < 7; i++) {
+            const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
+            if (t.completions && t.completions[ds]) count++;
+          }
+        });
+      }
+      
+      // Add shared missions to count
+      const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
+      sharedSnap.docs.forEach(sd => {
+        const c = sd.data();
+        for (let i = 0; i <= tIdx && i < 7; i++) {
+          const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
+          if (c.completions && c.completions[ds]) count++;
         }
       });
-    }
-    entries.push({ uid: doc.id, name: doc.data().displayName, email: doc.data().email, count, self: doc.id === currentUser.uid });
-  }
 
-  entries.sort((a,b) => b.count - a.count);
-  document.getElementById('friendCount').textContent = `${entries.length} shinobi`;
-  container.innerHTML = entries.map((e, i) => `
-    <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
-      <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
-      <div class="friend-avatar">${(e.name||'S')[0].toUpperCase()}</div>
-      <div class="friend-info"><span class="friend-name">${escapeHtml(e.name)}${e.self?' (You)':''}</span><span class="friend-email">${escapeHtml(e.email)}</span></div>
-      <div class="friend-score"><span class="score-value">${e.count}</span><span class="score-label">completed</span></div>
-    </div>`).join('');
+      entries.push({ uid: doc.id, name: doc.data().displayName, email: doc.data().email, count, self: doc.id === currentUser.uid });
+    }
+
+    entries.sort((a,b) => b.count - a.count);
+    document.getElementById('friendCount').textContent = `${entries.length} shinobi`;
+    container.innerHTML = entries.map((e, i) => `
+      <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
+        <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
+        <div class="friend-avatar">${(e.name||'S')[0].toUpperCase()}</div>
+        <div class="friend-info"><span class="friend-name">${escapeHtml(e.name)}${e.self?' (You)':''}</span><span class="friend-email">${escapeHtml(e.email)}</span></div>
+        <div class="friend-score"><span class="score-value">${e.count}</span><span class="score-label">completed</span></div>
+      </div>`).join('');
+  } catch(e) { console.error(e); }
 }
 
 // ---------- Helpers & Init ----------
@@ -504,7 +587,14 @@ auth.onAuthStateChanged(async (user) => {
   currentUser = user;
 
   try {
-    await loadProfile(); await loadTasks(); updateWeekDisplay(); renderTasks(); updateStats(); updateTaskDropdown(); checkDarkMode();
+    await loadProfile(); 
+    await loadTasks(); 
+    updateWeekDisplay(); 
+    renderTasks(); 
+    updateStats(); 
+    updateTaskDropdown(); 
+    checkDarkMode();
+    
     document.getElementById('profileBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleProfileMenu(); });
     document.addEventListener('click', (e) => { if (!document.getElementById('profileWrapper').contains(e.target)) closeProfileMenu(); });
     document.getElementById('addBtn').addEventListener('click', addTask);
@@ -518,8 +608,11 @@ auth.onAuthStateChanged(async (user) => {
     document.getElementById('saveUsernameBtn').addEventListener('click', saveUsername);
     document.getElementById('usernameInput').addEventListener('keypress', e => { if (e.key === 'Enter') saveUsername(); });
 
-    await loadChallenges(); await loadLeaderboard();
-    if (loader) loader.classList.add('hide'); if (main) main.style.opacity = '1';
+    await loadChallenges(); 
+    await loadLeaderboard();
+    
+    if (loader) loader.classList.add('hide'); 
+    if (main) main.style.opacity = '1';
   } catch (err) { console.error(err); if (loader) loader.classList.add('hide'); if (main) main.style.opacity = '1'; }
 });
 
@@ -529,6 +622,7 @@ window.acceptChallenge = acceptChallenge; window.rejectChallenge = rejectChallen
 window.exportBackupFromMenu = exportBackupFromMenu;
 window.openComparePage = openComparePage; window.closeComparePage = closeComparePage;
 window.runComparison = runComparison; window.changeMonth = changeMonth; window.selectDate = selectDate;
+window.toggleSharedDay = toggleSharedDay; // 🆕 Expose this!
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
