@@ -650,3 +650,23 @@ body.dark-mode .modal-box { background: linear-gradient(135deg, rgba(10, 14, 26,
     .avatar-preview-box { min-height: 200px; }
     .avatar-controls { min-width: 100%; }
 }
+/* ==========================================
+   🔍 SEARCH MENU MODAL
+   ========================================== */
+.search-modal-box {
+    max-width: 480px !important;
+}
+
+.search-modal-box .friend-input {
+    font-size: 15px;
+    border-radius: 12px;
+}
+
+.search-modal-box .search-result-card {
+    margin-top: 15px;
+    border-width: 1px;
+}
+
+.search-modal-box .search-suggestions {
+    top: 100%;
+}
