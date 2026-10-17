@@ -7,13 +7,14 @@ let currentUser = null;
 let userProfile = { email: '', displayName: '' };
 let incomingChallenges = [];
 let acceptedChallenges = []; 
+let outgoingChallenges = []; // 🆕 For Pending status
 let searchedUser = null;
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 
-// 🛡️ SAFE LISTENER: Element illa na crash aagathu
+// 🛡️ SAFE LISTENER
 function on(id, event, callback) {
   const el = document.getElementById(id);
   if (el) el.addEventListener(event, callback);
@@ -49,6 +50,18 @@ function getWeekKey(date = new Date()) {
 function tasksCol() { return db.collection('users').doc(currentUser.uid).collection('tasks'); }
 function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
+
+// ============================================
+// 🔔 NOTIFICATION LOGIC
+// ============================================
+function scrollToIncoming() {
+  const section = document.getElementById('incomingSection');
+  if (section && section.style.display !== 'none') {
+    section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  } else {
+    alert('No new notifications.');
+  }
+}
 
 // ============================================
 // 📅 CALENDAR LOGIC
@@ -270,7 +283,7 @@ async function saveUsername() {
 }
 
 // ============================================
-// 🔍 INSTAGRAM STYLE FRIEND SEARCH
+// 🔍 INSTAGRAM STYLE FRIEND SEARCH & CHALLENGES
 // ============================================
 async function searchFriend() {
   const emailInput = document.getElementById('searchFriendEmail');
@@ -296,14 +309,21 @@ async function searchFriend() {
     resultCard.style.display = 'flex';
 
     const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid || c.toUid === searchedUser.uid);
+    const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
+
     const actionArea = document.getElementById('searchActionArea');
     const taskForm = document.getElementById('challengeTaskForm');
 
     if (isFriend) {
       if(actionArea) actionArea.innerHTML = `<button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-minus"></i> Unfollow</button>`;
       if(taskForm) taskForm.style.display = 'block';
+    } else if (isPending) {
+      // 🆕 Pending Button
+      if(actionArea) actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
+      if(taskForm) taskForm.style.display = 'none';
     } else {
-      if(actionArea) actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-user-plus"></i> Follow</button>`;
+      // 🆕 Heart Icon Follow Button
+      if(actionArea) actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
       if(taskForm) taskForm.style.display = 'none';
     }
   } catch (err) { console.error(err); alert('Error searching.'); }
@@ -317,7 +337,8 @@ async function followFriend(uid) {
       weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
     });
     showFriendMessage(`🍥 Follow request sent to ${searchedUser.displayName}!`, 'success');
-    searchFriend();
+    await loadChallenges(); // Load outgoing challenges to update UI
+    searchFriend(); // Refresh UI
   } catch (err) { console.error(err); }
 }
 
@@ -342,10 +363,17 @@ async function sendChallenge() {
 async function loadChallenges() {
   if (!currentUser) return;
   try {
-    const snap = await challengesCol().where('toUid', '==', currentUser.uid).get();
-    const allChallenges = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    incomingChallenges = allChallenges.filter(c => c.status === 'pending');
-    acceptedChallenges = allChallenges.filter(c => c.status === 'accepted'); 
+    // Incoming (toUid == me)
+    const toSnap = await challengesCol().where('toUid', '==', currentUser.uid).get();
+    const incomingAll = toSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
+    // Outgoing (fromUid == me)
+    const fromSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
+    outgoingChallenges = fromSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    incomingChallenges = incomingAll.filter(c => c.status === 'pending');
+    acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
+    
     renderIncomingChallenges();
     renderSharedMissions(); 
   } catch (err) { console.error('Load challenges error:', err); }
@@ -354,10 +382,19 @@ async function loadChallenges() {
 function renderIncomingChallenges() {
   const section = document.getElementById('incomingSection');
   const list = document.getElementById('incomingList');
+  const dot = document.getElementById('notificationDot');
+  
+  // 🔔 Toggle Notification Dot
+  if (dot) {
+    dot.style.display = incomingChallenges.length > 0 ? 'block' : 'none';
+  }
+
   if (!section || !list) return;
   if (incomingChallenges.length === 0) { section.style.display = 'none'; return; }
+  
   section.style.display = 'block';
   const ic = document.getElementById('incomingCount'); if(ic) ic.textContent = incomingChallenges.length;
+  
   list.innerHTML = incomingChallenges.map(c => `
     <div class="incoming-item">
       <div class="incoming-info">
@@ -531,7 +568,6 @@ auth.onAuthStateChanged(async (user) => {
   try {
     await loadProfile(); await loadTasks(); updateWeekDisplay(); renderTasks(); updateStats(); updateTaskDropdown(); checkDarkMode();
     
-    // Using Safe Listener 'on()'
     on('profileBtn', 'click', (e) => { e.stopPropagation(); toggleProfileMenu(); });
     document.addEventListener('click', (e) => { const pw = document.getElementById('profileWrapper'); if (pw && !pw.contains(e.target)) closeProfileMenu(); });
     
@@ -558,14 +594,23 @@ auth.onAuthStateChanged(async (user) => {
   } catch (err) { console.error(err); if (loader) loader.classList.add('hide'); if (main) main.style.opacity = '1'; }
 });
 
-window.toggleDarkMode = toggleDarkMode; window.deleteTask = deleteTask; window.logoutUser = logoutUser;
-window.openUsernameModal = openUsernameModal; window.closeUsernameModal = closeUsernameModal;
-window.acceptChallenge = acceptChallenge; window.rejectChallenge = rejectChallenge;
+window.toggleDarkMode = toggleDarkMode; 
+window.deleteTask = deleteTask; 
+window.logoutUser = logoutUser;
+window.openUsernameModal = openUsernameModal; 
+window.closeUsernameModal = closeUsernameModal;
+window.acceptChallenge = acceptChallenge; 
+window.rejectChallenge = rejectChallenge;
 window.exportBackupFromMenu = exportBackupFromMenu;
-window.openComparePage = openComparePage; window.closeComparePage = closeComparePage;
-window.runComparison = runComparison; window.changeMonth = changeMonth; window.selectDate = selectDate;
-window.toggleSharedDay = toggleSharedDay; window.removeFriend = removeFriend;
+window.openComparePage = openComparePage; 
+window.closeComparePage = closeComparePage;
+window.runComparison = runComparison; 
+window.changeMonth = changeMonth; 
+window.selectDate = selectDate;
+window.toggleSharedDay = toggleSharedDay; 
+window.removeFriend = removeFriend;
 window.followFriend = followFriend;
+window.scrollToIncoming = scrollToIncoming;
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
