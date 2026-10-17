@@ -54,9 +54,9 @@
                 </div>
             </div>
             <div class="header-buttons">
-                <!-- 🔔 NOTIFICATION BELL -->
+                <!-- 🔔 NOTIFICATION BELL (Opens Follow Requests Page) -->
                 <div class="notification-wrapper">
-                    <button class="icon-btn" onclick="scrollToIncoming()" title="Notifications">
+                    <button class="icon-btn" onclick="openFollowRequestsPage()" title="Notifications">
                         <i class="fas fa-bell"></i>
                         <span class="notification-dot" id="notificationDot" style="display:none;"></span>
                     </button>
@@ -159,10 +159,10 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
-        <!-- Incoming Challenges -->
+        <!-- Incoming Task Challenges (Tasks only, not Follows) -->
         <div class="incoming-section" id="incomingSection" style="display:none;">
             <div class="incoming-header">
-                <h2><i class="fas fa-envelope"></i> Incoming Challenges</h2>
+                <h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2>
                 <span class="incoming-count" id="incomingCount">0</span>
             </div>
             <div class="incoming-list" id="incomingList"></div>
@@ -203,9 +203,7 @@
                     <span class="search-name" id="searchName">Shinobi Name</span>
                     <span class="search-email" id="searchEmail">email@example.com</span>
                 </div>
-                <div id="searchActionArea">
-                    <!-- Follow / Pending / Unfollow button goes here -->
-                </div>
+                <div id="searchActionArea"></div>
             </div>
 
             <!-- Challenge Task Form (Only shows if they are friends) -->
@@ -234,7 +232,27 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- 🆕 NEW PAGE: COMPARE PROGRESS (CALENDAR)   -->
+    <!-- 🔔 NEW PAGE: FOLLOW REQUESTS               -->
+    <!-- ========================================== -->
+    <div class="page-view" id="followRequestsPage">
+        <div class="container compare-container">
+            <div class="header" style="margin-bottom: 20px;">
+                <button class="nav-btn" onclick="closeFollowRequestsPage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
+                <div class="logo-text" style="text-align: center; flex: 1;">
+                    <h1>Follow Requests</h1>
+                    <span class="subtitle">Shinobi waiting for your reply</span>
+                </div>
+                <div style="width: 45px;"></div>
+            </div>
+            
+            <div id="followRequestsList" class="incoming-list" style="margin-top: 20px;">
+                <!-- JS will fill this -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 📊 NEW PAGE: COMPARE PROGRESS (CALENDAR)   -->
     <!-- ========================================== -->
     <div class="page-view" id="comparePage">
         <div class="container compare-container">
