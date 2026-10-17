@@ -11,20 +11,24 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Floating Characters & Particles -->
+    <!-- Floating Characters -->
     <div class="character-layer">
         <div class="ninja-run naruto">🍥</div>
         <div class="ninja-run sasuke">⚡</div>
         <div class="ninja-run sakura">🌸</div>
         <div class="ninja-run kakashi">🥷</div>
     </div>
+
     <div class="chakra-particles">
         <span></span><span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <div class="rasengan-loader" id="rasenganLoader">
-        <div class="rasengan"><div class="rasengan-core"></div><div class="rasengan-ring"></div></div>
+        <div class="rasengan">
+            <div class="rasengan-core"></div>
+            <div class="rasengan-ring"></div>
+        </div>
         <p class="loading-text">Loading Ninja Data...</p>
     </div>
 
@@ -39,12 +43,19 @@
                 </div>
             </div>
             <div class="header-buttons">
+                <!-- 🔍 SEARCH BUTTON -->
+                <button class="icon-btn" onclick="openSearchMenu()" title="Search Shinobi">
+                    <i class="fas fa-search"></i>
+                </button>
+
+                <!-- 🔔 NOTIFICATION BELL -->
                 <div class="notification-wrapper">
                     <button class="icon-btn" onclick="openFollowRequestsPage()" title="Notifications">
                         <i class="fas fa-bell"></i>
                         <span class="notification-dot" id="notificationDot" style="display:none;"></span>
                     </button>
                 </div>
+
                 <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
                     <i class="fas fa-moon"></i>
                 </button>
@@ -56,7 +67,6 @@
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     
-                    <!-- Cleaned Dropdown -->
                     <div class="profile-dropdown" id="profileDropdown">
                         <div class="dropdown-header">
                             <span class="dropdown-header-label">Signed in as</span>
@@ -76,20 +86,34 @@
             </div>
         </div>
 
-        <!-- Week Nav & Stats (Same as before) -->
+        <!-- Week Nav -->
         <div class="week-nav">
             <button class="nav-btn" id="prevWeekBtn"><i class="fas fa-chevron-left"></i></button>
-            <div class="week-label-wrap"><span class="week-kanji">週</span><span id="weekLabel">This Week</span></div>
+            <div class="week-label-wrap">
+                <span class="week-kanji">週</span>
+                <span id="weekLabel">This Week</span>
+            </div>
             <button class="nav-btn" id="nextWeekBtn"><i class="fas fa-chevron-right"></i></button>
             <button class="today-btn" id="todayBtn"><i class="fas fa-bolt"></i> Today</button>
         </div>
 
+        <!-- Stats -->
         <div class="stats-grid">
-            <div class="stat-card naruto-card"><div class="stat-icon"><img src="images/naruto-face.jpg"></div><div class="stat-info"><span class="stat-label">Total Missions</span><span class="stat-value" id="totalTasks">0</span></div></div>
-            <div class="stat-card sasuke-card"><div class="stat-icon"><img src="images/sasuke-face.jpg"></div><div class="stat-info"><span class="stat-label">Completed</span><span class="stat-value" id="completedTasks">0</span></div></div>
-            <div class="stat-card sakura-card"><div class="stat-icon"><img src="images/sakura-face.jpg"></div><div class="stat-info"><span class="stat-label">Pending</span><span class="stat-value" id="pendingTasks">0</span></div></div>
+            <div class="stat-card naruto-card">
+                <div class="stat-icon"><img src="images/naruto-face.jpg" alt="Naruto"></div>
+                <div class="stat-info"><span class="stat-label">Total Missions</span><span class="stat-value" id="totalTasks">0</span></div>
+            </div>
+            <div class="stat-card sasuke-card">
+                <div class="stat-icon"><img src="images/sasuke-face.jpg" alt="Sasuke"></div>
+                <div class="stat-info"><span class="stat-label">Completed</span><span class="stat-value" id="completedTasks">0</span></div>
+            </div>
+            <div class="stat-card sakura-card">
+                <div class="stat-icon"><img src="images/sakura-face.jpg" alt="Sakura"></div>
+                <div class="stat-info"><span class="stat-label">Pending</span><span class="stat-value" id="pendingTasks">0</span></div>
+            </div>
         </div>
 
+        <!-- Add Task -->
         <div class="add-section">
             <div class="add-header"><h2><i class="fas fa-scroll"></i> New Mission</h2><span class="hint">Press Enter to assign</span></div>
             <div class="add-form">
@@ -98,13 +122,26 @@
             </div>
         </div>
 
+        <!-- Weekly Table -->
         <div class="table-container">
             <table id="taskTable">
-                <thead><tr><th class="task-col"><i class="fas fa-list"></i> Mission</th><th id="day1Header">Mon</th><th id="day2Header">Tue</th><th id="day3Header">Wed</th><th id="day4Header">Thu</th><th id="day5Header">Fri</th><th id="day6Header">Sat</th><th id="day7Header">Sun</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th class="task-col"><i class="fas fa-list"></i> Mission</th>
+                        <th id="day1Header">Mon</th>
+                        <th id="day2Header">Tue</th>
+                        <th id="day3Header">Wed</th>
+                        <th id="day4Header">Thu</th>
+                        <th id="day5Header">Fri</th>
+                        <th id="day6Header">Sat</th>
+                        <th id="day7Header">Sun</th>
+                    </tr>
+                </thead>
                 <tbody id="taskTableBody"></tbody>
             </table>
         </div>
 
+        <!-- Legend -->
         <div class="legend">
             <span class="legend-item"><span class="legend-icon completed">✓</span> Completed</span>
             <span class="legend-item"><span class="legend-icon pending">✗</span> Failed</span>
@@ -112,33 +149,37 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
+        <!-- Incoming Task Challenges -->
         <div class="incoming-section" id="incomingSection" style="display:none;">
-            <div class="incoming-header"><h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2><span class="incoming-count" id="incomingCount">0</span></div>
+            <div class="incoming-header">
+                <h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2>
+                <span class="incoming-count" id="incomingCount">0</span>
+            </div>
             <div class="incoming-list" id="incomingList"></div>
         </div>
 
+        <!-- Shared Missions -->
         <div class="shared-missions-section" id="sharedMissionsSection" style="display:none;">
-            <div class="shared-header"><h2><i class="fas fa-handshake"></i> Shared Missions</h2><span class="shared-count" id="sharedCount">0</span></div>
+            <div class="shared-header">
+                <h2><i class="fas fa-handshake"></i> Shared Missions</h2>
+                <span class="shared-count" id="sharedCount">0</span>
+            </div>
             <div class="shared-list" id="sharedMissionsList"></div>
         </div>
 
-        <div class="friend-section">
-            <div class="friend-header"><h2><i class="fas fa-users"></i> Find Shinobi</h2><span class="friend-count" id="friendCount">0 friends</span></div>
-            <div class="challenge-info"><i class="fas fa-search"></i> Search by <strong>Ninja Name</strong> to follow them.</div>
-            <div class="add-friend-form" style="margin-bottom: 20px; position: relative;">
-                <input type="text" id="searchFriendName" placeholder="Type a name..." class="friend-input" style="flex: 1;" autocomplete="off">
-                <div id="searchSuggestions" class="search-suggestions"></div>
+        <!-- 🆕 LEADERBOARD SECTION (Cleaned up) -->
+        <div class="friend-section" style="margin-top: 25px;">
+            <div class="friend-header">
+                <h2><i class="fas fa-trophy"></i> Friends Leaderboard</h2>
+                <span class="friend-count" id="friendCount">0 friends</span>
             </div>
-            <div class="search-result-card" id="searchResultCard" style="display: none;">
-                <div class="search-avatar" id="searchAvatar">S</div>
-                <div class="search-info"><span class="search-name" id="searchName">Shinobi</span><span class="search-email" id="searchEmail">email</span></div>
-                <div id="searchActionArea"></div>
-            </div>
-            <div id="friendMessage" class="friend-message"></div>
-            <h3 style="margin: 25px 0 15px; color: #ffd700; font-size: 16px;"><i class="fas fa-trophy"></i> Friends Leaderboard</h3>
+            <p style="font-size: 12px; color: rgba(255,200,100,0.7); margin-bottom: 15px; text-align: center;">
+                <i class="fas fa-info-circle"></i> Leaderboard only counts completed <strong>Shared Missions</strong>.
+            </p>
             <div class="leaderboard" id="leaderboard"></div>
         </div>
 
+        <!-- Bottom Actions -->
         <div class="bottom-actions">
             <button class="export-btn" id="backupBtn"><i class="fas fa-download"></i> Save Scroll</button>
             <button class="clear-btn" id="clearBtn"><i class="fas fa-trash-alt"></i> Clear All</button>
@@ -146,7 +187,41 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- 👤 MY PROFILE PAGE (With Ribbon Tabs)      -->
+    <!-- 🔍 NEW MODAL: SEARCH MENU                  -->
+    <!-- ========================================== -->
+    <div class="modal-overlay" id="searchModal">
+        <div class="modal-box search-modal-box">
+            <div class="modal-icon">🔍</div>
+            <h3>Find Shinobi</h3>
+            <p>Search by Ninja Name to follow them.</p>
+            
+            <div class="add-friend-form" style="position: relative; margin-bottom: 15px;">
+                <input type="text" id="searchFriendName" placeholder="Type a name (e.g., Naruto)..." class="friend-input" style="flex: 1; padding: 15px;" autocomplete="off">
+                <div id="searchSuggestions" class="search-suggestions"></div>
+            </div>
+
+            <!-- Search Result Card -->
+            <div class="search-result-card" id="searchResultCard" style="display: none;">
+                <div class="search-avatar" id="searchAvatar">S</div>
+                <div class="search-info">
+                    <span class="search-name" id="searchName">Shinobi Name</span>
+                    <span class="search-email" id="searchEmail">email@example.com</span>
+                </div>
+                <div id="searchActionArea"></div>
+            </div>
+
+            <div id="friendMessage" class="friend-message"></div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeSearchMenu()" style="width: 100%;">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 👤 MY PROFILE PAGE                         -->
     <!-- ========================================== -->
     <div class="page-view" id="myProfilePage">
         <div class="container compare-container">
@@ -156,14 +231,13 @@
                 <div style="width: 45px;"></div>
             </div>
 
-            <!-- Profile Ribbon Tabs -->
             <div class="profile-tabs" style="margin-bottom: 25px; display: flex; gap: 5px; flex-wrap: wrap;">
                 <button class="profile-tab active" onclick="switchProfileTab('network')" id="tabBtn-network" style="flex: 1; min-width: 120px;"><i class="fas fa-users"></i> Network</button>
                 <button class="profile-tab" onclick="switchProfileTab('avatar')" id="tabBtn-avatar" style="flex: 1; min-width: 120px;"><i class="fas fa-user-astronaut"></i> Avatar & Name</button>
                 <button class="profile-tab" onclick="switchProfileTab('data')" id="tabBtn-data" style="flex: 1; min-width: 120px;"><i class="fas fa-chart-pie"></i> Data & Progress</button>
             </div>
 
-            <!-- Tab 1: Network (Followers/Following) -->
+            <!-- Tab 1: Network -->
             <div id="profileTab-network" class="profile-tab-content">
                 <div class="profile-tabs" style="margin-bottom: 15px; border-bottom: none;">
                     <button class="profile-tab active" id="tabFollowersBtn" onclick="switchNetworkSubTab('followers')">Followers</button>
@@ -247,7 +321,7 @@
         </div>
     </div>
 
-    <!-- 🔔 FOLLOW REQUESTS PAGE -->
+    <!-- 🔔 NOTIFICATIONS PAGE -->
     <div class="page-view" id="followRequestsPage">
         <div class="container compare-container">
             <div class="header" style="margin-bottom: 20px;">
