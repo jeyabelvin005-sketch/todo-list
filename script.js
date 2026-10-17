@@ -14,6 +14,7 @@ let acceptedChallenges = [];
 let outgoingChallenges = []; 
 let searchedUser = null;
 let activeProfileUser = null; 
+let searchTimeout = null; // For Live Search Debounce
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
@@ -55,6 +56,95 @@ function getWeekKey(date = new Date()) {
 function tasksCol() { return db.collection('users').doc(currentUser.uid).collection('tasks'); }
 function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
+
+// ============================================
+// 🔍 LIVE SEARCH LOGIC
+// ============================================
+function onSearchInput() {
+  const input = document.getElementById('searchFriendName');
+  const suggestions = document.getElementById('searchSuggestions');
+  if (!input || !suggestions) return;
+  
+  const query = input.value.trim();
+  clearTimeout(searchTimeout);
+
+  if (query.length === 0) {
+    suggestions.style.display = 'none';
+    return;
+  }
+
+  searchTimeout = setTimeout(async () => {
+    try {
+      const snap = await db.collection('users')
+        .where('displayName', '>=', query)
+        .where('displayName', '<=', query + '\uf8ff')
+        .limit(5)
+        .get();
+
+      if (snap.empty) {
+        suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>';
+        suggestions.style.display = 'block';
+        return;
+      }
+
+      let html = '';
+      snap.docs.forEach(doc => {
+        if (doc.id === currentUser.uid) return; 
+        const data = doc.data();
+        html += `
+          <div class="suggestion-item" onclick="selectSearchedUser('${doc.id}', '${escapeHtml(data.displayName)}', '${escapeHtml(data.email)}')">
+              <div class="suggestion-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div>
+              <div class="suggestion-name">${escapeHtml(data.displayName)}</div>
+          </div>
+        `;
+      });
+
+      if (html === '') {
+        suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No other shinobi found</div>';
+      } else {
+        suggestions.innerHTML = html;
+      }
+      suggestions.style.display = 'block';
+    } catch (err) {
+      console.error("Search error:", err);
+    }
+  }, 300); // 300ms debounce
+}
+
+function selectSearchedUser(uid, name, email) {
+  document.getElementById('searchSuggestions').style.display = 'none';
+  document.getElementById('searchFriendName').value = name;
+  searchedUser = { uid: uid, displayName: name, email: email };
+  
+  showFriendResultCard();
+}
+
+function showFriendResultCard() {
+  const resultCard = document.getElementById('searchResultCard');
+  if (!resultCard || !searchedUser) return;
+
+  const sa = document.getElementById('searchAvatar'); if(sa) sa.textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
+  const sn = document.getElementById('searchName'); if(sn) sn.textContent = searchedUser.displayName || 'Shinobi';
+  const se = document.getElementById('searchEmail'); if(se) se.textContent = searchedUser.email;
+  resultCard.style.display = 'flex';
+
+  const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid || c.toUid === searchedUser.uid);
+  const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
+  const actionArea = document.getElementById('searchActionArea');
+
+  if (isFriend) {
+    if(actionArea) actionArea.innerHTML = `
+      <div style="display:flex; gap:8px;">
+          <button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button>
+          <button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button>
+      </div>
+    `;
+  } else if (isPending) {
+    if(actionArea) actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
+  } else {
+    if(actionArea) actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
+  }
+}
 
 // ============================================
 // 🔔 FOLLOW REQUESTS PAGE
@@ -359,7 +449,6 @@ function openUsernameModal() {
 }
 function closeUsernameModal() { const um = document.getElementById('usernameModal'); if(um) um.classList.remove('show'); }
 
-// 🆕 SAVE USERNAME (WITH DUPLICATE CHECK)
 async function saveUsername() {
   const input = document.getElementById('usernameInput'); 
   const msg = document.getElementById('usernameMessage'); 
@@ -372,15 +461,13 @@ async function saveUsername() {
   btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
   
   try {
-    // 🆕 Check if name already exists
     const nameCheck = await db.collection('users').where('displayName', '==', name).get();
     const isTaken = nameCheck.docs.some(doc => doc.id !== currentUser.uid);
     
     if (isTaken) {
       msg.textContent = 'This Ninja Name is already taken by another shinobi!';
       msg.className = 'modal-message show error';
-      btn.disabled = false; 
-      btn.innerHTML = '<i class="fas fa-check"></i> Save';
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save';
       return;
     }
 
@@ -388,8 +475,7 @@ async function saveUsername() {
     await userDoc(currentUser.uid).set({ displayName: name, updatedAt: Date.now() }, { merge: true }); 
     userProfile.displayName = name; 
     updateProfileUI();
-    msg.textContent = '✓ Name updated!'; 
-    msg.className = 'modal-message show success';
+    msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success';
     
     setTimeout(() => { 
       closeUsernameModal(); 
@@ -398,58 +484,9 @@ async function saveUsername() {
       loadLeaderboard(); 
     }, 1000);
   } catch (err) { 
-    msg.textContent = 'Error saving.'; 
-    msg.className = 'modal-message show error'; 
-    btn.disabled = false; 
-    btn.innerHTML = '<i class="fas fa-check"></i> Save'; 
+    msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; 
+    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save'; 
   }
-}
-
-// ============================================
-// 🔍 SEARCH BY NINJA NAME (UPDATED)
-// ============================================
-async function searchFriend() {
-  // 🆕 Changed ID from searchFriendEmail to searchFriendName
-  const nameInput = document.getElementById('searchFriendName');
-  const resultCard = document.getElementById('searchResultCard');
-  const msg = document.getElementById('friendMessage');
-  if(!nameInput || !resultCard || !msg) return;
-
-  const name = nameInput.value.trim();
-  msg.className = 'friend-message';
-
-  if (!name) { alert('Please enter a Ninja Name to search.'); return; }
-
-  try {
-    // 🆕 Search by displayName instead of email
-    const snap = await db.collection('users').where('displayName', '==', name).limit(1).get();
-    if (snap.empty) { resultCard.style.display = 'none'; showFriendMessage('No shinobi found with this name.', 'error'); return; }
-    const doc = snap.docs[0];
-    if (doc.id === currentUser.uid) { resultCard.style.display = 'none'; showFriendMessage("You can't search for yourself!", 'error'); return; }
-
-    searchedUser = { uid: doc.id, ...doc.data() };
-    const sa = document.getElementById('searchAvatar'); if(sa) sa.textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
-    const sn = document.getElementById('searchName'); if(sn) sn.textContent = searchedUser.displayName || 'Shinobi';
-    const se = document.getElementById('searchEmail'); if(se) se.textContent = searchedUser.email;
-    resultCard.style.display = 'flex';
-
-    const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid || c.toUid === searchedUser.uid);
-    const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
-    const actionArea = document.getElementById('searchActionArea');
-
-    if (isFriend) {
-      if(actionArea) actionArea.innerHTML = `
-        <div style="display:flex; gap:8px;">
-            <button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button>
-            <button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button>
-        </div>
-      `;
-    } else if (isPending) {
-      if(actionArea) actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
-    } else {
-      if(actionArea) actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
-    }
-  } catch (err) { console.error(err); alert('Error searching.'); }
 }
 
 async function followFriend(uid) {
@@ -461,7 +498,7 @@ async function followFriend(uid) {
     });
     showFriendMessage(`🍥 Follow request sent to ${searchedUser.displayName}!`, 'success');
     await loadChallenges(); 
-    searchFriend(); 
+    showFriendResultCard(); // Refresh UI
   } catch (err) { console.error(err); }
 }
 
@@ -591,7 +628,7 @@ async function removeFriend(friendUid) {
 }
 
 // ============================================
-// 🏆 LEADERBOARD
+// 🏆 LEADERBOARD (Only shows task shared)
 // ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
@@ -600,11 +637,22 @@ async function loadLeaderboard() {
       challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
       challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
     ]);
+    
     const fUids = new Set();
-    sSnap.docs.forEach(d => fUids.add(d.data().toUid)); rSnap.docs.forEach(d => fUids.add(d.data().fromUid));
+    
+    // 🆕 Only add to leaderboard if it's a Task Challenge (Not a generic follow)
+    sSnap.docs.forEach(d => {
+        const data = d.data();
+        if (data.taskText !== 'Follow Request') fUids.add(data.toUid);
+    });
+    rSnap.docs.forEach(d => {
+        const data = d.data();
+        if (data.taskText !== 'Follow Request') fUids.add(data.fromUid);
+    });
+
     const allUids = [currentUser.uid, ...Array.from(fUids)];
 
-    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No friends yet.</p></div>`; const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; return; }
+    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet. Leaderboard will show when a task is shared.</p></div>`; const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; return; }
 
     const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
     const entries = [];
@@ -690,9 +738,16 @@ auth.onAuthStateChanged(async (user) => {
     on('backupBtn', 'click', backupData);
     on('clearBtn', 'click', clearAllTasks);
     
-    // 🆕 Updated Search Listeners
-    on('searchFriendBtn', 'click', searchFriend);
-    on('searchFriendName', 'keypress', e => { if (e.key === 'Enter') searchFriend(); });
+    // 🆕 Live Search Listener
+    on('searchFriendName', 'input', onSearchInput);
+    // Hide suggestions when clicking outside
+    document.addEventListener('click', (e) => {
+        const suggestions = document.getElementById('searchSuggestions');
+        const input = document.getElementById('searchFriendName');
+        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) {
+            suggestions.style.display = 'none';
+        }
+    });
     
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
 
@@ -725,6 +780,7 @@ window.openFollowRequestsPage = openFollowRequestsPage;
 window.closeFollowRequestsPage = closeFollowRequestsPage;
 window.openFriendProfile = openFriendProfile;
 window.closeFriendProfileModal = closeFriendProfileModal;
+window.selectSearchedUser = selectSearchedUser;
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
