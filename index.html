@@ -65,7 +65,7 @@
                     <i class="fas fa-moon"></i>
                 </button>
 
-                <!-- 🆕 PROFILE DROPDOWN MENU -->
+                <!-- PROFILE DROPDOWN MENU -->
                 <div class="profile-wrapper" id="profileWrapper">
                     <button class="profile-btn" id="profileBtn" aria-expanded="false" title="Profile menu">
                         <span class="profile-avatar" id="profileAvatar">N</span>
@@ -85,6 +85,12 @@
                         <button class="dropdown-item" onclick="openUsernameModal()">
                             <i class="fas fa-user-edit"></i>
                             <span>Change Ninja Name</span>
+                        </button>
+                        
+                        <!-- 🆕 WEEKLY REPORT BUTTON -->
+                        <button class="dropdown-item" onclick="openProgressReport()">
+                            <i class="fas fa-table"></i>
+                            <span>Weekly Report</span>
                         </button>
 
                         <button class="dropdown-item" onclick="exportBackupFromMenu()">
@@ -118,28 +124,6 @@
             <button class="today-btn" id="todayBtn">
                 <i class="fas fa-bolt"></i> Today
             </button>
-        </div>
-
-        <!-- ===== WEEK COMPARISON ===== -->
-        <div class="week-compare-section">
-            <div class="compare-header">
-                <span><i class="fas fa-chart-line"></i> Week Progress</span>
-                <span class="improvement-badge" id="improvementBadge">—</span>
-            </div>
-            <div class="compare-grid">
-                <div class="compare-card last-week">
-                    <span class="compare-label">📅 Last Week</span>
-                    <span class="compare-value" id="lastWeekPercent">0%</span>
-                    <span class="compare-sub" id="lastWeekCount">0 completed</span>
-                </div>
-                <div class="compare-arrow">→</div>
-                <div class="compare-card this-week">
-                    <span class="compare-label">🔥 This Week</span>
-                    <span class="compare-value" id="thisWeekPercent">0%</span>
-                    <span class="compare-sub" id="thisWeekCount">0 completed</span>
-                </div>
-            </div>
-            <div class="compare-message" id="compareMessage">Keep going, shinobi!</div>
         </div>
 
         <!-- ===== STATS ===== -->
@@ -277,6 +261,37 @@
                 </button>
                 <button type="button" class="btn-primary" id="saveUsernameBtn">
                     <i class="fas fa-check"></i> Save
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 🆕 WEEKLY PROGRESS REPORT MODAL ===== -->
+    <div class="modal-overlay" id="progressReportModal">
+        <div class="modal-box report-modal-box">
+            <div class="modal-icon">📊</div>
+            <h3>Weekly Progress Report</h3>
+            <p>Compare your day-by-day performance with last week.</p>
+            
+            <div class="report-table-container">
+                <table class="report-table">
+                    <thead>
+                        <tr>
+                            <th>Day</th>
+                            <th>Last Week</th>
+                            <th>This Week</th>
+                            <th>Diff</th>
+                        </tr>
+                    </thead>
+                    <tbody id="progressReportBody">
+                        <!-- JS will fill this -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 20px;">
+                <button type="button" class="btn-secondary" onclick="closeProgressReport()" style="width: 100%;">
+                    <i class="fas fa-times"></i> Close Report
                 </button>
             </div>
         </div>
