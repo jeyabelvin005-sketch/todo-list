@@ -82,12 +82,10 @@ window.closeMyProfilePage = function() {
 window.switchProfileTab = function(tabId) {
   document.querySelectorAll('.profile-tab-content').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.profile-tabs .profile-tab').forEach(el => el.classList.remove('active'));
-  
   const content = document.getElementById(`profileTab-${tabId}`);
   const btn = document.getElementById(`tabBtn-${tabId}`);
   if(content) content.style.display = 'block';
   if(btn) btn.classList.add('active');
-
   if(tabId === 'network') renderProfileUsers();
   if(tabId === 'avatar') {
       if (userProfile.avatarConfig) currentAvatar = { ...userProfile.avatarConfig };
@@ -106,33 +104,18 @@ async function renderProfileUsers() {
   const container = document.getElementById('profileUserList');
   if(!container) return;
   container.innerHTML = '<p style="text-align:center; color:#aaa;">Loading...</p>';
-  
   const uids = new Set();
   const tempList = [];
 
   if (currentProfileSubTab === 'followers') {
     const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
-    snap.docs.forEach(d => {
-      const data = d.data();
-      if (data.taskText === 'Follow Request' && !uids.has(data.fromUid)) {
-        uids.add(data.fromUid); tempList.push({ uid: data.fromUid });
-      }
-    });
+    snap.docs.forEach(d => { const data = d.data(); if (data.taskText === 'Follow Request' && !uids.has(data.fromUid)) { uids.add(data.fromUid); tempList.push({ uid: data.fromUid }); } });
   } else {
     const snap = await challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
-    snap.docs.forEach(d => {
-      const data = d.data();
-      if (data.taskText === 'Follow Request' && !uids.has(data.toUid)) {
-        uids.add(data.toUid); tempList.push({ uid: data.toUid });
-      }
-    });
+    snap.docs.forEach(d => { const data = d.data(); if (data.taskText === 'Follow Request' && !uids.has(data.toUid)) { uids.add(data.toUid); tempList.push({ uid: data.toUid }); } });
   }
 
-  if (tempList.length === 0) {
-    container.innerHTML = `<p style="text-align:center; color:#aaa;">No users found here yet.</p>`;
-    return;
-  }
-
+  if (tempList.length === 0) { container.innerHTML = `<p style="text-align:center; color:#aaa;">No users found here yet.</p>`; return; }
   const userDocs = await Promise.all(tempList.map(item => userDoc(item.uid).get()));
   container.innerHTML = '';
   userDocs.forEach(doc => {
@@ -141,55 +124,41 @@ async function renderProfileUsers() {
     container.innerHTML += `
       <div class="user-list-item">
         <div class="user-list-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div>
-        <div class="user-list-info">
-          <div class="user-list-name">${escapeHtml(data.displayName)}</div>
-          <div class="user-list-email">${escapeHtml(data.email)}</div>
-        </div>
+        <div class="user-list-info"><div class="user-list-name">${escapeHtml(data.displayName)}</div><div class="user-list-email">${escapeHtml(data.email)}</div></div>
         <button class="follow-btn" style="background:transparent; border:1px solid #ffd700; color:#ffd700;" onclick="openFriendProfile('${doc.id}', '${data.displayName}', '${data.email}')">View</button>
       </div>
     `;
   });
-
   const select = document.getElementById('broadcastTaskSelect');
-  if(select) {
-      select.innerHTML = '<option value="">Select one of your missions...</option>' + 
-        tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
-  }
+  if(select) select.innerHTML = '<option value="">Select one of your missions...</option>' + tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
 }
 
 async function broadcastTask() {
   const select = document.getElementById('broadcastTaskSelect');
   if (!select || !select.value) { alert('Please select a task to broadcast.'); return; }
-
   const taskText = select.options[select.selectedIndex].dataset.text;
   const btn = document.querySelector('#profileTab-network .add-btn');
   btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
-
   try {
     const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
     const followerUids = new Set();
     snap.docs.forEach(d => { if (d.data().taskText === 'Follow Request') followerUids.add(d.data().fromUid); });
-
-    if (followerUids.size === 0) {
-      alert("You don't have any followers yet to share with!");
-      btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task'; return;
-    }
-
+    if (followerUids.size === 0) { alert("You don't have any followers yet!"); btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task'; return; }
     const promises = [];
     for (const uid of followerUids) {
       const uDoc = await userDoc(uid).get();
       if(uDoc.exists) {
         promises.push(challengesCol().add({
             fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
-            toEmail: uDoc.data().email, toUid: uid, taskText: taskText,
-            weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
+            toEmail: uDoc.data().email, toUid: uid, toName: uDoc.data().displayName, // 🆕 Added toName
+            taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
         }));
       }
     }
     await Promise.all(promises);
-    alert(`🍥 Mission shared successfully to ${followerUids.size} followers!`);
+    alert(`🍥 Mission shared to ${followerUids.size} followers!`);
     select.value = '';
-  } catch (err) { console.error(err); alert('Error sharing task.'); } 
+  } catch (err) { console.error(err); } 
   finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task'; }
 }
 
@@ -197,16 +166,13 @@ async function broadcastTask() {
 // 👤 AVATAR CUSTOMIZER LOGIC
 // ============================================
 function setActiveColor(paletteId, color) {
-  const palette = document.getElementById(paletteId);
-  if(!palette) return;
+  const palette = document.getElementById(paletteId); if(!palette) return;
   palette.querySelectorAll('.color-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-color') === color));
 }
 function setActiveBtn(groupId, value, attrName) {
-  const group = document.getElementById(groupId);
-  if(!group) return;
+  const group = document.getElementById(groupId); if(!group) return;
   group.querySelectorAll('.style-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute(attrName) === value));
 }
-
 function getAvatarSVG(config) {
   const hairStyles = {
       short: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "" },
@@ -218,77 +184,46 @@ function getAvatarSVG(config) {
       neutral: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 125 L 115 125" },
       angry: { eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`, mouth: "M 85 130 Q 100 115 115 130" }
   };
-  return `
-    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <rect width="200" height="200" fill="#f0f4f8" />
-        <path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].back}" />
-        <path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" />
-        <rect x="85" y="140" width="30" height="30" fill="${config.skin}" />
-        <circle cx="100" cy="100" r="50" fill="${config.skin}" />
-        <g style="color: ${config.eyeColor}">${expressions[config.expression].eyes}</g>
-        <path d="${expressions[config.expression].mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" />
-        <path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].front}" />
-    </svg>
-  `;
+  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f0f4f8" /><path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].back}" /><path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" /><rect x="85" y="140" width="30" height="30" fill="${config.skin}" /><circle cx="100" cy="100" r="50" fill="${config.skin}" /><g style="color: ${config.eyeColor}">${expressions[config.expression].eyes}</g><path d="${expressions[config.expression].mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" /><path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].front}" /></svg>`;
 }
-
 function renderAvatarPreview() {
   const container = document.getElementById('avatar-svg-container');
   if(container) container.innerHTML = getAvatarSVG(currentAvatar);
-  
-  setActiveColor('skin-palette', currentAvatar.skin);
-  setActiveColor('hair-palette', currentAvatar.hairColor);
-  setActiveColor('eye-palette', currentAvatar.eyeColor);
-  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style');
-  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
+  setActiveColor('skin-palette', currentAvatar.skin); setActiveColor('hair-palette', currentAvatar.hairColor); setActiveColor('eye-palette', currentAvatar.eyeColor);
+  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style'); setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
 }
-
 window.saveAvatar = async function() {
   try {
     await userDoc(currentUser.uid).set({ avatarConfig: currentAvatar, updatedAt: Date.now() }, { merge: true });
-    userProfile.avatarConfig = currentAvatar;
-    updateProfileUI(); 
-    alert("✓ Avatar saved successfully!");
+    userProfile.avatarConfig = currentAvatar; updateProfileUI(); alert("✓ Avatar saved!");
   } catch (err) { alert("Failed to save avatar."); }
 };
-
-// Avatar Event Listeners
 on('skin-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.skin = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('hair-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.hairColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('eye-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.eyeColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('hair-style-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.hairStyle = e.target.getAttribute('data-style'); renderAvatarPreview(); } });
 on('expression-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.expression = e.target.getAttribute('data-expr'); renderAvatarPreview(); } });
 
-
 // ============================================
-// ✏️ SAVE USERNAME FROM PROFILE TAB
+// ✏️ SAVE USERNAME
 // ============================================
 window.saveUsernameFromProfile = async function() {
   const input = document.getElementById('usernameInput'); 
   const msg = document.getElementById('usernameMessage'); 
   if(!input || !msg) return;
   const name = input.value.trim();
-  
   if (name.length < 2 || name.length > 20) { msg.textContent = 'Name should be 2-20 characters.'; msg.className = 'modal-message show error'; return; }
-  
   msg.className = 'modal-message';
   try {
     const nameCheck = await db.collection('users').where('displayName', '==', name).get();
-    if (nameCheck.docs.some(doc => doc.id !== currentUser.uid)) {
-      msg.textContent = 'This Name is already taken!'; msg.className = 'modal-message show error'; return;
-    }
-
+    if (nameCheck.docs.some(doc => doc.id !== currentUser.uid)) { msg.textContent = 'This Name is already taken!'; msg.className = 'modal-message show error'; return; }
     await userDoc(currentUser.uid).set({ displayName: name, updatedAt: Date.now() }, { merge: true }); 
-    userProfile.displayName = name; 
-    updateProfileUI();
-    msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success';
-    input.value = '';
+    userProfile.displayName = name; updateProfileUI(); msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success'; input.value = '';
   } catch (err) { msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; }
 };
 
-
 // ============================================
-// 🔍 LIVE SEARCH & FOLLOW SYSTEM
+// 🔍 LIVE SEARCH
 // ============================================
 function onSearchInput() {
   const input = document.getElementById('searchFriendName');
@@ -296,14 +231,11 @@ function onSearchInput() {
   if (!input || !suggestions) return;
   const query = input.value.trim();
   clearTimeout(searchTimeout);
-
   if (query.length === 0) { suggestions.style.display = 'none'; return; }
-
   searchTimeout = setTimeout(async () => {
     try {
       const snap = await db.collection('users').where('displayName', '>=', query).where('displayName', '<=', query + '\uf8ff').limit(5).get();
       if (snap.empty) { suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>'; suggestions.style.display = 'block'; return; }
-      
       let html = '';
       snap.docs.forEach(doc => {
         if (doc.id === currentUser.uid) return; 
@@ -315,14 +247,12 @@ function onSearchInput() {
     } catch (err) { console.error(err); }
   }, 300);
 }
-
 window.selectSearchedUser = function(uid, name, email) {
   document.getElementById('searchSuggestions').style.display = 'none';
   document.getElementById('searchFriendName').value = name;
   searchedUser = { uid: uid, displayName: name, email: email };
   showFriendResultCard();
 };
-
 function showFriendResultCard() {
   const resultCard = document.getElementById('searchResultCard');
   if (!resultCard || !searchedUser) return;
@@ -330,48 +260,64 @@ function showFriendResultCard() {
   document.getElementById('searchName').textContent = searchedUser.displayName || 'Shinobi';
   document.getElementById('searchEmail').textContent = searchedUser.email;
   resultCard.style.display = 'flex';
-
   const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
   const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
   const actionArea = document.getElementById('searchActionArea');
   if(!actionArea) return;
-
-  if (isFriend) {
-    actionArea.innerHTML = `<div style="display:flex; gap:8px;"><button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button><button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button></div>`;
-  } else if (isPending) {
-    actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
-  } else {
-    actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
-  }
+  if (isFriend) { actionArea.innerHTML = `<div style="display:flex; gap:8px;"><button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button><button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button></div>`; }
+  else if (isPending) { actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`; }
+  else { actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`; }
 }
 
 // ============================================
-// 🔔 FOLLOW REQUESTS PAGE
+// 🔔 NOTIFICATIONS PAGE (Follow & Missions)
 // ============================================
 window.openFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
   if (page) page.classList.add('active');
   document.body.classList.add('modal-open');
-  renderFollowRequests();
+  renderFollowRequests(incomingFollowRequests, incomingTaskChallenges);
 };
 window.closeFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
   if (page) page.classList.remove('active');
   document.body.classList.remove('modal-open');
 };
-function renderFollowRequests() {
+
+// 🆕 UPDATED: Rendering both Follow Requests & Mission Invites
+function renderFollowRequests(followReqs, missionReqs) {
   const list = document.getElementById('followRequestsList');
   if (!list) return;
-  if (incomingFollowRequests.length === 0) { list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new follow requests.</p></div>`; return; }
-  list.innerHTML = incomingFollowRequests.map(c => `
-    <div class="follow-req-item">
-      <div class="follow-req-info"><div class="follow-req-avatar">${(c.fromName || 'S')[0].toUpperCase()}</div><div><div class="follow-req-name">${escapeHtml(c.fromName)}</div><div class="follow-req-text">Wants to follow you</div></div></div>
-      <div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
-    </div>`).join('');
+
+  if (followReqs.length === 0 && missionReqs.length === 0) { 
+    list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new notifications.</p></div>`; 
+    return; 
+  }
+
+  let html = '';
+
+  if (followReqs.length > 0) {
+    html += '<h3 style="color:#ffd700; margin-bottom:10px; font-size:16px;">Follow Requests</h3>';
+    html += followReqs.map(c => `
+      <div class="follow-req-item">
+        <div class="follow-req-info"><div class="follow-req-avatar">${(c.fromName || 'S')[0].toUpperCase()}</div><div><div class="follow-req-name">${escapeHtml(c.fromName)}</div><div class="follow-req-text">Wants to follow you</div></div></div>
+        <div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
+      </div>`).join('');
+  }
+
+  if (missionReqs.length > 0) {
+    html += '<h3 style="color:#00d9ff; margin-top:20px; margin-bottom:10px; font-size:16px;">Mission Invites</h3>';
+    html += missionReqs.map(c => `
+      <div class="follow-req-item" style="border-color: rgba(0, 217, 255, 0.4);">
+        <div class="follow-req-info"><div class="follow-req-avatar" style="border-color: #00d9ff;">${(c.fromName || 'S')[0].toUpperCase()}</div><div><div class="follow-req-name" style="color:#00d9ff;">${escapeHtml(c.fromName)}</div><div class="follow-req-text">Invited you to: <strong style="color:#fff">${escapeHtml(c.taskText)}</strong></div></div></div>
+        <div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
+      </div>`).join('');
+  }
+  list.innerHTML = html;
 }
 
 // ============================================
-// 👤 FRIEND PROFILE MODAL
+// 👤 FRIEND PROFILE & SEND MISSION
 // ============================================
 window.openFriendProfile = function(uid, name, email) {
   activeProfileUser = { uid, name, email };
@@ -393,7 +339,11 @@ async function sendMissionFromProfile() {
   const btn = document.getElementById('sendMissionFromProfileBtn');
   btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
   try {
-    await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
+    await challengesCol().add({ 
+        fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, 
+        toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, // 🆕 Added toName
+        taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() 
+    });
     msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; msg.className = 'modal-message show success'; select.value = '';
     setTimeout(() => { closeFriendProfileModal(); }, 2000);
   } catch (err) { msg.textContent = 'Error sending mission.'; msg.className = 'modal-message show error'; } 
@@ -614,17 +564,26 @@ async function loadChallenges() {
     const incomingAll = toSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const fromSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
     outgoingChallenges = fromSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+    
     incomingChallenges = incomingAll.filter(c => c.status === 'pending');
     acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
+    
+    // 🆕 Get accepted tasks sent by ME so I can see them in my shared missions too
+    const acceptedSentByMe = outgoingChallenges.filter(c => c.status === 'accepted' && c.taskText !== 'Follow Request');
+
     incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request');
     incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
     
-    renderIncomingChallenges(); renderFollowRequests(); renderSharedMissions(); 
+    renderIncomingChallenges(); 
+    renderFollowRequests(incomingFollowRequests, incomingTaskChallenges); // 🆕 Pass missions to Notifications
+    renderSharedMissions(acceptedChallenges, acceptedSentByMe); // 🆕 Pass Sent missions to Shared
+
     const dot = document.getElementById('notificationDot');
     if (dot) dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
   } catch (err) { console.error(err); }
 }
 
+// Keep main dashboard incoming task list
 function renderIncomingChallenges() {
   const section = document.getElementById('incomingSection');
   const list = document.getElementById('incomingList');
@@ -635,16 +594,30 @@ function renderIncomingChallenges() {
   list.innerHTML = incomingTaskChallenges.map(c => `<div class="incoming-item"><div class="incoming-info"><span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span><span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span></div><div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div></div>`).join('');
 }
 
-function renderSharedMissions() {
+// 🆕 UPDATED: Render Shared Missions (both Sent and Received)
+async function renderSharedMissions(incoming, outgoing) {
   const section = document.getElementById('sharedMissionsSection');
   const list = document.getElementById('sharedMissionsList');
   const count = document.getElementById('sharedCount');
   if(!section || !list) return;
-  const missions = acceptedChallenges.filter(c => c.taskText !== 'Follow Request');
-  if (missions.length === 0) { section.style.display = 'none'; return; }
-  section.style.display = 'block'; if(count) count.textContent = missions.length;
+
+  const allMissions = [...incoming, ...outgoing];
+  if (allMissions.length === 0) { section.style.display = 'none'; return; }
+
+  section.style.display = 'block'; 
+  if(count) count.textContent = allMissions.length;
   const todayIndex = getTodayIndex();
-  list.innerHTML = missions.map(c => {
+
+  let html = '';
+  for (const c of allMissions) {
+    let label = `From ${escapeHtml(c.fromName)}`;
+    // If I am the sender, show "Sent to [Friend Name]"
+    if (c.fromUid === currentUser.uid) {
+        let friendName = c.toName;
+        // Fallback: If toName is missing, use toEmail
+        label = `Sent to ${escapeHtml(friendName || c.toEmail)}`;
+    }
+
     let daysHtml = '';
     for (let i = 0; i < 7; i++) {
       const cellDate = new Date(currentWeekStart); cellDate.setDate(cellDate.getDate() + i);
@@ -655,20 +628,44 @@ function renderSharedMissions() {
       else { stateClass += isCompleted ? ' completed' : ' pending'; symbol = isCompleted ? '✓' : '✗'; }
       daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
-    return `<div class="shared-card"><div class="shared-info"><span class="shared-from">🥷 From ${escapeHtml(c.fromName)}</span><span class="shared-task">${escapeHtml(c.taskText)}</span></div><div class="shared-week-grid">${daysHtml}</div></div>`;
-  }).join('');
+    html += `<div class="shared-card">
+        <div class="shared-info">
+          <span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'};">🥷 ${label}</span>
+          <span class="shared-task">${escapeHtml(c.taskText)}</span>
+        </div>
+        <div class="shared-week-grid">${daysHtml}</div>
+    </div>`;
+  }
+  list.innerHTML = html;
 }
 
 async function toggleSharedDay(challengeId, dateStr) {
-  const challenge = acceptedChallenges.find(c => c.id === challengeId);
+  // Find challenge in either incoming or outgoing
+  let challenge = acceptedChallenges.find(c => c.id === challengeId);
+  if (!challenge) {
+      const fromSnap = await challengesCol().doc(challengeId).get();
+      if (fromSnap.exists) challenge = { id: fromSnap.id, ...fromSnap.data() };
+  }
   if (!challenge) return;
+
   if (!challenge.completions) challenge.completions = {};
   if (challenge.completions[dateStr]) delete challenge.completions[dateStr]; else challenge.completions[dateStr] = true;
-  try { await challengesCol().doc(challengeId).update({ completions: challenge.completions }); renderSharedMissions(); loadLeaderboard(); } catch (err) { console.error(err); }
+  
+  try { 
+      await challengesCol().doc(challengeId).update({ completions: challenge.completions }); 
+      await loadChallenges(); // Refresh all views to sync state
+      loadLeaderboard(); 
+  } catch (err) { console.error(err); }
 }
 
-window.acceptChallenge = async function(id) { await challengesCol().doc(id).update({ status: 'accepted' }); loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success'); };
-window.rejectChallenge = async function(id) { await challengesCol().doc(id).update({ status: 'rejected' }); loadChallenges(); };
+window.acceptChallenge = async function(id) { 
+    await challengesCol().doc(id).update({ status: 'accepted' }); 
+    loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success'); 
+};
+window.rejectChallenge = async function(id) { 
+    await challengesCol().doc(id).update({ status: 'rejected' }); 
+    loadChallenges(); 
+};
 window.removeFriend = async function(friendUid) {
   if (!confirm('Unfollow this shinobi?')) return;
   try {
@@ -680,7 +677,7 @@ window.removeFriend = async function(friendUid) {
 };
 
 // ============================================
-// 🏆 LEADERBOARD (FIXED: ONLY SHARED MISSIONS)
+// 🏆 LEADERBOARD (ONLY SHARED MISSIONS)
 // ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
@@ -697,7 +694,7 @@ async function loadLeaderboard() {
     const allUids = [currentUser.uid, ...Array.from(fUids)];
 
     if (allUids.length === 1) { 
-        container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet. Leaderboard will show when a task is shared.</p></div>`; 
+        container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet.</p></div>`; 
         const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; 
         return; 
     }
@@ -710,18 +707,12 @@ async function loadLeaderboard() {
       let count = 0; 
       const tIdx = getTodayIndex();
 
-      // 🆕 Ippo Personal Tasks count aagathu. Shared Missions (Challenges) mattum thaan count aagum.
       const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
       sharedSnap.docs.forEach(sd => {
         const c = sd.data(); 
-        if (c.taskText === 'Follow Request') return; // Follow requests ah count panna koodathu
-        
+        if (c.taskText === 'Follow Request') return;
         for (let i = 0; i <= tIdx && i < 7; i++) {
-          const d = new Date(currentWeekStart); 
-          d.setDate(d.getDate() + i); 
-          const ds = formatDate(d);
-          
-          // Ithu antha specific week la task complete pannirukangala nu check panrathu
+          const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
           if (c.completions && c.completions[ds]) count++;
         }
       });
