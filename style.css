@@ -2117,3 +2117,108 @@ body.dark-mode .modal-box {
     border-radius: 8px;
     border: 1px dashed rgba(0, 217, 255, 0.4);
 }
+/* ============================================
+   🤝 SHARED MISSIONS (Friend Tasks)
+   ============================================ */
+.shared-missions-section {
+    background: linear-gradient(135deg, rgba(0, 217, 255, 0.1), rgba(74, 95, 193, 0.05));
+    padding: 22px;
+    border-radius: 16px;
+    margin-bottom: 25px;
+    border: 1px solid rgba(0, 217, 255, 0.4);
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(6px);
+}
+
+.shared-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 18px;
+}
+
+.shared-header h2 {
+    color: #00d9ff;
+    font-size: 18px;
+    font-weight: 700;
+    text-shadow: 0 0 10px rgba(0, 217, 255, 0.6);
+}
+
+.shared-count {
+    background: rgba(0, 217, 255, 0.2);
+    color: #00d9ff;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(0, 217, 255, 0.5);
+}
+
+.shared-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shared-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+    border: 1px solid rgba(0, 217, 255, 0.3);
+    transition: all 0.3s;
+}
+
+.shared-item:hover {
+    background: rgba(0, 217, 255, 0.1);
+    transform: translateX(4px);
+}
+
+.shared-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.shared-from {
+    font-size: 11px;
+    color: #ffd700;
+    font-weight: 700;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+}
+
+.shared-task {
+    font-size: 15px;
+    color: #f5e6d3;
+    font-weight: 700;
+}
+
+.shared-toggle {
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid #00d9ff;
+    background: transparent;
+    color: #00d9ff;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.shared-toggle:hover {
+    background: rgba(0, 217, 255, 0.2);
+    transform: scale(1.05);
+}
+
+.shared-toggle.done {
+    background: linear-gradient(135deg, #00d9ff, #0066cc);
+    color: #fff;
+    border-color: #00d9ff;
+    box-shadow: 0 0 15px rgba(0, 217, 255, 0.6);
+}
