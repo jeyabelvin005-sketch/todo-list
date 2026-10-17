@@ -47,12 +47,6 @@ function getWeekKey(date = new Date()) {
   return `${d.getFullYear()}-W${String(weekNum).padStart(2, '0')}`;
 }
 
-function getLastWeekKey() {
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  return getWeekKey(d);
-}
-
 // ---------- Firestore Refs ----------
 function tasksCol() {
   return db.collection('users').doc(currentUser.uid).collection('tasks');
@@ -106,13 +100,11 @@ function updateProfileUI() {
   if (headerEmailEl) headerEmailEl.textContent = email;
 }
 
-// Export backup from menu (alias)
 function exportBackupFromMenu() {
   closeProfileMenu();
   backupData();
 }
 
-// ---------- Load Profile ----------
 async function loadProfile() {
   try {
     const snap = await userDoc(currentUser.uid).get();
@@ -161,26 +153,10 @@ async function saveUsername() {
   const btn = document.getElementById('saveUsernameBtn');
   const name = input.value.trim();
 
-  if (!name) {
-    msg.textContent = 'Please enter a name.';
-    msg.className = 'modal-message show error';
-    return;
-  }
-  if (name.length < 2) {
-    msg.textContent = 'Name should be at least 2 characters.';
-    msg.className = 'modal-message show error';
-    return;
-  }
-  if (name.length > 20) {
-    msg.textContent = 'Name should be under 20 characters.';
-    msg.className = 'modal-message show error';
-    return;
-  }
-  if (!/^[a-zA-Z0-9_ ]+$/.test(name)) {
-    msg.textContent = 'Use letters, numbers, spaces, and underscore only.';
-    msg.className = 'modal-message show error';
-    return;
-  }
+  if (!name) { msg.textContent = 'Please enter a name.'; msg.className = 'modal-message show error'; return; }
+  if (name.length < 2) { msg.textContent = 'Name should be at least 2 characters.'; msg.className = 'modal-message show error'; return; }
+  if (name.length > 20) { msg.textContent = 'Name should be under 20 characters.'; msg.className = 'modal-message show error'; return; }
+  if (!/^[a-zA-Z0-9_ ]+$/.test(name)) { msg.textContent = 'Use letters, numbers, spaces, and underscore only.'; msg.className = 'modal-message show error'; return; }
 
   btn.disabled = true;
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
@@ -212,6 +188,96 @@ async function saveUsername() {
     btn.disabled = false;
     btn.innerHTML = '<i class="fas fa-check"></i> Save';
   }
+}
+
+// ============================================
+// 📊 WEEKLY PROGRESS REPORT (Spreadsheet)
+// ============================================
+function openProgressReport() {
+  closeProfileMenu();
+  renderProgressReport();
+  const modal = document.getElementById('progressReportModal');
+  modal.classList.add('show');
+  document.body.classList.add('modal-open');
+}
+
+function closeProgressReport() {
+  document.getElementById('progressReportModal').classList.remove('show');
+  document.body.classList.remove('modal-open');
+}
+
+function getDaySpecificStats(dayIndex, weekOffset) {
+  // weekOffset: 0 = this week, -1 = last week
+  const todayIndex = getTodayIndex();
+  // For last week, all days are past. For this week, future days are locked.
+  if (weekOffset === 0 && dayIndex > todayIndex) {
+    return { completed: 0, total: 0, locked: true };
+  }
+
+  let completed = 0;
+  let total = 0;
+
+  const weekStartCheck = new Date(currentWeekStart);
+  weekStartCheck.setDate(weekStartCheck.getDate() + (weekOffset * 7));
+  
+  // The specific date for this day
+  const targetDate = new Date(weekStartCheck);
+  targetDate.setDate(targetDate.getDate() + dayIndex);
+  targetDate.setHours(23, 59, 59, 999);
+
+  tasks.forEach(task => {
+    const taskCreatedDate = task.createdDate
+      ? new Date(task.createdDate)
+      : new Date(task.createdAt || Date.now());
+
+    // Count only if task existed on or before this day
+    if (taskCreatedDate <= targetDate) {
+      total++;
+      if (task.days[dayIndex]) completed++;
+    }
+  });
+
+  return { completed, total, locked: false };
+}
+
+function renderProgressReport() {
+  const tbody = document.getElementById('progressReportBody');
+  if (!tbody) return;
+
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  let html = '';
+
+  for (let i = 0; i < 7; i++) {
+    const thisWeek = getDaySpecificStats(i, 0);
+    const lastWeek = getDaySpecificStats(i, -1);
+    
+    let thisWeekDisplay = `${thisWeek.completed}/${thisWeek.total}`;
+    let lastWeekDisplay = `${lastWeek.completed}/${lastWeek.total}`;
+    
+    if (thisWeek.locked) {
+      thisWeekDisplay = '🔒';
+    }
+
+    let diff = thisWeek.completed - lastWeek.completed;
+    let diffHtml = '—';
+    
+    if (!thisWeek.locked) {
+      if (diff > 0) diffHtml = `<span style="color:#4ade80; font-weight:bold;">+${diff}</span>`;
+      else if (diff < 0) diffHtml = `<span style="color:#ff5555; font-weight:bold;">${diff}</span>`;
+      else diffHtml = `<span style="color:#aaa;">0</span>`;
+    }
+
+    html += `
+      <tr>
+        <td style="font-weight:700; color:#ffd700;">${days[i]}</td>
+        <td>${lastWeekDisplay}</td>
+        <td style="color:#00d9ff; font-weight:bold;">${thisWeekDisplay}</td>
+        <td>${diffHtml}</td>
+      </tr>
+    `;
+  }
+
+  tbody.innerHTML = html;
 }
 
 // ---------- Load Tasks ----------
@@ -253,7 +319,6 @@ async function addTask() {
   input.value = '';
   renderTasks();
   updateStats();
-  updateWeekComparison();
   updateTaskDropdown();
 }
 
@@ -269,7 +334,6 @@ async function toggleDay(taskId, dayIndex) {
   await tasksCol().doc(taskId).update({ days: task.days });
   renderTasks();
   updateStats();
-  updateWeekComparison();
 }
 
 async function deleteTask(taskId) {
@@ -278,7 +342,6 @@ async function deleteTask(taskId) {
   tasks = tasks.filter(t => t.id !== taskId);
   renderTasks();
   updateStats();
-  updateWeekComparison();
   updateTaskDropdown();
 }
 
@@ -359,68 +422,9 @@ function updateTaskDropdown() {
   if (current) select.value = current;
 }
 
-// ---------- Week Comparison ----------
-function getWeekStats(weekOffset) {
-  const todayIndex = getTodayIndex();
-  const effectiveIndex = weekOffset === 0 ? todayIndex : 6;
-
-  let completed = 0, total = 0;
-
-  const weekStartCheck = new Date(currentWeekStart);
-  weekStartCheck.setDate(weekStartCheck.getDate() + (weekOffset * 7));
-  const weekEndCheck = new Date(weekStartCheck);
-  weekEndCheck.setDate(weekEndCheck.getDate() + 6);
-  weekEndCheck.setHours(23, 59, 59, 999);
-
-  tasks.forEach(task => {
-    const taskCreatedDate = task.createdDate
-      ? new Date(task.createdDate)
-      : new Date(task.createdAt || Date.now());
-
-    if (taskCreatedDate > weekEndCheck) return;
-
-    for (let i = 0; i <= effectiveIndex && i < 7; i++) {
-      total++;
-      if (task.days[i]) completed++;
-    }
-  });
-
-  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
-  return { completed, total, percent };
-}
-
-function updateWeekComparison() {
-  const thisWeek = getWeekStats(0);
-  const lastWeek = getWeekStats(-1);
-
-  document.getElementById('thisWeekPercent').textContent = `${thisWeek.percent}%`;
-  document.getElementById('thisWeekCount').textContent = `${thisWeek.completed} completed`;
-  document.getElementById('lastWeekPercent').textContent = `${lastWeek.percent}%`;
-  document.getElementById('lastWeekCount').textContent = `${lastWeek.completed} completed`;
-
-  const diff = thisWeek.percent - lastWeek.percent;
-  const badge = document.getElementById('improvementBadge');
-  const message = document.getElementById('compareMessage');
-
-  if (diff > 0) {
-    badge.textContent = `↑ ${diff}%`;
-    badge.className = 'improvement-badge positive';
-    message.textContent = `🔥 Superb! You improved by ${diff}% this week!`;
-  } else if (diff < 0) {
-    badge.textContent = `↓ ${Math.abs(diff)}%`;
-    badge.className = 'improvement-badge negative';
-    message.textContent = `⚠️ Down by ${Math.abs(diff)}%. Push harder this week!`;
-  } else {
-    badge.textContent = '— 0%';
-    badge.className = 'improvement-badge neutral';
-    message.textContent = `Same as last week. Let's improve!`;
-  }
-}
-
 // ============================================
 // 🎯 CHALLENGES SYSTEM
 // ============================================
-
 async function sendChallenge() {
   const emailInput = document.getElementById('friendEmail');
   const select = document.getElementById('challengeTaskSelect');
@@ -428,35 +432,16 @@ async function sendChallenge() {
   const taskId = select.value;
   const taskText = select.options[select.selectedIndex]?.dataset.text || '';
 
-  if (!taskId) {
-    showFriendMessage('Please select a mission to challenge.', 'error');
-    return;
-  }
-  if (!email) {
-    showFriendMessage('Please enter a friend\'s email.', 'error');
-    return;
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    showFriendMessage('Please enter a valid email.', 'error');
-    return;
-  }
-  if (email === (currentUser.email || '').toLowerCase()) {
-    showFriendMessage("You can't challenge yourself! 😅", 'error');
-    return;
-  }
+  if (!taskId) { showFriendMessage('Please select a mission to challenge.', 'error'); return; }
+  if (!email) { showFriendMessage('Please enter a friend\'s email.', 'error'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showFriendMessage('Please enter a valid email.', 'error'); return; }
+  if (email === (currentUser.email || '').toLowerCase()) { showFriendMessage("You can't challenge yourself! 😅", 'error'); return; }
 
   showFriendMessage('Sending challenge...', 'info');
 
   try {
-    const userSnap = await db.collection('users')
-      .where('email', '==', email)
-      .limit(1)
-      .get();
-
-    if (userSnap.empty) {
-      showFriendMessage(`No shinobi found with "${email}". They need to signup first!`, 'error');
-      return;
-    }
+    const userSnap = await db.collection('users').where('email', '==', email).limit(1).get();
+    if (userSnap.empty) { showFriendMessage(`No shinobi found with "${email}". They need to signup first!`, 'error'); return; }
 
     const existing = await challengesCol()
       .where('fromUid', '==', currentUser.uid)
@@ -465,10 +450,7 @@ async function sendChallenge() {
       .where('status', '==', 'pending')
       .get();
 
-    if (!existing.empty) {
-      showFriendMessage('You already have a pending challenge for this mission!', 'error');
-      return;
-    }
+    if (!existing.empty) { showFriendMessage('You already have a pending challenge for this mission!', 'error'); return; }
 
     await challengesCol().add({
       fromUid: currentUser.uid,
@@ -494,20 +476,11 @@ async function sendChallenge() {
 
 async function loadChallenges() {
   if (!currentUser) return;
-
   try {
-    const incomingSnap = await challengesCol()
-      .where('toEmail', '==', currentUser.email)
-      .get();
+    const incomingSnap = await challengesCol().where('toEmail', '==', currentUser.email).get();
+    incomingChallenges = incomingSnap.docs.map(d => ({ id: d.id, ...d.data() })).filter(c => c.status === 'pending');
 
-    incomingChallenges = incomingSnap.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(c => c.status === 'pending');
-
-    const outgoingSnap = await challengesCol()
-      .where('fromUid', '==', currentUser.uid)
-      .get();
-
+    const outgoingSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
     outgoingChallenges = outgoingSnap.docs.map(d => ({ id: d.id, ...d.data() }));
 
     renderIncomingChallenges();
@@ -521,10 +494,7 @@ function renderIncomingChallenges() {
   const list = document.getElementById('incomingList');
   const count = document.getElementById('incomingCount');
 
-  if (incomingChallenges.length === 0) {
-    section.style.display = 'none';
-    return;
-  }
+  if (incomingChallenges.length === 0) { section.style.display = 'none'; return; }
 
   section.style.display = 'block';
   count.textContent = incomingChallenges.length;
@@ -549,30 +519,20 @@ function renderIncomingChallenges() {
 
 async function acceptChallenge(challengeId) {
   try {
-    await challengesCol().doc(challengeId).update({
-      status: 'accepted',
-      acceptedAt: Date.now()
-    });
+    await challengesCol().doc(challengeId).update({ status: 'accepted', acceptedAt: Date.now() });
     await loadChallenges();
     await loadLeaderboard();
     showFriendMessage('🍥 Challenge accepted! Now compare on the leaderboard.', 'success');
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 async function rejectChallenge(challengeId) {
   if (!confirm('Reject this challenge?')) return;
   try {
-    await challengesCol().doc(challengeId).update({
-      status: 'rejected',
-      rejectedAt: Date.now()
-    });
+    await challengesCol().doc(challengeId).update({ status: 'rejected', rejectedAt: Date.now() });
     await loadChallenges();
     showFriendMessage('Challenge rejected.', 'info');
-  } catch (err) {
-    console.error(err);
-  }
+  } catch (err) { console.error(err); }
 }
 
 // ============================================
@@ -580,17 +540,10 @@ async function rejectChallenge(challengeId) {
 // ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard');
-
   try {
     const [sentSnap, receivedSnap] = await Promise.all([
-      challengesCol()
-        .where('fromUid', '==', currentUser.uid)
-        .where('status', '==', 'accepted')
-        .get(),
-      challengesCol()
-        .where('toEmail', '==', currentUser.email)
-        .where('status', '==', 'accepted')
-        .get()
+      challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
+      challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
     ]);
 
     const friendUids = new Set();
@@ -600,31 +553,25 @@ async function loadLeaderboard() {
     const allUids = [currentUser.uid, ...Array.from(friendUids)];
 
     if (allUids.length === 1) {
-      container.innerHTML = `
-        <div class="empty-leaderboard">
-          <span>🥷</span>
-          <p>No accepted challenges yet. Send a challenge and wait for them to accept!</p>
-        </div>
-      `;
+      container.innerHTML = `<div class="empty-leaderboard"><span>🥷</span><p>No accepted challenges yet. Send a challenge and wait for them to accept!</p></div>`;
       document.getElementById('friendCount').textContent = '0 shinobi';
       return;
     }
 
-    const userDocs = await Promise.all(
-      allUids.map(uid => userDoc(uid).get())
-    );
-
+    const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
     const entries = [];
 
     for (const docSnap of userDocs) {
       if (!docSnap.exists) continue;
       const uid = docSnap.id;
       const data = docSnap.data();
-
       let weeklyCount = 0;
 
       if (uid === currentUser.uid) {
-        weeklyCount = getWeekStats(0).completed;
+        const todayIdx = getTodayIndex();
+        for (let i = 0; i <= todayIdx && i < 7; i++) {
+          tasks.forEach(t => { if (t.days[i]) weeklyCount++; });
+        }
       } else {
         try {
           const taskSnap = await userDoc(uid).collection('tasks').get();
@@ -632,26 +579,17 @@ async function loadLeaderboard() {
           taskSnap.docs.forEach(td => {
             const t = td.data();
             const days = t.days || [];
-            for (let i = 0; i <= todayIdx && i < 7; i++) {
-              if (days[i]) weeklyCount++;
-            }
+            for (let i = 0; i <= todayIdx && i < 7; i++) { if (days[i]) weeklyCount++; }
           });
-        } catch (err) {
-          console.warn('Cannot read friend tasks:', err);
-        }
+        } catch (err) { console.warn('Cannot read friend tasks:', err); }
       }
 
       entries.push({
-        uid,
-        displayName: data.displayName || 'Shinobi',
-        email: data.email || '',
-        thisWeek: weeklyCount,
-        isSelf: uid === currentUser.uid
+        uid, displayName: data.displayName || 'Shinobi', email: data.email || '', thisWeek: weeklyCount, isSelf: uid === currentUser.uid
       });
     }
 
     entries.sort((a, b) => b.thisWeek - a.thisWeek);
-
     document.getElementById('friendCount').textContent = `${entries.length} shinobi`;
 
     container.innerHTML = entries.map((entry, index) => {
@@ -687,27 +625,19 @@ function showFriendMessage(text, type) {
   if (!el) return;
   el.textContent = text;
   el.className = `friend-message show ${type}`;
-  if (type === 'success' || type === 'info') {
-    setTimeout(() => {
-      el.className = 'friend-message';
-    }, 4500);
-  }
+  if (type === 'success' || type === 'info') { setTimeout(() => { el.className = 'friend-message'; }, 4500); }
 }
 
 function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, ch => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-  }[ch]));
+  return String(str).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[ch]));
 }
 
-// ---------- Week Display ----------
 function updateWeekDisplay() {
   const weekEnd = new Date(currentWeekStart);
   weekEnd.setDate(weekEnd.getDate() + 6);
   const startMonth = currentWeekStart.toLocaleDateString('en-US', { month: 'short' });
   const endMonth = weekEnd.toLocaleDateString('en-US', { month: 'short' });
-  document.getElementById('weekLabel').textContent =
-    `${startMonth} ${currentWeekStart.getDate()} - ${endMonth} ${weekEnd.getDate()}`;
+  document.getElementById('weekLabel').textContent = `${startMonth} ${currentWeekStart.getDate()} - ${endMonth} ${weekEnd.getDate()}`;
 
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const todayIndex = getTodayIndex();
@@ -729,8 +659,7 @@ function toggleDarkMode() {
   document.body.classList.toggle('dark-mode');
   const isDark = document.body.classList.contains('dark-mode');
   localStorage.setItem('darkMode', isDark);
-  document.getElementById('darkModeBtn').innerHTML = isDark ?
-    '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+  document.getElementById('darkModeBtn').innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
 }
 
 function checkDarkMode() {
@@ -766,7 +695,6 @@ async function clearAllTasks() {
     tasks = [];
     renderTasks();
     updateStats();
-    updateWeekComparison();
     updateTaskDropdown();
     await loadLeaderboard();
   }
@@ -782,10 +710,7 @@ auth.onAuthStateChanged(async (user) => {
     if (main) main.style.opacity = '1';
   }, 2000);
 
-  if (!user) {
-    window.location.href = 'login.html';
-    return;
-  }
+  if (!user) { window.location.href = 'login.html'; return; }
   currentUser = user;
 
   try {
@@ -794,7 +719,6 @@ auth.onAuthStateChanged(async (user) => {
     updateWeekDisplay();
     renderTasks();
     updateStats();
-    updateWeekComparison();
     updateTaskDropdown();
     checkDarkMode();
     attachEventListeners();
@@ -819,88 +743,73 @@ window.closeUsernameModal = closeUsernameModal;
 window.acceptChallenge = acceptChallenge;
 window.rejectChallenge = rejectChallenge;
 window.exportBackupFromMenu = exportBackupFromMenu;
+window.openProgressReport = openProgressReport;
+window.closeProgressReport = closeProgressReport;
 
 let listenersAttached = false;
 function attachEventListeners() {
   if (listenersAttached) return;
   listenersAttached = true;
 
-  // Profile dropdown toggle
   const profileBtn = document.getElementById('profileBtn');
   if (profileBtn) {
-    profileBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      toggleProfileMenu();
-    });
+    profileBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleProfileMenu(); });
   }
 
-  // Close dropdown when clicking outside
   document.addEventListener('click', (e) => {
     const wrapper = document.getElementById('profileWrapper');
-    if (wrapper && !wrapper.contains(e.target)) {
-      closeProfileMenu();
-    }
+    if (wrapper && !wrapper.contains(e.target)) closeProfileMenu();
   });
 
-  // Close dropdown on ESC
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       closeProfileMenu();
       const um = document.getElementById('usernameModal');
       if (um && um.classList.contains('show')) closeUsernameModal();
+      const pm = document.getElementById('progressReportModal');
+      if (pm && pm.classList.contains('show')) closeProgressReport();
     }
   });
 
-  // Username modal — click outside to close
   const usernameModal = document.getElementById('usernameModal');
   if (usernameModal) {
-    usernameModal.addEventListener('click', (e) => {
-      if (e.target.id === 'usernameModal') closeUsernameModal();
-    });
+    usernameModal.addEventListener('click', (e) => { if (e.target.id === 'usernameModal') closeUsernameModal(); });
   }
 
-  // Add task
-  document.getElementById('addBtn').addEventListener('click', addTask);
-  document.getElementById('taskInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') addTask();
-  });
+  const progressReportModal = document.getElementById('progressReportModal');
+  if (progressReportModal) {
+    progressReportModal.addEventListener('click', (e) => { if (e.target.id === 'progressReportModal') closeProgressReport(); });
+  }
 
-  // Week navigation
+  document.getElementById('addBtn').addEventListener('click', addTask);
+  document.getElementById('taskInput').addEventListener('keypress', e => { if (e.key === 'Enter') addTask(); });
+
   document.getElementById('prevWeekBtn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() - 7);
-    updateWeekDisplay(); renderTasks(); updateStats(); updateWeekComparison();
+    updateWeekDisplay(); renderTasks(); updateStats();
   });
   document.getElementById('nextWeekBtn').addEventListener('click', () => {
     currentWeekStart.setDate(currentWeekStart.getDate() + 7);
-    updateWeekDisplay(); renderTasks(); updateStats(); updateWeekComparison();
+    updateWeekDisplay(); renderTasks(); updateStats();
   });
   document.getElementById('todayBtn').addEventListener('click', () => {
     currentWeekStart = getWeekStart(new Date());
-    updateWeekDisplay(); renderTasks(); updateStats(); updateWeekComparison();
+    updateWeekDisplay(); renderTasks(); updateStats();
   });
 
-  // Backup + Clear
   document.getElementById('backupBtn').addEventListener('click', backupData);
   document.getElementById('clearBtn').addEventListener('click', clearAllTasks);
 
-  // Challenge
   document.getElementById('addFriendBtn').addEventListener('click', sendChallenge);
-  document.getElementById('friendEmail').addEventListener('keypress', e => {
-    if (e.key === 'Enter') sendChallenge();
-  });
+  document.getElementById('friendEmail').addEventListener('keypress', e => { if (e.key === 'Enter') sendChallenge(); });
 
-  // Username save
   document.getElementById('saveUsernameBtn').addEventListener('click', saveUsername);
-  document.getElementById('usernameInput').addEventListener('keypress', e => {
-    if (e.key === 'Enter') saveUsername();
-  });
+  document.getElementById('usernameInput').addEventListener('keypress', e => { if (e.key === 'Enter') saveUsername(); });
 }
 
 // PWA Service Worker
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('service-worker.js').catch(() => {});
-  });
+  window.addEventListener('load', () => { navigator.serviceWorker.register('service-worker.js').catch(() => {}); });
 }
 
 console.log('🍥 Ninja Mission Tracker loaded!');
