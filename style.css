@@ -2403,3 +2403,48 @@ body.dark-mode .modal-box {
     align-items: center; 
     gap: 6px;
 }
+/* 🆕 Follow Requests Page Styling */
+.follow-req-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 16px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    transition: all 0.3s;
+}
+
+.follow-req-item:hover {
+    background: rgba(255, 215, 0, 0.1);
+    transform: translateX(5px);
+    border-color: rgba(255, 215, 0, 0.8);
+}
+
+.follow-req-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.follow-req-avatar {
+    width: 45px; height: 45px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ff6b1a, #e55000);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; font-weight: 800; color: #fff;
+    border: 2px solid #ffd700;
+    box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.follow-req-name {
+    font-size: 16px; font-weight: 700; color: #ffd700;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+}
+
+.follow-req-text {
+    font-size: 12px; color: rgba(255, 200, 100, 0.8);
+}
