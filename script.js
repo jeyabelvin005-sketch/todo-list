@@ -14,13 +14,13 @@ let acceptedChallenges = [];
 let outgoingChallenges = []; 
 let searchedUser = null;
 let activeProfileUser = null; 
-let searchTimeout = null; // For Live Search Debounce
+let searchTimeout = null; 
+let currentProfileTab = 'followers'; // 'followers' or 'following'
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 
-// 🛡️ SAFE LISTENER
 function on(id, event, callback) {
   const el = document.getElementById(id);
   if (el) el.addEventListener(event, callback);
@@ -56,6 +56,141 @@ function getWeekKey(date = new Date()) {
 function tasksCol() { return db.collection('users').doc(currentUser.uid).collection('tasks'); }
 function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
+
+// ============================================
+// 👤 MY PROFILE PAGE (Followers/Following)
+// ============================================
+function openMyProfilePage() {
+  closeProfileMenu();
+  document.getElementById('myProfilePage').classList.add('active');
+  document.body.classList.add('modal-open');
+  switchProfileTab('followers'); // Default tab
+}
+
+function closeMyProfilePage() {
+  document.getElementById('myProfilePage').classList.remove('active');
+  document.body.classList.remove('modal-open');
+}
+
+function switchProfileTab(tab) {
+  currentProfileTab = tab;
+  document.getElementById('tabFollowersBtn').classList.toggle('active', tab === 'followers');
+  document.getElementById('tabFollowingBtn').classList.toggle('active', tab === 'following');
+  renderProfileUsers();
+}
+
+async function renderProfileUsers() {
+  const container = document.getElementById('profileUserList');
+  container.innerHTML = '<p style="text-align:center; color:#aaa;">Loading...</p>';
+  
+  const uids = new Set();
+  const tempList = [];
+
+  if (currentProfileTab === 'followers') {
+    // People who follow me
+    const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (data.taskText === 'Follow Request' && !uids.has(data.fromUid)) {
+        uids.add(data.fromUid);
+        tempList.push({ uid: data.fromUid, name: data.fromName });
+      }
+    });
+  } else {
+    // People I follow
+    const snap = await challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (data.taskText === 'Follow Request' && !uids.has(data.toUid)) {
+        uids.add(data.toUid);
+        tempList.push({ uid: data.toUid, email: data.toEmail });
+      }
+    });
+  }
+
+  if (tempList.length === 0) {
+    container.innerHTML = `<p style="text-align:center; color:#aaa;">No users found here yet.</p>`;
+    return;
+  }
+
+  // Fetch fresh user data for all UIDs
+  const userDocs = await Promise.all(tempList.map(item => userDoc(item.uid).get()));
+  
+  container.innerHTML = '';
+  userDocs.forEach(doc => {
+    if (!doc.exists) return;
+    const data = doc.data();
+    container.innerHTML += `
+      <div class="user-list-item">
+        <div class="user-list-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div>
+        <div class="user-list-info">
+          <div class="user-list-name">${escapeHtml(data.displayName)}</div>
+          <div class="user-list-email">${escapeHtml(data.email)}</div>
+        </div>
+        <button class="follow-btn" style="background:transparent; border:1px solid #ffd700; color:#ffd700;" onclick="openFriendProfile('${doc.id}', '${data.displayName}', '${data.email}')">View</button>
+      </div>
+    `;
+  });
+
+  // Populate Broadcast Dropdown
+  const select = document.getElementById('broadcastTaskSelect');
+  select.innerHTML = '<option value="">Select one of your missions...</option>' + 
+    tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
+}
+
+// 🆕 BROADCAST TASK TO ALL FOLLOWERS
+async function broadcastTask() {
+  const select = document.getElementById('broadcastTaskSelect');
+  if (!select.value) { alert('Please select a task to broadcast.'); return; }
+
+  const taskText = select.options[select.selectedIndex].dataset.text;
+  const btn = document.querySelector('#myProfilePage .add-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
+
+  try {
+    // Get all followers
+    const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
+    const followerUids = new Set();
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (data.taskText === 'Follow Request') followerUids.add(data.fromUid);
+    });
+
+    if (followerUids.size === 0) {
+      alert("You don't have any followers yet to share with!");
+      btn.disabled = false;
+      btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task';
+      return;
+    }
+
+    const promises = [];
+    for (const uid of followerUids) {
+      // Fetch follower email to send challenge
+      const uDoc = await userDoc(uid).get();
+      if(uDoc.exists) {
+        promises.push(
+          challengesCol().add({
+            fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
+            toEmail: uDoc.data().email, toUid: uid, taskText: taskText,
+            weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
+          })
+        );
+      }
+    }
+
+    await Promise.all(promises);
+    alert(`🍥 Mission shared successfully to ${followerUids.size} followers!`);
+    select.value = '';
+  } catch (err) {
+    console.error(err);
+    alert('Error sharing task.');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task';
+  }
+}
+
 
 // ============================================
 // 🔍 LIVE SEARCH LOGIC
@@ -108,7 +243,7 @@ function onSearchInput() {
     } catch (err) {
       console.error("Search error:", err);
     }
-  }, 300); // 300ms debounce
+  }, 300);
 }
 
 function selectSearchedUser(uid, name, email) {
@@ -128,21 +263,27 @@ function showFriendResultCard() {
   const se = document.getElementById('searchEmail'); if(se) se.textContent = searchedUser.email;
   resultCard.style.display = 'flex';
 
-  const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid || c.toUid === searchedUser.uid);
-  const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
+  const isFriend = 
+      acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || 
+      outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
+
+  const isPending = 
+      outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
+
   const actionArea = document.getElementById('searchActionArea');
+  if(!actionArea) return;
 
   if (isFriend) {
-    if(actionArea) actionArea.innerHTML = `
+    actionArea.innerHTML = `
       <div style="display:flex; gap:8px;">
           <button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button>
           <button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button>
       </div>
     `;
   } else if (isPending) {
-    if(actionArea) actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
+    actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
   } else {
-    if(actionArea) actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
+    actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
   }
 }
 
@@ -189,7 +330,7 @@ function renderFollowRequests() {
 }
 
 // ============================================
-// 👤 FRIEND PROFILE MODAL (Send Mission)
+// 👤 FRIEND PROFILE MODAL
 // ============================================
 function openFriendProfile(uid, name, email) {
   activeProfileUser = { uid, name, email };
@@ -305,9 +446,6 @@ function renderCalendar(period) {
   else rangeLabel.textContent = `Select start date`;
 }
 
-// ============================================
-// 📊 COMPARE LOGIC
-// ============================================
 function getStatsForRange(startStr, endStr) {
   const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
   const today = new Date(); today.setHours(23,59,59,999); 
@@ -498,7 +636,7 @@ async function followFriend(uid) {
     });
     showFriendMessage(`🍥 Follow request sent to ${searchedUser.displayName}!`, 'success');
     await loadChallenges(); 
-    showFriendResultCard(); // Refresh UI
+    showFriendResultCard(); 
   } catch (err) { console.error(err); }
 }
 
@@ -627,9 +765,6 @@ async function removeFriend(friendUid) {
   } catch (err) { console.error(err); }
 }
 
-// ============================================
-// 🏆 LEADERBOARD (Only shows task shared)
-// ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
   try {
@@ -639,16 +774,8 @@ async function loadLeaderboard() {
     ]);
     
     const fUids = new Set();
-    
-    // 🆕 Only add to leaderboard if it's a Task Challenge (Not a generic follow)
-    sSnap.docs.forEach(d => {
-        const data = d.data();
-        if (data.taskText !== 'Follow Request') fUids.add(data.toUid);
-    });
-    rSnap.docs.forEach(d => {
-        const data = d.data();
-        if (data.taskText !== 'Follow Request') fUids.add(data.fromUid);
-    });
+    sSnap.docs.forEach(d => { const data = d.data(); if (data.taskText !== 'Follow Request') fUids.add(data.toUid); });
+    rSnap.docs.forEach(d => { const data = d.data(); if (data.taskText !== 'Follow Request') fUids.add(data.fromUid); });
 
     const allUids = [currentUser.uid, ...Array.from(fUids)];
 
@@ -712,8 +839,8 @@ function escapeHtml(str) { return String(str).replace(/[&<>"']/g, c => ({'&':'&a
 function toggleDarkMode() { document.body.classList.toggle('dark-mode'); const isDark = document.body.classList.contains('dark-mode'); localStorage.setItem('darkMode', isDark); const btn = document.getElementById('darkModeBtn'); if(btn) btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>'; }
 function checkDarkMode() { if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); const btn = document.getElementById('darkModeBtn'); if(btn) btn.innerHTML = '<i class="fas fa-sun"></i>'; } }
 function logoutUser() { closeProfileMenu(); if (confirm('Logout?')) auth.signOut(); }
-function backupData() { const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `missions_${getToday()}.json`; a.click(); }
 function exportBackupFromMenu() { closeProfileMenu(); backupData(); }
+function backupData() { const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `missions_${getToday()}.json`; a.click(); }
 async function clearAllTasks() { if (tasks.length === 0 || !confirm('Delete ALL?')) return; const b = db.batch(); tasks.forEach(t => b.delete(tasksCol().doc(t.id))); await b.commit(); tasks = []; renderTasks(); updateStats(); loadLeaderboard(); }
 
 auth.onAuthStateChanged(async (user) => {
@@ -738,9 +865,7 @@ auth.onAuthStateChanged(async (user) => {
     on('backupBtn', 'click', backupData);
     on('clearBtn', 'click', clearAllTasks);
     
-    // 🆕 Live Search Listener
     on('searchFriendName', 'input', onSearchInput);
-    // Hide suggestions when clicking outside
     document.addEventListener('click', (e) => {
         const suggestions = document.getElementById('searchSuggestions');
         const input = document.getElementById('searchFriendName');
@@ -750,7 +875,6 @@ auth.onAuthStateChanged(async (user) => {
     });
     
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
-
     on('saveUsernameBtn', 'click', saveUsername);
     on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveUsername(); });
 
@@ -781,6 +905,11 @@ window.closeFollowRequestsPage = closeFollowRequestsPage;
 window.openFriendProfile = openFriendProfile;
 window.closeFriendProfileModal = closeFriendProfileModal;
 window.selectSearchedUser = selectSearchedUser;
+// New Profile Functions
+window.openMyProfilePage = openMyProfilePage;
+window.closeMyProfilePage = closeMyProfilePage;
+window.switchProfileTab = switchProfileTab;
+window.broadcastTask = broadcastTask;
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
