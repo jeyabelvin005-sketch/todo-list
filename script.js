@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Main Logic
+// 🍥 Ninja Mission Tracker - Full Logic
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -15,7 +15,7 @@ let outgoingChallenges = [];
 let searchedUser = null;
 let activeProfileUser = null; 
 let searchTimeout = null; 
-let currentProfileTab = 'followers';
+let currentProfileSubTab = 'followers';
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
@@ -23,11 +23,7 @@ let p2State = { start: null, end: null, month: new Date().getMonth(), year: new 
 
 // Avatar State
 let currentAvatar = {
-    skin: "#f1c27d",
-    hairStyle: "short",
-    hairColor: "#2c1b18",
-    eyeColor: "#222",
-    expression: "happy"
+    skin: "#f1c27d", hairStyle: "short", hairColor: "#2c1b18", eyeColor: "#222", expression: "happy"
 };
 
 function on(id, event, callback) {
@@ -67,79 +63,164 @@ function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
 
 // ============================================
-// 👤 AVATAR CUSTOMIZER LOGIC
+// 👤 MY PROFILE PAGE & TABS
 // ============================================
-function openAvatarModal() {
+window.openMyProfilePage = function() {
   closeProfileMenu();
+  const page = document.getElementById('myProfilePage');
+  if(page) page.classList.add('active');
+  document.body.classList.add('modal-open');
+  switchProfileTab('network');
+};
+
+window.closeMyProfilePage = function() {
+  const page = document.getElementById('myProfilePage');
+  if(page) page.classList.remove('active');
+  document.body.classList.remove('modal-open');
+};
+
+window.switchProfileTab = function(tabId) {
+  // Hide all tabs
+  document.querySelectorAll('.profile-tab-content').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.profile-tabs .profile-tab').forEach(el => el.classList.remove('active'));
   
-  // Set current state from saved config or default
-  if (userProfile.avatarConfig) {
-    currentAvatar = { ...userProfile.avatarConfig };
+  // Show selected
+  const content = document.getElementById(`profileTab-${tabId}`);
+  const btn = document.getElementById(`tabBtn-${tabId}`);
+  if(content) content.style.display = 'block';
+  if(btn) btn.classList.add('active');
+
+  // Initialize specific tab data
+  if(tabId === 'network') renderProfileUsers();
+  if(tabId === 'avatar') {
+      if (userProfile.avatarConfig) currentAvatar = { ...userProfile.avatarConfig };
+      renderAvatarPreview();
+  }
+};
+
+window.switchNetworkSubTab = function(subTab) {
+  currentProfileSubTab = subTab;
+  document.getElementById('tabFollowersBtn').classList.toggle('active', subTab === 'followers');
+  document.getElementById('tabFollowingBtn').classList.toggle('active', subTab === 'following');
+  renderProfileUsers();
+};
+
+async function renderProfileUsers() {
+  const container = document.getElementById('profileUserList');
+  if(!container) return;
+  container.innerHTML = '<p style="text-align:center; color:#aaa;">Loading...</p>';
+  
+  const uids = new Set();
+  const tempList = [];
+
+  if (currentProfileSubTab === 'followers') {
+    const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (data.taskText === 'Follow Request' && !uids.has(data.fromUid)) {
+        uids.add(data.fromUid); tempList.push({ uid: data.fromUid });
+      }
+    });
+  } else {
+    const snap = await challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
+    snap.docs.forEach(d => {
+      const data = d.data();
+      if (data.taskText === 'Follow Request' && !uids.has(data.toUid)) {
+        uids.add(data.toUid); tempList.push({ uid: data.toUid });
+      }
+    });
   }
 
-  // Update UI active classes based on current state
-  setActiveColor('skin-palette', currentAvatar.skin);
-  setActiveColor('hair-palette', currentAvatar.hairColor);
-  setActiveColor('eye-palette', currentAvatar.eyeColor);
-  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style');
-  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
+  if (tempList.length === 0) {
+    container.innerHTML = `<p style="text-align:center; color:#aaa;">No users found here yet.</p>`;
+    return;
+  }
 
-  renderAvatarPreview();
-  document.getElementById('avatarModal').classList.add('show');
+  const userDocs = await Promise.all(tempList.map(item => userDoc(item.uid).get()));
+  container.innerHTML = '';
+  userDocs.forEach(doc => {
+    if (!doc.exists) return;
+    const data = doc.data();
+    container.innerHTML += `
+      <div class="user-list-item">
+        <div class="user-list-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div>
+        <div class="user-list-info">
+          <div class="user-list-name">${escapeHtml(data.displayName)}</div>
+          <div class="user-list-email">${escapeHtml(data.email)}</div>
+        </div>
+        <button class="follow-btn" style="background:transparent; border:1px solid #ffd700; color:#ffd700;" onclick="openFriendProfile('${doc.id}', '${data.displayName}', '${data.email}')">View</button>
+      </div>
+    `;
+  });
+
+  const select = document.getElementById('broadcastTaskSelect');
+  if(select) {
+      select.innerHTML = '<option value="">Select one of your missions...</option>' + 
+        tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
+  }
 }
 
-function closeAvatarModal() {
-  document.getElementById('avatarModal').classList.remove('show');
+async function broadcastTask() {
+  const select = document.getElementById('broadcastTaskSelect');
+  if (!select || !select.value) { alert('Please select a task to broadcast.'); return; }
+
+  const taskText = select.options[select.selectedIndex].dataset.text;
+  const btn = document.querySelector('#profileTab-network .add-btn');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sharing...';
+
+  try {
+    const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
+    const followerUids = new Set();
+    snap.docs.forEach(d => { if (d.data().taskText === 'Follow Request') followerUids.add(d.data().fromUid); });
+
+    if (followerUids.size === 0) {
+      alert("You don't have any followers yet to share with!");
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task'; return;
+    }
+
+    const promises = [];
+    for (const uid of followerUids) {
+      const uDoc = await userDoc(uid).get();
+      if(uDoc.exists) {
+        promises.push(challengesCol().add({
+            fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
+            toEmail: uDoc.data().email, toUid: uid, taskText: taskText,
+            weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
+        }));
+      }
+    }
+    await Promise.all(promises);
+    alert(`🍥 Mission shared successfully to ${followerUids.size} followers!`);
+    select.value = '';
+  } catch (err) { console.error(err); alert('Error sharing task.'); } 
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Broadcast Task'; }
 }
 
+// ============================================
+// 👤 AVATAR CUSTOMIZER LOGIC
+// ============================================
 function setActiveColor(paletteId, color) {
   const palette = document.getElementById(paletteId);
   if(!palette) return;
-  palette.querySelectorAll('.color-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute('data-color') === color);
-  });
+  palette.querySelectorAll('.color-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute('data-color') === color));
 }
-
 function setActiveBtn(groupId, value, attrName) {
   const group = document.getElementById(groupId);
   if(!group) return;
-  group.querySelectorAll('.style-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.getAttribute(attrName) === value);
-  });
+  group.querySelectorAll('.style-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute(attrName) === value));
 }
 
-// The SVG Template for the Avatar
 function getAvatarSVG(config) {
   const hairStyles = {
-      short: {
-          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z",
-          back: ""
-      },
-      long: {
-          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z",
-          back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z"
-      },
-      spiky: {
-          front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z",
-          back: ""
-      }
+      short: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "" },
+      long: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z" },
+      spiky: { front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z", back: "" }
   };
-
   const expressions = {
-      happy: {
-          eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`,
-          mouth: "M 85 120 Q 100 135 115 120"
-      },
-      neutral: {
-          eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`,
-          mouth: "M 85 125 L 115 125"
-      },
-      angry: {
-          eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`,
-          mouth: "M 85 130 Q 100 115 115 130"
-      }
+      happy: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 120 Q 100 135 115 120" },
+      neutral: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 125 L 115 125" },
+      angry: { eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`, mouth: "M 85 130 Q 100 115 115 130" }
   };
-
   return `
     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <rect width="200" height="200" fill="#f0f4f8" />
@@ -156,160 +237,110 @@ function getAvatarSVG(config) {
 
 function renderAvatarPreview() {
   const container = document.getElementById('avatar-svg-container');
-  if(container) {
-    container.innerHTML = getAvatarSVG(currentAvatar);
-  }
+  if(container) container.innerHTML = getAvatarSVG(currentAvatar);
+  
+  setActiveColor('skin-palette', currentAvatar.skin);
+  setActiveColor('hair-palette', currentAvatar.hairColor);
+  setActiveColor('eye-palette', currentAvatar.eyeColor);
+  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style');
+  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
 }
 
-async function saveAvatar() {
-  const btn = document.getElementById('saveAvatarBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-
+window.saveAvatar = async function() {
   try {
-    await userDoc(currentUser.uid).set({
-      avatarConfig: currentAvatar,
-      updatedAt: Date.now()
-    }, { merge: true });
-
+    await userDoc(currentUser.uid).set({ avatarConfig: currentAvatar, updatedAt: Date.now() }, { merge: true });
     userProfile.avatarConfig = currentAvatar;
-    updateProfileUI(); // Re-render the header avatar
-    closeAvatarModal();
-  } catch (err) {
-    console.error("Error saving avatar:", err);
-    alert("Failed to save avatar.");
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = 'Save Avatar';
-  }
-}
+    updateProfileUI(); 
+    alert("✓ Avatar saved successfully!");
+  } catch (err) { alert("Failed to save avatar."); }
+};
 
-// Event Listeners for Avatar Modal
-document.getElementById('skin-palette').addEventListener('click', (e) => {
-  if(e.target.classList.contains('color-btn')) {
-      setActiveColor('skin-palette', e.target.getAttribute('data-color'));
-      currentAvatar.skin = e.target.getAttribute('data-color');
-      renderAvatarPreview();
-  }
-});
-document.getElementById('hair-palette').addEventListener('click', (e) => {
-  if(e.target.classList.contains('color-btn')) {
-      setActiveColor('hair-palette', e.target.getAttribute('data-color'));
-      currentAvatar.hairColor = e.target.getAttribute('data-color');
-      renderAvatarPreview();
-  }
-});
-document.getElementById('eye-palette').addEventListener('click', (e) => {
-  if(e.target.classList.contains('color-btn')) {
-      setActiveColor('eye-palette', e.target.getAttribute('data-color'));
-      currentAvatar.eyeColor = e.target.getAttribute('data-color');
-      renderAvatarPreview();
-  }
-});
-document.getElementById('hair-style-options').addEventListener('click', (e) => {
-  if(e.target.classList.contains('style-btn')) {
-      setActiveBtn('hair-style-options', e.target.getAttribute('data-style'), 'data-style');
-      currentAvatar.hairStyle = e.target.getAttribute('data-style');
-      renderAvatarPreview();
-  }
-});
-document.getElementById('expression-options').addEventListener('click', (e) => {
-  if(e.target.classList.contains('style-btn')) {
-      setActiveBtn('expression-options', e.target.getAttribute('data-expr'), 'data-expr');
-      currentAvatar.expression = e.target.getAttribute('data-expr');
-      renderAvatarPreview();
-  }
-});
+// Avatar Event Listeners
+on('skin-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.skin = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
+on('hair-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.hairColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
+on('eye-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.eyeColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
+on('hair-style-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.hairStyle = e.target.getAttribute('data-style'); renderAvatarPreview(); } });
+on('expression-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.expression = e.target.getAttribute('data-expr'); renderAvatarPreview(); } });
 
 
 // ============================================
-// 🔍 LIVE SEARCH LOGIC
+// ✏️ SAVE USERNAME FROM PROFILE TAB
+// ============================================
+window.saveUsernameFromProfile = async function() {
+  const input = document.getElementById('usernameInput'); 
+  const msg = document.getElementById('usernameMessage'); 
+  if(!input || !msg) return;
+  const name = input.value.trim();
+  
+  if (name.length < 2 || name.length > 20) { msg.textContent = 'Name should be 2-20 characters.'; msg.className = 'modal-message show error'; return; }
+  
+  msg.className = 'modal-message';
+  try {
+    const nameCheck = await db.collection('users').where('displayName', '==', name).get();
+    if (nameCheck.docs.some(doc => doc.id !== currentUser.uid)) {
+      msg.textContent = 'This Name is already taken!'; msg.className = 'modal-message show error'; return;
+    }
+
+    await userDoc(currentUser.uid).set({ displayName: name, updatedAt: Date.now() }, { merge: true }); 
+    userProfile.displayName = name; 
+    updateProfileUI();
+    msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success';
+    input.value = '';
+  } catch (err) { msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; }
+};
+
+
+// ============================================
+// 🔍 LIVE SEARCH & FOLLOW SYSTEM
 // ============================================
 function onSearchInput() {
   const input = document.getElementById('searchFriendName');
   const suggestions = document.getElementById('searchSuggestions');
   if (!input || !suggestions) return;
-  
   const query = input.value.trim();
   clearTimeout(searchTimeout);
 
-  if (query.length === 0) {
-    suggestions.style.display = 'none';
-    return;
-  }
+  if (query.length === 0) { suggestions.style.display = 'none'; return; }
 
   searchTimeout = setTimeout(async () => {
     try {
-      const snap = await db.collection('users')
-        .where('displayName', '>=', query)
-        .where('displayName', '<=', query + '\uf8ff')
-        .limit(5)
-        .get();
-
-      if (snap.empty) {
-        suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>';
-        suggestions.style.display = 'block';
-        return;
-      }
-
+      const snap = await db.collection('users').where('displayName', '>=', query).where('displayName', '<=', query + '\uf8ff').limit(5).get();
+      if (snap.empty) { suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>'; suggestions.style.display = 'block'; return; }
+      
       let html = '';
       snap.docs.forEach(doc => {
         if (doc.id === currentUser.uid) return; 
         const data = doc.data();
-        html += `
-          <div class="suggestion-item" onclick="selectSearchedUser('${doc.id}', '${escapeHtml(data.displayName)}', '${escapeHtml(data.email)}')">
-              <div class="suggestion-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div>
-              <div class="suggestion-name">${escapeHtml(data.displayName)}</div>
-          </div>
-        `;
+        html += `<div class="suggestion-item" onclick="selectSearchedUser('${doc.id}', '${escapeHtml(data.displayName)}', '${escapeHtml(data.email)}')"><div class="suggestion-avatar">${(data.displayName || 'S')[0].toUpperCase()}</div><div class="suggestion-name">${escapeHtml(data.displayName)}</div></div>`;
       });
-
-      if (html === '') {
-        suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No other shinobi found</div>';
-      } else {
-        suggestions.innerHTML = html;
-      }
+      suggestions.innerHTML = html === '' ? '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No other found</div>' : html;
       suggestions.style.display = 'block';
-    } catch (err) {
-      console.error("Search error:", err);
-    }
+    } catch (err) { console.error(err); }
   }, 300);
 }
 
-function selectSearchedUser(uid, name, email) {
+window.selectSearchedUser = function(uid, name, email) {
   document.getElementById('searchSuggestions').style.display = 'none';
   document.getElementById('searchFriendName').value = name;
   searchedUser = { uid: uid, displayName: name, email: email };
-  
   showFriendResultCard();
-}
+};
 
 function showFriendResultCard() {
   const resultCard = document.getElementById('searchResultCard');
   if (!resultCard || !searchedUser) return;
-
-  const sa = document.getElementById('searchAvatar'); if(sa) sa.textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
-  const sn = document.getElementById('searchName'); if(sn) sn.textContent = searchedUser.displayName || 'Shinobi';
-  const se = document.getElementById('searchEmail'); if(se) se.textContent = searchedUser.email;
+  document.getElementById('searchAvatar').textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
+  document.getElementById('searchName').textContent = searchedUser.displayName || 'Shinobi';
+  document.getElementById('searchEmail').textContent = searchedUser.email;
   resultCard.style.display = 'flex';
 
-  const isFriend = 
-      acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || 
-      outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
-
-  const isPending = 
-      outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
-
+  const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
+  const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
   const actionArea = document.getElementById('searchActionArea');
   if(!actionArea) return;
 
   if (isFriend) {
-    actionArea.innerHTML = `
-      <div style="display:flex; gap:8px;">
-          <button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button>
-          <button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button>
-      </div>
-    `;
+    actionArea.innerHTML = `<div style="display:flex; gap:8px;"><button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button><button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button></div>`;
   } else if (isPending) {
     actionArea.innerHTML = `<button class="pending-btn"><i class="fas fa-clock"></i> Pending</button>`;
   } else {
@@ -320,142 +351,91 @@ function showFriendResultCard() {
 // ============================================
 // 🔔 FOLLOW REQUESTS PAGE
 // ============================================
-function openFollowRequestsPage() {
+window.openFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
   if (page) page.classList.add('active');
   document.body.classList.add('modal-open');
   renderFollowRequests();
-}
-
-function closeFollowRequestsPage() {
+};
+window.closeFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
   if (page) page.classList.remove('active');
   document.body.classList.remove('modal-open');
-}
-
+};
 function renderFollowRequests() {
   const list = document.getElementById('followRequestsList');
   if (!list) return;
-
-  if (incomingFollowRequests.length === 0) {
-    list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new follow requests.</p></div>`;
-    return;
-  }
-
+  if (incomingFollowRequests.length === 0) { list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new follow requests.</p></div>`; return; }
   list.innerHTML = incomingFollowRequests.map(c => `
     <div class="follow-req-item">
-      <div class="follow-req-info">
-        <div class="follow-req-avatar">${(c.fromName || 'S')[0].toUpperCase()}</div>
-        <div>
-          <div class="follow-req-name">${escapeHtml(c.fromName)}</div>
-          <div class="follow-req-text">Wants to follow you</div>
-        </div>
-      </div>
-      <div class="incoming-actions">
-        <button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button>
-        <button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button>
-      </div>
-    </div>
-  `).join('');
+      <div class="follow-req-info"><div class="follow-req-avatar">${(c.fromName || 'S')[0].toUpperCase()}</div><div><div class="follow-req-name">${escapeHtml(c.fromName)}</div><div class="follow-req-text">Wants to follow you</div></div></div>
+      <div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
+    </div>`).join('');
 }
 
 // ============================================
 // 👤 FRIEND PROFILE MODAL
 // ============================================
-function openFriendProfile(uid, name, email) {
+window.openFriendProfile = function(uid, name, email) {
   activeProfileUser = { uid, name, email };
-  
   document.getElementById('friendProfileAvatar').textContent = (name || 'S')[0].toUpperCase();
   document.getElementById('friendProfileName').textContent = name;
   document.getElementById('friendProfileEmail').textContent = email;
-  
-  const select = document.getElementById('profileTaskSelect');
-  select.innerHTML = '<option value="">Select one of your missions...</option>' + 
-    tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
-  
+  document.getElementById('profileTaskSelect').innerHTML = '<option value="">Select a mission...</option>' + tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
   document.getElementById('profileMessage').className = 'modal-message';
   document.getElementById('friendProfileModal').classList.add('show');
-}
-
-function closeFriendProfileModal() {
-  document.getElementById('friendProfileModal').classList.remove('show');
-  activeProfileUser = null;
-}
+};
+window.closeFriendProfileModal = function() { document.getElementById('friendProfileModal').classList.remove('show'); activeProfileUser = null; };
 
 async function sendMissionFromProfile() {
   if (!activeProfileUser) return;
   const select = document.getElementById('profileTaskSelect');
   const msg = document.getElementById('profileMessage');
-  
-  if (!select.value) {
-    msg.textContent = 'Please select a mission first.';
-    msg.className = 'modal-message show error';
-    return;
-  }
-
+  if (!select.value) { msg.textContent = 'Please select a mission first.'; msg.className = 'modal-message show error'; return; }
   const taskText = select.options[select.selectedIndex].dataset.text;
   const btn = document.getElementById('sendMissionFromProfileBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
   try {
-    await challengesCol().add({
-      fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
-      toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, taskText: taskText,
-      weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
-    });
-    
-    msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`;
-    msg.className = 'modal-message show success';
-    select.value = '';
-    
+    await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
+    msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; msg.className = 'modal-message show success'; select.value = '';
     setTimeout(() => { closeFriendProfileModal(); }, 2000);
-  } catch (err) {
-    msg.textContent = 'Error sending mission.';
-    msg.className = 'modal-message show error';
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite';
-  }
+  } catch (err) { msg.textContent = 'Error sending mission.'; msg.className = 'modal-message show error'; } 
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; }
 }
 
 // ============================================
-// 📅 CALENDAR LOGIC
+// 📅 CALENDAR & COMPARE
 // ============================================
-function openComparePage() {
+window.openComparePage = function() {
   closeProfileMenu(); 
   const cp = document.getElementById('comparePage');
   if(cp) cp.classList.add('active'); 
   document.body.classList.add('modal-open');
   const now = new Date(); p1State.month = now.getMonth(); p1State.year = now.getFullYear(); p2State.month = now.getMonth(); p2State.year = now.getFullYear();
   renderCalendar(1); renderCalendar(2);
-}
-function closeComparePage() { 
+};
+window.closeComparePage = function() { 
   const cp = document.getElementById('comparePage');
   if(cp) cp.classList.remove('active'); 
   document.body.classList.remove('modal-open'); 
-}
-function changeMonth(period, dir) {
+};
+window.changeMonth = function(period, dir) {
   const state = period === 1 ? p1State : p2State;
-  state.month += dir;
-  if (state.month < 0) { state.month = 11; state.year--; }
-  if (state.month > 11) { state.month = 0; state.year++; }
+  state.month += dir; if (state.month < 0) { state.month = 11; state.year--; } if (state.month > 11) { state.month = 0; state.year++; }
   renderCalendar(period);
-}
-function selectDate(period, dateStr) {
+};
+window.selectDate = function(period, dateStr) {
   const state = period === 1 ? p1State : p2State;
   if (!state.start || (state.start && state.end)) { state.start = dateStr; state.end = null; }
-  else if (dateStr >= state.start) { state.end = dateStr; }
-  else { state.start = dateStr; }
+  else if (dateStr >= state.start) { state.end = dateStr; } else { state.start = dateStr; }
   renderCalendar(period);
-}
+};
 function renderCalendar(period) {
   const state = period === 1 ? p1State : p2State;
   const container = document.getElementById(`p${period}Calendar`);
   const monthLabel = document.getElementById(`p${period}MonthLabel`);
   const rangeLabel = document.getElementById(`p${period}RangeLabel`);
   if(!container) return;
-
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   monthLabel.textContent = `${monthNames[state.month]} ${state.year}`;
   const firstDay = new Date(state.year, state.month, 1).getDay();
@@ -476,9 +456,27 @@ function renderCalendar(period) {
   else rangeLabel.textContent = `Select start date`;
 }
 
-// ============================================
-// 📊 COMPARE LOGIC
-// ============================================
+window.runComparison = function() {
+  if (!p1State.start || !p1State.end) { alert('Select complete dates for Period 1.'); return; }
+  if (!p2State.start || !p2State.end) { alert('Select complete dates for Period 2.'); return; }
+  const stats1 = getStatsForRange(p1State.start, p1State.end); const stats2 = getStatsForRange(p2State.start, p2State.end);
+  const r1T = document.getElementById('res1Total'); if(r1T) r1T.textContent = stats1.total;
+  const r1C = document.getElementById('res1Completed'); if(r1C) r1C.textContent = stats1.completed;
+  const r1F = document.getElementById('res1Failed'); if(r1F) r1F.textContent = stats1.failed;
+  const r1R = document.getElementById('res1Rate'); if(r1R) r1R.textContent = `${stats1.rate}%`;
+  const r2T = document.getElementById('res2Total'); if(r2T) r2T.textContent = stats2.total;
+  const r2C = document.getElementById('res2Completed'); if(r2C) r2C.textContent = stats2.completed;
+  const r2F = document.getElementById('res2Failed'); if(r2F) r2F.textContent = stats2.failed;
+  const r2R = document.getElementById('res2Rate'); if(r2R) r2R.textContent = `${stats2.rate}%`;
+  const verdictEl = document.getElementById('verdictMessage');
+  if(verdictEl) {
+    if (stats2.rate > stats1.rate) { verdictEl.textContent = `🔥 Period 2 is ${stats2.rate - stats1.rate}% better!`; verdictEl.className = 'verdict-message verdict-win'; }
+    else if (stats1.rate > stats2.rate) { verdictEl.textContent = `⚠️ Period 1 was ${stats1.rate - stats2.rate}% better!`; verdictEl.className = 'verdict-message verdict-win'; }
+    else { verdictEl.textContent = `⚖️ Both periods have the same success rate.`; verdictEl.className = 'verdict-message verdict-tie'; }
+  }
+  const resDiv = document.getElementById('compareResults'); if(resDiv) resDiv.classList.remove('hidden');
+};
+
 function getStatsForRange(startStr, endStr) {
   const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
   const today = new Date(); today.setHours(23,59,59,999); 
@@ -489,37 +487,11 @@ function getStatsForRange(startStr, endStr) {
     const dateStr = formatDate(d);
     tasks.forEach(task => {
       const taskCreated = new Date(task.createdDate || task.createdAt);
-      if (taskCreated <= d) {
-        total++;
-        if (task.completions && task.completions[dateStr]) completed++; else failed++;
-      }
+      if (taskCreated <= d) { total++; if (task.completions && task.completions[dateStr]) completed++; else failed++; }
     });
   }
   const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
   return { total, completed, failed, rate };
-}
-function runComparison() {
-  if (!p1State.start || !p1State.end) { alert('Select complete dates for Period 1.'); return; }
-  if (!p2State.start || !p2State.end) { alert('Select complete dates for Period 2.'); return; }
-  const stats1 = getStatsForRange(p1State.start, p1State.end); const stats2 = getStatsForRange(p2State.start, p2State.end);
-  
-  const r1T = document.getElementById('res1Total'); if(r1T) r1T.textContent = stats1.total;
-  const r1C = document.getElementById('res1Completed'); if(r1C) r1C.textContent = stats1.completed;
-  const r1F = document.getElementById('res1Failed'); if(r1F) r1F.textContent = stats1.failed;
-  const r1R = document.getElementById('res1Rate'); if(r1R) r1R.textContent = `${stats1.rate}%`;
-  
-  const r2T = document.getElementById('res2Total'); if(r2T) r2T.textContent = stats2.total;
-  const r2C = document.getElementById('res2Completed'); if(r2C) r2C.textContent = stats2.completed;
-  const r2F = document.getElementById('res2Failed'); if(r2F) r2F.textContent = stats2.failed;
-  const r2R = document.getElementById('res2Rate'); if(r2R) r2R.textContent = `${stats2.rate}%`;
-
-  const verdictEl = document.getElementById('verdictMessage');
-  if(verdictEl) {
-    if (stats2.rate > stats1.rate) { verdictEl.textContent = `🔥 Period 2 is ${stats2.rate - stats1.rate}% better!`; verdictEl.className = 'verdict-message verdict-win'; }
-    else if (stats1.rate > stats2.rate) { verdictEl.textContent = `⚠️ Period 1 was ${stats1.rate - stats2.rate}% better!`; verdictEl.className = 'verdict-message verdict-win'; }
-    else { verdictEl.textContent = `⚖️ Both periods have the same success rate.`; verdictEl.className = 'verdict-message verdict-tie'; }
-  }
-  const resDiv = document.getElementById('compareResults'); if(resDiv) resDiv.classList.remove('hidden');
 }
 
 // ============================================
@@ -593,29 +565,23 @@ function updateWeekDisplay() {
   }
 }
 
-// ---------- Profile UI ----------
+// ---------- Profile UI Helpers ----------
 function toggleProfileMenu() { const pw = document.getElementById('profileWrapper'); if(pw) pw.classList.toggle('open'); }
 function closeProfileMenu() { const pw = document.getElementById('profileWrapper'); if(pw) pw.classList.remove('open'); }
 
 function updateProfileUI() {
   const name = userProfile.displayName || 'Shinobi'; 
   const email = userProfile.email || currentUser?.email || ''; 
-  
-  // Update Profile Avatar
   const pa = document.getElementById('profileAvatar'); 
   if(pa) {
     if(userProfile.avatarConfig) {
-      // If custom avatar exists, render SVG inside the profile circle
       pa.innerHTML = getAvatarSVG(userProfile.avatarConfig);
-      pa.style.background = 'transparent'; // remove default background
-      pa.style.border = '2px solid rgba(255, 215, 0, 0.7)';
+      pa.style.background = 'transparent'; pa.style.border = '2px solid rgba(255, 215, 0, 0.7)';
     } else {
-      // Default letter avatar
       pa.innerHTML = (name || 'S')[0].toUpperCase();
       pa.style.background = 'radial-gradient(circle, #ffd700, var(--naruto-orange))';
     }
   }
-
   const pn = document.getElementById('profileName'); if(pn) pn.textContent = name;
   const dhn = document.getElementById('dropdownHeaderName'); if(dhn) dhn.textContent = name;
   const dhe = document.getElementById('dropdownHeaderEmail'); if(dhe) dhe.textContent = email;
@@ -627,10 +593,9 @@ async function loadProfile() {
     if (snap.exists) {
       const data = snap.data();
       userProfile.displayName = data.displayName || (currentUser.email || 'shinobi').split('@')[0];
-      userProfile.avatarConfig = data.avatarConfig || null; // Load Avatar Config
+      userProfile.avatarConfig = data.avatarConfig || null;
     } else { 
-      const defaultName = (currentUser.email || 'shinobi').split('@')[0]; 
-      userProfile.displayName = defaultName; 
+      const defaultName = (currentUser.email || 'shinobi').split('@')[0]; userProfile.displayName = defaultName; 
       await userDoc(currentUser.uid).set({ email: currentUser.email, displayName: defaultName, createdAt: Date.now() }, { merge: true }); 
     }
     userProfile.email = currentUser.email; 
@@ -638,65 +603,10 @@ async function loadProfile() {
   } catch (err) { updateProfileUI(); }
 }
 
-function openUsernameModal() {
-  closeProfileMenu(); 
-  const um = document.getElementById('usernameModal'); if(um) um.classList.add('show'); 
-  const ui = document.getElementById('usernameInput'); if(ui) ui.value = userProfile.displayName || ''; 
-  const msg = document.getElementById('usernameMessage'); if(msg) msg.className = 'modal-message'; 
-  setTimeout(() => { if(ui) ui.focus(); }, 150);
-}
-function closeUsernameModal() { const um = document.getElementById('usernameModal'); if(um) um.classList.remove('show'); }
-
-async function saveUsername() {
-  const input = document.getElementById('usernameInput'); 
-  const msg = document.getElementById('usernameMessage'); 
-  const btn = document.getElementById('saveUsernameBtn'); 
-  if(!input || !msg || !btn) return;
-  
-  const name = input.value.trim();
-  if (name.length < 2 || name.length > 20) { msg.textContent = 'Name should be 2-20 characters.'; msg.className = 'modal-message show error'; return; }
-  
-  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
-  
-  try {
-    const nameCheck = await db.collection('users').where('displayName', '==', name).get();
-    const isTaken = nameCheck.docs.some(doc => doc.id !== currentUser.uid);
-    
-    if (isTaken) {
-      msg.textContent = 'This Ninja Name is already taken by another shinobi!';
-      msg.className = 'modal-message show error';
-      btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save';
-      return;
-    }
-
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-    await userDoc(currentUser.uid).set({ displayName: name, updatedAt: Date.now() }, { merge: true }); 
-    userProfile.displayName = name; 
-    updateProfileUI();
-    msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success';
-    
-    setTimeout(() => { 
-      closeUsernameModal(); 
-      btn.disabled = false; 
-      btn.innerHTML = '<i class="fas fa-check"></i> Save'; 
-      loadLeaderboard(); 
-    }, 1000);
-  } catch (err) { 
-    msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; 
-    btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save'; 
-  }
-}
-
 async function followFriend(uid) {
   try {
-    await challengesCol().add({
-      fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
-      toEmail: searchedUser.email, toUid: searchedUser.uid, taskText: "Follow Request",
-      weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
-    });
-    showFriendMessage(`🍥 Follow request sent to ${searchedUser.displayName}!`, 'success');
-    await loadChallenges(); 
-    showFriendResultCard(); 
+    await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: searchedUser.email, toUid: searchedUser.uid, taskText: "Follow Request", weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
+    showFriendMessage(`🍥 Follow request sent!`, 'success'); await loadChallenges(); showFriendResultCard(); 
   } catch (err) { console.error(err); }
 }
 
@@ -705,48 +615,27 @@ async function loadChallenges() {
   try {
     const toSnap = await challengesCol().where('toUid', '==', currentUser.uid).get();
     const incomingAll = toSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    
     const fromSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
     outgoingChallenges = fromSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-
     incomingChallenges = incomingAll.filter(c => c.status === 'pending');
     acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
-    
     incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request');
     incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
     
-    renderIncomingChallenges();
-    renderFollowRequests();
-    renderSharedMissions(); 
-    
+    renderIncomingChallenges(); renderFollowRequests(); renderSharedMissions(); 
     const dot = document.getElementById('notificationDot');
-    if (dot) {
-      dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
-    }
-  } catch (err) { console.error('Load challenges error:', err); }
+    if (dot) dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
+  } catch (err) { console.error(err); }
 }
 
 function renderIncomingChallenges() {
   const section = document.getElementById('incomingSection');
   const list = document.getElementById('incomingList');
-  
   if (!section || !list) return;
   if (incomingTaskChallenges.length === 0) { section.style.display = 'none'; return; }
-  
   section.style.display = 'block';
   const ic = document.getElementById('incomingCount'); if(ic) ic.textContent = incomingTaskChallenges.length;
-  
-  list.innerHTML = incomingTaskChallenges.map(c => `
-    <div class="incoming-item">
-      <div class="incoming-info">
-        <span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span>
-        <span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span>
-      </div>
-      <div class="incoming-actions">
-        <button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button>
-        <button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button>
-      </div>
-    </div>`).join('');
+  list.innerHTML = incomingTaskChallenges.map(c => `<div class="incoming-item"><div class="incoming-info"><span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span><span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span></div><div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div></div>`).join('');
 }
 
 function renderSharedMissions() {
@@ -754,40 +643,22 @@ function renderSharedMissions() {
   const list = document.getElementById('sharedMissionsList');
   const count = document.getElementById('sharedCount');
   if(!section || !list) return;
-
   const missions = acceptedChallenges.filter(c => c.taskText !== 'Follow Request');
   if (missions.length === 0) { section.style.display = 'none'; return; }
-
-  section.style.display = 'block';
-  if(count) count.textContent = missions.length;
+  section.style.display = 'block'; if(count) count.textContent = missions.length;
   const todayIndex = getTodayIndex();
-
   list.innerHTML = missions.map(c => {
     let daysHtml = '';
     for (let i = 0; i < 7; i++) {
       const cellDate = new Date(currentWeekStart); cellDate.setDate(cellDate.getDate() + i);
-      const dateStr = formatDate(cellDate);
-      const isCompleted = c.completions && c.completions[dateStr];
-      
-      let stateClass = 'shared-day';
-      let symbol = '○';
-
+      const dateStr = formatDate(cellDate); const isCompleted = c.completions && c.completions[dateStr];
+      let stateClass = 'shared-day', symbol = '○';
       if (i > todayIndex) { stateClass += ' locked'; symbol = '🔒'; }
       else if (i === todayIndex) { stateClass += isCompleted ? ' completed' : ' today'; symbol = isCompleted ? '✓' : '○'; }
       else { stateClass += isCompleted ? ' completed' : ' pending'; symbol = isCompleted ? '✓' : '✗'; }
-
-      const disabled = i > todayIndex ? 'disabled' : '';
-      daysHtml += `<button class="${stateClass}" ${disabled} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
+      daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
-    return `
-      <div class="shared-card">
-        <div class="shared-info">
-          <span class="shared-from">🥷 From ${escapeHtml(c.fromName)}</span>
-          <span class="shared-task">${escapeHtml(c.taskText)}</span>
-        </div>
-        <div class="shared-week-grid">${daysHtml}</div>
-      </div>
-    `;
+    return `<div class="shared-card"><div class="shared-info"><span class="shared-from">🥷 From ${escapeHtml(c.fromName)}</span><span class="shared-task">${escapeHtml(c.taskText)}</span></div><div class="shared-week-grid">${daysHtml}</div></div>`;
   }).join('');
 }
 
@@ -795,86 +666,49 @@ async function toggleSharedDay(challengeId, dateStr) {
   const challenge = acceptedChallenges.find(c => c.id === challengeId);
   if (!challenge) return;
   if (!challenge.completions) challenge.completions = {};
-  if (challenge.completions[dateStr]) delete challenge.completions[dateStr];
-  else challenge.completions[dateStr] = true;
-  try {
-    await challengesCol().doc(challengeId).update({ completions: challenge.completions });
-    renderSharedMissions(); loadLeaderboard(); 
-  } catch (err) { console.error('Error updating shared task:', err); }
+  if (challenge.completions[dateStr]) delete challenge.completions[dateStr]; else challenge.completions[dateStr] = true;
+  try { await challengesCol().doc(challengeId).update({ completions: challenge.completions }); renderSharedMissions(); loadLeaderboard(); } catch (err) { console.error(err); }
 }
 
-async function acceptChallenge(id) { 
-  await challengesCol().doc(id).update({ status: 'accepted' }); 
-  loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success');
-}
-async function rejectChallenge(id) { 
-  await challengesCol().doc(id).update({ status: 'rejected' }); 
-  loadChallenges(); 
-}
-async function removeFriend(friendUid) {
+window.acceptChallenge = async function(id) { await challengesCol().doc(id).update({ status: 'accepted' }); loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success'); };
+window.rejectChallenge = async function(id) { await challengesCol().doc(id).update({ status: 'rejected' }); loadChallenges(); };
+window.removeFriend = async function(friendUid) {
   if (!confirm('Unfollow this shinobi?')) return;
   try {
-    const [sSnap, rSnap] = await Promise.all([
-      challengesCol().where('fromUid', '==', currentUser.uid).where('toUid', '==', friendUid).get(),
-      challengesCol().where('fromUid', '==', friendUid).where('toUid', '==', currentUser.uid).get()
-    ]);
+    const [sSnap, rSnap] = await Promise.all([challengesCol().where('fromUid', '==', currentUser.uid).where('toUid', '==', friendUid).get(), challengesCol().where('fromUid', '==', friendUid).where('toUid', '==', currentUser.uid).get()]);
     const b = db.batch(); sSnap.forEach(d => b.delete(d.ref)); rSnap.forEach(d => b.delete(d.ref));
     await b.commit(); await loadChallenges(); await loadLeaderboard();
-    const src = document.getElementById('searchResultCard'); if(src) src.style.display = 'none';
-    showFriendMessage('Shinobi removed.', 'info');
+    document.getElementById('searchResultCard').style.display = 'none';
   } catch (err) { console.error(err); }
-}
+};
 
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
   try {
-    const [sSnap, rSnap] = await Promise.all([
-      challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
-      challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
-    ]);
-    
+    const [sSnap, rSnap] = await Promise.all([challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(), challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()]);
     const fUids = new Set();
-    sSnap.docs.forEach(d => { const data = d.data(); if (data.taskText !== 'Follow Request') fUids.add(data.toUid); });
-    rSnap.docs.forEach(d => { const data = d.data(); if (data.taskText !== 'Follow Request') fUids.add(data.fromUid); });
-
+    sSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().toUid); });
+    rSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().fromUid); });
     const allUids = [currentUser.uid, ...Array.from(fUids)];
-
-    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet. Leaderboard will show when a task is shared.</p></div>`; const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; return; }
-
+    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet.</p></div>`; document.getElementById('friendCount').textContent = '0 friends'; return; }
+    
     const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
     const entries = [];
     for (const doc of userDocs) {
       if (!doc.exists) continue;
       let count = 0; const tIdx = getTodayIndex();
       if (doc.id === currentUser.uid) {
-        for (let i = 0; i <= tIdx && i < 7; i++) {
-          const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
-          tasks.forEach(t => { if (t.completions && t.completions[ds]) count++; });
-        }
+        for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); tasks.forEach(t => { if (t.completions && t.completions[ds]) count++; }); }
       } else {
         const tSnap = await userDoc(doc.id).collection('tasks').get();
-        tSnap.docs.forEach(td => {
-          const t = td.data();
-          for (let i = 0; i <= tIdx && i < 7; i++) {
-            const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
-            if (t.completions && t.completions[ds]) count++;
-          }
-        });
+        tSnap.docs.forEach(td => { const t = td.data(); for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (t.completions && t.completions[ds]) count++; } });
       }
       const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
-      sharedSnap.docs.forEach(sd => {
-        const c = sd.data(); if (c.taskText === 'Follow Request') return;
-        for (let i = 0; i <= tIdx && i < 7; i++) {
-          const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
-          if (c.completions && c.completions[ds]) count++;
-        }
-      });
+      sharedSnap.docs.forEach(sd => { const c = sd.data(); if (c.taskText === 'Follow Request') return; for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (c.completions && c.completions[ds]) count++; } });
       entries.push({ uid: doc.id, name: doc.data().displayName, email: doc.data().email, count, self: doc.id === currentUser.uid });
     }
-
     entries.sort((a,b) => b.count - a.count);
-    const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
-    
+    document.getElementById('friendCount').textContent = `${entries.length} friends`;
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
@@ -890,17 +724,13 @@ async function loadLeaderboard() {
 }
 
 // ---------- Helpers & Init ----------
-function showFriendMessage(text, type) {
-  const el = document.getElementById('friendMessage'); if (!el) return;
-  el.textContent = text; el.className = `friend-message show ${type}`;
-  if (type === 'success') setTimeout(() => el.className = 'friend-message', 4000);
-}
+function showFriendMessage(text, type) { const el = document.getElementById('friendMessage'); if (!el) return; el.textContent = text; el.className = `friend-message show ${type}`; if (type === 'success') setTimeout(() => el.className = 'friend-message', 4000); }
 function escapeHtml(str) { return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
-function toggleDarkMode() { document.body.classList.toggle('dark-mode'); const isDark = document.body.classList.contains('dark-mode'); localStorage.setItem('darkMode', isDark); const btn = document.getElementById('darkModeBtn'); if(btn) btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>'; }
+window.toggleDarkMode = function() { document.body.classList.toggle('dark-mode'); const isDark = document.body.classList.contains('dark-mode'); localStorage.setItem('darkMode', isDark); const btn = document.getElementById('darkModeBtn'); if(btn) btn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>'; };
 function checkDarkMode() { if (localStorage.getItem('darkMode') === 'true') { document.body.classList.add('dark-mode'); const btn = document.getElementById('darkModeBtn'); if(btn) btn.innerHTML = '<i class="fas fa-sun"></i>'; } }
-function logoutUser() { closeProfileMenu(); if (confirm('Logout?')) auth.signOut(); }
+window.logoutUser = function() { closeProfileMenu(); if (confirm('Logout?')) auth.signOut(); };
+window.backupData = function() { const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `missions_${getToday()}.json`; a.click(); };
 function exportBackupFromMenu() { closeProfileMenu(); backupData(); }
-function backupData() { const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `missions_${getToday()}.json`; a.click(); }
 async function clearAllTasks() { if (tasks.length === 0 || !confirm('Delete ALL?')) return; const b = db.batch(); tasks.forEach(t => b.delete(tasksCol().doc(t.id))); await b.commit(); tasks = []; renderTasks(); updateStats(); loadLeaderboard(); }
 
 auth.onAuthStateChanged(async (user) => {
@@ -917,7 +747,6 @@ auth.onAuthStateChanged(async (user) => {
     
     on('addBtn', 'click', addTask);
     on('taskInput', 'keypress', e => { if (e.key === 'Enter') addTask(); });
-    
     on('prevWeekBtn', 'click', () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); updateWeekDisplay(); renderTasks(); updateStats(); });
     on('nextWeekBtn', 'click', () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); updateWeekDisplay(); renderTasks(); updateStats(); });
     on('todayBtn', 'click', () => { currentWeekStart = getWeekStart(new Date()); updateWeekDisplay(); renderTasks(); updateStats(); });
@@ -929,45 +758,17 @@ auth.onAuthStateChanged(async (user) => {
     document.addEventListener('click', (e) => {
         const suggestions = document.getElementById('searchSuggestions');
         const input = document.getElementById('searchFriendName');
-        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) {
-            suggestions.style.display = 'none';
-        }
+        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) suggestions.style.display = 'none';
     });
     
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
-    on('saveUsernameBtn', 'click', saveUsername);
-    on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveUsername(); });
+    on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveUsernameFromProfile(); });
 
     await loadChallenges(); await loadLeaderboard();
     
     if (loader) loader.classList.add('hide'); if (main) main.style.opacity = '1';
   } catch (err) { console.error(err); if (loader) loader.classList.add('hide'); if (main) main.style.opacity = '1'; }
 });
-
-window.toggleDarkMode = toggleDarkMode; 
-window.deleteTask = deleteTask; 
-window.logoutUser = logoutUser;
-window.openUsernameModal = openUsernameModal; 
-window.closeUsernameModal = closeUsernameModal;
-window.acceptChallenge = acceptChallenge; 
-window.rejectChallenge = rejectChallenge;
-window.exportBackupFromMenu = exportBackupFromMenu;
-window.openComparePage = openComparePage; 
-window.closeComparePage = closeComparePage;
-window.runComparison = runComparison; 
-window.changeMonth = changeMonth; 
-window.selectDate = selectDate;
-window.toggleSharedDay = toggleSharedDay; 
-window.removeFriend = removeFriend;
-window.followFriend = followFriend;
-window.openFollowRequestsPage = openFollowRequestsPage;
-window.closeFollowRequestsPage = closeFollowRequestsPage;
-window.openFriendProfile = openFriendProfile;
-window.closeFriendProfileModal = closeFriendProfileModal;
-window.selectSearchedUser = selectSearchedUser;
-window.openAvatarModal = openAvatarModal;
-window.closeAvatarModal = closeAvatarModal;
-window.saveAvatar = saveAvatar;
 
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js').catch(() => {}));
 console.log('🍥 Ninja Mission Tracker loaded!');
