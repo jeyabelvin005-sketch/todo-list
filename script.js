@@ -150,7 +150,7 @@ async function broadcastTask() {
       if(uDoc.exists) {
         promises.push(challengesCol().add({
             fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
-            toEmail: uDoc.data().email, toUid: uid, toName: uDoc.data().displayName, // 🆕 Added toName
+            toEmail: uDoc.data().email, toUid: uid, toName: uDoc.data().displayName, 
             taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
         }));
       }
@@ -270,7 +270,7 @@ function showFriendResultCard() {
 }
 
 // ============================================
-// 🔔 NOTIFICATIONS PAGE (Follow & Missions)
+// 🔔 NOTIFICATIONS PAGE
 // ============================================
 window.openFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
@@ -284,7 +284,6 @@ window.closeFollowRequestsPage = function() {
   document.body.classList.remove('modal-open');
 };
 
-// 🆕 UPDATED: Rendering both Follow Requests & Mission Invites
 function renderFollowRequests(followReqs, missionReqs) {
   const list = document.getElementById('followRequestsList');
   if (!list) return;
@@ -317,7 +316,7 @@ function renderFollowRequests(followReqs, missionReqs) {
 }
 
 // ============================================
-// 👤 FRIEND PROFILE & SEND MISSION
+// 👤 FRIEND PROFILE MODAL
 // ============================================
 window.openFriendProfile = function(uid, name, email) {
   activeProfileUser = { uid, name, email };
@@ -341,7 +340,7 @@ async function sendMissionFromProfile() {
   try {
     await challengesCol().add({ 
         fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, 
-        toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, // 🆕 Added toName
+        toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, 
         taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() 
     });
     msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; msg.className = 'modal-message show success'; select.value = '';
@@ -568,22 +567,20 @@ async function loadChallenges() {
     incomingChallenges = incomingAll.filter(c => c.status === 'pending');
     acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
     
-    // 🆕 Get accepted tasks sent by ME so I can see them in my shared missions too
     const acceptedSentByMe = outgoingChallenges.filter(c => c.status === 'accepted' && c.taskText !== 'Follow Request');
 
     incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request');
     incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
     
     renderIncomingChallenges(); 
-    renderFollowRequests(incomingFollowRequests, incomingTaskChallenges); // 🆕 Pass missions to Notifications
-    renderSharedMissions(acceptedChallenges, acceptedSentByMe); // 🆕 Pass Sent missions to Shared
+    renderFollowRequests(incomingFollowRequests, incomingTaskChallenges); 
+    renderSharedMissions(acceptedChallenges, acceptedSentByMe); 
 
     const dot = document.getElementById('notificationDot');
     if (dot) dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
   } catch (err) { console.error(err); }
 }
 
-// Keep main dashboard incoming task list
 function renderIncomingChallenges() {
   const section = document.getElementById('incomingSection');
   const list = document.getElementById('incomingList');
@@ -594,7 +591,6 @@ function renderIncomingChallenges() {
   list.innerHTML = incomingTaskChallenges.map(c => `<div class="incoming-item"><div class="incoming-info"><span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span><span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span></div><div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div></div>`).join('');
 }
 
-// 🆕 UPDATED: Render Shared Missions (both Sent and Received)
 async function renderSharedMissions(incoming, outgoing) {
   const section = document.getElementById('sharedMissionsSection');
   const list = document.getElementById('sharedMissionsList');
@@ -611,11 +607,8 @@ async function renderSharedMissions(incoming, outgoing) {
   let html = '';
   for (const c of allMissions) {
     let label = `From ${escapeHtml(c.fromName)}`;
-    // If I am the sender, show "Sent to [Friend Name]"
     if (c.fromUid === currentUser.uid) {
-        let friendName = c.toName;
-        // Fallback: If toName is missing, use toEmail
-        label = `Sent to ${escapeHtml(friendName || c.toEmail)}`;
+        label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`;
     }
 
     let daysHtml = '';
@@ -628,10 +621,15 @@ async function renderSharedMissions(incoming, outgoing) {
       else { stateClass += isCompleted ? ' completed' : ' pending'; symbol = isCompleted ? '✓' : '✗'; }
       daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
+    
+    // 🆕 Added Remove Button
     html += `<div class="shared-card">
-        <div class="shared-info">
-          <span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'};">🥷 ${label}</span>
-          <span class="shared-task">${escapeHtml(c.taskText)}</span>
+        <div class="shared-info" style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div>
+              <span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'};">🥷 ${label}</span>
+              <span class="shared-task">${escapeHtml(c.taskText)}</span>
+          </div>
+          <button onclick="removeSharedMission('${c.id}')" style="background:transparent; border:none; color:#ff5555; cursor:pointer; font-size:16px;" title="Remove Mission"><i class="fas fa-trash"></i></button>
         </div>
         <div class="shared-week-grid">${daysHtml}</div>
     </div>`;
@@ -639,8 +637,20 @@ async function renderSharedMissions(incoming, outgoing) {
   list.innerHTML = html;
 }
 
+// 🆕 Function to Remove Shared Mission
+window.removeSharedMission = async function(challengeId) {
+  if (!confirm('Remove this shared mission? It will be deleted for both of you.')) return;
+  try {
+    await challengesCol().doc(challengeId).delete();
+    await loadChallenges();
+    await loadLeaderboard();
+  } catch (err) {
+    console.error('Error removing mission:', err);
+    alert('Failed to remove mission.');
+  }
+};
+
 async function toggleSharedDay(challengeId, dateStr) {
-  // Find challenge in either incoming or outgoing
   let challenge = acceptedChallenges.find(c => c.id === challengeId);
   if (!challenge) {
       const fromSnap = await challengesCol().doc(challengeId).get();
@@ -653,7 +663,7 @@ async function toggleSharedDay(challengeId, dateStr) {
   
   try { 
       await challengesCol().doc(challengeId).update({ completions: challenge.completions }); 
-      await loadChallenges(); // Refresh all views to sync state
+      await loadChallenges(); 
       loadLeaderboard(); 
   } catch (err) { console.error(err); }
 }
@@ -677,7 +687,7 @@ window.removeFriend = async function(friendUid) {
 };
 
 // ============================================
-// 🏆 LEADERBOARD (ONLY SHARED MISSIONS)
+// 🏆 LEADERBOARD (Clean UI, No Remove Button)
 // ============================================
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
@@ -723,6 +733,7 @@ async function loadLeaderboard() {
     entries.sort((a,b) => b.count - a.count);
     const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
     
+    // 🆕 Removed the `remove-friend-btn` from here completely
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
@@ -732,7 +743,6 @@ async function loadLeaderboard() {
             <span class="friend-email">${escapeHtml(e.email)}</span>
         </div>
         <div class="friend-score"><span class="score-value">${e.count}</span><span class="score-label">completed</span></div>
-        ${!e.self ? `<button class="remove-friend-btn" onclick="removeFriend('${e.uid}')" title="Unfollow"><i class="fas fa-user-minus"></i></button>` : ''}
       </div>`).join('');
   } catch(e) { console.error(e); }
 }
