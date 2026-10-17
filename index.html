@@ -144,9 +144,19 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
+        <!-- Incoming Challenges -->
         <div class="incoming-section" id="incomingSection" style="display:none;">
             <div class="incoming-header"><h2><i class="fas fa-envelope"></i> Incoming Challenges</h2><span class="incoming-count" id="incomingCount">0</span></div>
             <div class="incoming-list" id="incomingList"></div>
+        </div>
+
+        <!-- 🆕 SHARED MISSIONS (Accepted Challenges) -->
+        <div class="shared-missions-section" id="sharedMissionsSection" style="display:none;">
+            <div class="shared-header">
+                <h2><i class="fas fa-handshake"></i> Shared Missions</h2>
+                <span class="shared-count" id="sharedCount">0</span>
+            </div>
+            <div class="shared-list" id="sharedMissionsList"></div>
         </div>
 
         <div class="friend-section">
@@ -181,9 +191,7 @@
                 <div style="width: 45px;"></div>
             </div>
 
-            <!-- Custom Calendars Section -->
             <div class="compare-selection">
-                <!-- Period 1 Calendar -->
                 <div class="period-card p1-card">
                     <div class="period-badge">Period 1</div>
                     <div class="custom-calendar">
@@ -192,9 +200,7 @@
                             <span id="p1MonthLabel">Month Year</span>
                             <button onclick="changeMonth(1, 1)"><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <div class="cal-weekdays">
-                            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-                        </div>
+                        <div class="cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
                         <div class="calendar-grid" id="p1Calendar"></div>
                         <div class="cal-range-label" id="p1RangeLabel">Select start date</div>
                     </div>
@@ -202,7 +208,6 @@
 
                 <div class="vs-circle">VS</div>
 
-                <!-- Period 2 Calendar -->
                 <div class="period-card p2-card">
                     <div class="period-badge p2-badge">Period 2</div>
                     <div class="custom-calendar">
@@ -211,9 +216,7 @@
                             <span id="p2MonthLabel">Month Year</span>
                             <button onclick="changeMonth(2, 1)"><i class="fas fa-chevron-right"></i></button>
                         </div>
-                        <div class="cal-weekdays">
-                            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
-                        </div>
+                        <div class="cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
                         <div class="calendar-grid" id="p2Calendar"></div>
                         <div class="cal-range-label" id="p2RangeLabel">Select start date</div>
                     </div>
@@ -224,7 +227,6 @@
                 <i class="fas fa-chart-bar"></i> Generate Comparison
             </button>
 
-            <!-- Results Section -->
             <div class="compare-results hidden" id="compareResults">
                 <h2 class="results-title">Comparison Results</h2>
                 <div class="results-grid">
