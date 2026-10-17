@@ -54,7 +54,6 @@
                 </div>
             </div>
             <div class="header-buttons">
-                <!-- 🔔 NOTIFICATION BELL (Opens Follow Requests Page) -->
                 <div class="notification-wrapper">
                     <button class="icon-btn" onclick="openFollowRequestsPage()" title="Notifications">
                         <i class="fas fa-bell"></i>
@@ -159,7 +158,7 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
-        <!-- Incoming Task Challenges (Tasks only) -->
+        <!-- Incoming Task Challenges -->
         <div class="incoming-section" id="incomingSection" style="display:none;">
             <div class="incoming-header">
                 <h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2>
@@ -168,7 +167,7 @@
             <div class="incoming-list" id="incomingList"></div>
         </div>
 
-        <!-- Shared Missions (Week Grid) -->
+        <!-- Shared Missions -->
         <div class="shared-missions-section" id="sharedMissionsSection" style="display:none;">
             <div class="shared-header">
                 <h2><i class="fas fa-handshake"></i> Shared Missions</h2>
@@ -177,7 +176,7 @@
             <div class="shared-list" id="sharedMissionsList"></div>
         </div>
 
-        <!-- Friend Challenge (Instagram Style) -->
+        <!-- Friend Challenge -->
         <div class="friend-section">
             <div class="friend-header">
                 <h2><i class="fas fa-users"></i> Find Shinobi</h2>
@@ -185,18 +184,16 @@
             </div>
             
             <div class="challenge-info">
-                <i class="fas fa-search"></i> Search for a friend by their <strong>Ninja Name</strong> to follow them and compare scores.
+                <i class="fas fa-search"></i> Search by <strong>Ninja Name</strong> to follow them.
             </div>
 
-            <!-- Search Friend Form -->
-            <div class="add-friend-form" style="margin-bottom: 20px;">
-                <input type="text" id="searchFriendName" placeholder="Search by Ninja Name (e.g., Naruto)..." class="friend-input" style="flex: 1;">
-                <button id="searchFriendBtn" class="add-friend-btn" style="background: linear-gradient(135deg, #4a5fc1, #2d3a8c);">
-                    <i class="fas fa-search"></i> Search
-                </button>
+            <!-- Live Search Form -->
+            <div class="add-friend-form" style="margin-bottom: 20px; position: relative;">
+                <input type="text" id="searchFriendName" placeholder="Type a name (e.g., Naruto)..." class="friend-input" style="flex: 1;" autocomplete="off">
+                <div id="searchSuggestions" class="search-suggestions"></div>
             </div>
 
-            <!-- Search Result Card -->
+            <!-- Search Result Card (Shows when clicked from suggestions) -->
             <div class="search-result-card" id="searchResultCard" style="display: none;">
                 <div class="search-avatar" id="searchAvatar">S</div>
                 <div class="search-info">
@@ -220,16 +217,13 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 🔔 NEW PAGE: FOLLOW REQUESTS               -->
-    <!-- ========================================== -->
+    <!-- 🔔 FOLLOW REQUESTS PAGE -->
     <div class="page-view" id="followRequestsPage">
         <div class="container compare-container">
             <div class="header" style="margin-bottom: 20px;">
                 <button class="nav-btn" onclick="closeFollowRequestsPage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
                 <div class="logo-text" style="text-align: center; flex: 1;">
                     <h1>Follow Requests</h1>
-                    <span class="subtitle">Shinobi waiting for your reply</span>
                 </div>
                 <div style="width: 45px;"></div>
             </div>
@@ -237,16 +231,13 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 📊 NEW PAGE: COMPARE PROGRESS (CALENDAR)   -->
-    <!-- ========================================== -->
+    <!-- 📊 COMPARE PROGRESS PAGE -->
     <div class="page-view" id="comparePage">
         <div class="container compare-container">
             <div class="header" style="margin-bottom: 20px;">
                 <button class="nav-btn" onclick="closeComparePage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
                 <div class="logo-text" style="text-align: center; flex: 1;">
                     <h1>Compare Progress</h1>
-                    <span class="subtitle">Select Dates from Calendar</span>
                 </div>
                 <div style="width: 45px;"></div>
             </div>
@@ -310,9 +301,7 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- 👤 NEW MODAL: FRIEND PROFILE               -->
-    <!-- ========================================== -->
+    <!-- 👤 FRIEND PROFILE MODAL -->
     <div class="modal-overlay" id="friendProfileModal">
         <div class="modal-box">
             <div class="modal-icon" id="friendProfileAvatar">🥷</div>
