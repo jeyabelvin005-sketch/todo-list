@@ -13,7 +13,7 @@ let incomingTaskChallenges = [];
 let acceptedChallenges = []; 
 let outgoingChallenges = []; 
 let searchedUser = null;
-let activeProfileUser = null; // For Friend Profile Modal
+let activeProfileUser = null; 
 
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
@@ -108,7 +108,6 @@ function openFriendProfile(uid, name, email) {
   document.getElementById('friendProfileName').textContent = name;
   document.getElementById('friendProfileEmail').textContent = email;
   
-  // Populate task dropdown
   const select = document.getElementById('profileTaskSelect');
   select.innerHTML = '<option value="">Select one of your missions...</option>' + 
     tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
@@ -359,36 +358,72 @@ function openUsernameModal() {
   setTimeout(() => { if(ui) ui.focus(); }, 150);
 }
 function closeUsernameModal() { const um = document.getElementById('usernameModal'); if(um) um.classList.remove('show'); }
+
+// 🆕 SAVE USERNAME (WITH DUPLICATE CHECK)
 async function saveUsername() {
-  const input = document.getElementById('usernameInput'); const msg = document.getElementById('usernameMessage'); const btn = document.getElementById('saveUsernameBtn'); 
+  const input = document.getElementById('usernameInput'); 
+  const msg = document.getElementById('usernameMessage'); 
+  const btn = document.getElementById('saveUsernameBtn'); 
   if(!input || !msg || !btn) return;
+  
   const name = input.value.trim();
   if (name.length < 2 || name.length > 20) { msg.textContent = 'Name should be 2-20 characters.'; msg.className = 'modal-message show error'; return; }
-  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+  
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking...';
+  
   try {
-    await userDoc(currentUser.uid).set({ displayName: name, updatedAt: Date.now() }, { merge: true }); userProfile.displayName = name; updateProfileUI();
-    msg.textContent = '✓ Name updated!'; msg.className = 'modal-message show success';
-    setTimeout(() => { closeUsernameModal(); btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save'; loadLeaderboard(); }, 1000);
-  } catch (err) { msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save'; }
+    // 🆕 Check if name already exists
+    const nameCheck = await db.collection('users').where('displayName', '==', name).get();
+    const isTaken = nameCheck.docs.some(doc => doc.id !== currentUser.uid);
+    
+    if (isTaken) {
+      msg.textContent = 'This Ninja Name is already taken by another shinobi!';
+      msg.className = 'modal-message show error';
+      btn.disabled = false; 
+      btn.innerHTML = '<i class="fas fa-check"></i> Save';
+      return;
+    }
+
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    await userDoc(currentUser.uid).set({ displayName: name, updatedAt: Date.now() }, { merge: true }); 
+    userProfile.displayName = name; 
+    updateProfileUI();
+    msg.textContent = '✓ Name updated!'; 
+    msg.className = 'modal-message show success';
+    
+    setTimeout(() => { 
+      closeUsernameModal(); 
+      btn.disabled = false; 
+      btn.innerHTML = '<i class="fas fa-check"></i> Save'; 
+      loadLeaderboard(); 
+    }, 1000);
+  } catch (err) { 
+    msg.textContent = 'Error saving.'; 
+    msg.className = 'modal-message show error'; 
+    btn.disabled = false; 
+    btn.innerHTML = '<i class="fas fa-check"></i> Save'; 
+  }
 }
 
 // ============================================
-// 🔍 SEARCH & FOLLOW LOGIC
+// 🔍 SEARCH BY NINJA NAME (UPDATED)
 // ============================================
 async function searchFriend() {
-  const emailInput = document.getElementById('searchFriendEmail');
+  // 🆕 Changed ID from searchFriendEmail to searchFriendName
+  const nameInput = document.getElementById('searchFriendName');
   const resultCard = document.getElementById('searchResultCard');
   const msg = document.getElementById('friendMessage');
-  if(!emailInput || !resultCard || !msg) return;
+  if(!nameInput || !resultCard || !msg) return;
 
-  const email = emailInput.value.trim().toLowerCase();
+  const name = nameInput.value.trim();
   msg.className = 'friend-message';
 
-  if (!email) { alert('Please enter an email to search.'); return; }
+  if (!name) { alert('Please enter a Ninja Name to search.'); return; }
 
   try {
-    const snap = await db.collection('users').where('email', '==', email).limit(1).get();
-    if (snap.empty) { resultCard.style.display = 'none'; showFriendMessage('No shinobi found with this email.', 'error'); return; }
+    // 🆕 Search by displayName instead of email
+    const snap = await db.collection('users').where('displayName', '==', name).limit(1).get();
+    if (snap.empty) { resultCard.style.display = 'none'; showFriendMessage('No shinobi found with this name.', 'error'); return; }
     const doc = snap.docs[0];
     if (doc.id === currentUser.uid) { resultCard.style.display = 'none'; showFriendMessage("You can't search for yourself!", 'error'); return; }
 
@@ -655,8 +690,9 @@ auth.onAuthStateChanged(async (user) => {
     on('backupBtn', 'click', backupData);
     on('clearBtn', 'click', clearAllTasks);
     
+    // 🆕 Updated Search Listeners
     on('searchFriendBtn', 'click', searchFriend);
-    on('searchFriendEmail', 'keypress', e => { if (e.key === 'Enter') searchFriend(); });
+    on('searchFriendName', 'keypress', e => { if (e.key === 'Enter') searchFriend(); });
     
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
 
