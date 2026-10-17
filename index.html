@@ -54,9 +54,18 @@
                 </div>
             </div>
             <div class="header-buttons">
+                <!-- 🔔 NOTIFICATION BELL -->
+                <div class="notification-wrapper">
+                    <button class="icon-btn" onclick="scrollToIncoming()" title="Notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-dot" id="notificationDot" style="display:none;"></span>
+                    </button>
+                </div>
+
                 <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
                     <i class="fas fa-moon"></i>
                 </button>
+                
                 <div class="profile-wrapper" id="profileWrapper">
                     <button class="profile-btn" id="profileBtn" aria-expanded="false">
                         <span class="profile-avatar" id="profileAvatar">N</span>
@@ -195,7 +204,7 @@
                     <span class="search-email" id="searchEmail">email@example.com</span>
                 </div>
                 <div id="searchActionArea">
-                    <!-- Follow / Unfollow button goes here -->
+                    <!-- Follow / Pending / Unfollow button goes here -->
                 </div>
             </div>
 
