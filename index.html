@@ -11,40 +11,23 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Floating Characters -->
     <div class="character-layer">
         <div class="ninja-run naruto">🍥</div>
         <div class="ninja-run sasuke">⚡</div>
         <div class="ninja-run sakura">🌸</div>
         <div class="ninja-run kakashi">🥷</div>
-        <div class="ninja-run kurama">🦊</div>
-        <div class="ninja-run toad">🐸</div>
-        <div class="ninja-run snake">🐍</div>
-        <div class="ninja-run scroll">📜</div>
-        <div class="ninja-run shuriken">🌀</div>
-        <div class="ninja-run kunai">🗡️</div>
-    </div>
-
-    <div class="chakra-particles">
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
-        <span></span><span></span><span></span><span></span><span></span>
     </div>
 
     <div class="rasengan-loader" id="rasenganLoader">
         <div class="rasengan">
             <div class="rasengan-core"></div>
             <div class="rasengan-ring"></div>
-            <div class="rasengan-ring r2"></div>
-            <div class="rasengan-ring r3"></div>
         </div>
         <p class="loading-text">Loading Ninja Data...</p>
     </div>
 
     <!-- ===== MAIN DASHBOARD ===== -->
     <div class="container" id="mainContainer" style="opacity:0;">
-        <!-- Header -->
         <div class="header">
             <div class="logo">
                 <div class="konoha-symbol"><img src="images/naruto-face.jpg" alt="Konoha"></div>
@@ -60,11 +43,9 @@
                         <span class="notification-dot" id="notificationDot" style="display:none;"></span>
                     </button>
                 </div>
-
                 <button class="icon-btn" id="darkModeBtn" onclick="toggleDarkMode()" title="Toggle Mode">
                     <i class="fas fa-moon"></i>
                 </button>
-                
                 <div class="profile-wrapper" id="profileWrapper">
                     <button class="profile-btn" id="profileBtn" aria-expanded="false">
                         <span class="profile-avatar" id="profileAvatar">N</span>
@@ -77,14 +58,14 @@
                             <span class="dropdown-header-name" id="dropdownHeaderName">Shinobi</span>
                             <span class="dropdown-header-email" id="dropdownHeaderEmail">user@email.com</span>
                         </div>
+                        <button class="dropdown-item" onclick="openMyProfilePage()">
+                            <i class="fas fa-user-circle"></i> <span>My Profile</span>
+                        </button>
                         <button class="dropdown-item" onclick="openUsernameModal()">
                             <i class="fas fa-user-edit"></i> <span>Change Ninja Name</span>
                         </button>
                         <button class="dropdown-item" onclick="openComparePage()">
                             <i class="fas fa-calendar-alt"></i> <span>Compare Progress</span>
-                        </button>
-                        <button class="dropdown-item" onclick="exportBackupFromMenu()">
-                            <i class="fas fa-download"></i> <span>Save Missions Backup</span>
                         </button>
                         <hr class="dropdown-divider">
                         <button class="dropdown-item logout-item" onclick="logoutUser()">
@@ -95,34 +76,20 @@
             </div>
         </div>
 
-        <!-- Week Nav -->
+        <!-- Week Nav, Stats, Add Task, Table, Legend (Same as before) -->
         <div class="week-nav">
             <button class="nav-btn" id="prevWeekBtn"><i class="fas fa-chevron-left"></i></button>
-            <div class="week-label-wrap">
-                <span class="week-kanji">週</span>
-                <span id="weekLabel">This Week</span>
-            </div>
+            <div class="week-label-wrap"><span class="week-kanji">週</span><span id="weekLabel">This Week</span></div>
             <button class="nav-btn" id="nextWeekBtn"><i class="fas fa-chevron-right"></i></button>
             <button class="today-btn" id="todayBtn"><i class="fas fa-bolt"></i> Today</button>
         </div>
 
-        <!-- Stats -->
         <div class="stats-grid">
-            <div class="stat-card naruto-card">
-                <div class="stat-icon"><img src="images/naruto-face.jpg" alt="Naruto"></div>
-                <div class="stat-info"><span class="stat-label">Total Missions</span><span class="stat-value" id="totalTasks">0</span></div>
-            </div>
-            <div class="stat-card sasuke-card">
-                <div class="stat-icon"><img src="images/sasuke-face.jpg" alt="Sasuke"></div>
-                <div class="stat-info"><span class="stat-label">Completed</span><span class="stat-value" id="completedTasks">0</span></div>
-            </div>
-            <div class="stat-card sakura-card">
-                <div class="stat-icon"><img src="images/sakura-face.jpg" alt="Sakura"></div>
-                <div class="stat-info"><span class="stat-label">Pending</span><span class="stat-value" id="pendingTasks">0</span></div>
-            </div>
+            <div class="stat-card naruto-card"><div class="stat-icon"><img src="images/naruto-face.jpg"></div><div class="stat-info"><span class="stat-label">Total Missions</span><span class="stat-value" id="totalTasks">0</span></div></div>
+            <div class="stat-card sasuke-card"><div class="stat-icon"><img src="images/sasuke-face.jpg"></div><div class="stat-info"><span class="stat-label">Completed</span><span class="stat-value" id="completedTasks">0</span></div></div>
+            <div class="stat-card sakura-card"><div class="stat-icon"><img src="images/sakura-face.jpg"></div><div class="stat-info"><span class="stat-label">Pending</span><span class="stat-value" id="pendingTasks">0</span></div></div>
         </div>
 
-        <!-- Add Task -->
         <div class="add-section">
             <div class="add-header"><h2><i class="fas fa-scroll"></i> New Mission</h2><span class="hint">Press Enter to assign</span></div>
             <div class="add-form">
@@ -131,26 +98,13 @@
             </div>
         </div>
 
-        <!-- Weekly Table -->
         <div class="table-container">
             <table id="taskTable">
-                <thead>
-                    <tr>
-                        <th class="task-col"><i class="fas fa-list"></i> Mission</th>
-                        <th id="day1Header">Mon</th>
-                        <th id="day2Header">Tue</th>
-                        <th id="day3Header">Wed</th>
-                        <th id="day4Header">Thu</th>
-                        <th id="day5Header">Fri</th>
-                        <th id="day6Header">Sat</th>
-                        <th id="day7Header">Sun</th>
-                    </tr>
-                </thead>
+                <thead><tr><th class="task-col"><i class="fas fa-list"></i> Mission</th><th id="day1Header">Mon</th><th id="day2Header">Tue</th><th id="day3Header">Wed</th><th id="day4Header">Thu</th><th id="day5Header">Fri</th><th id="day6Header">Sat</th><th id="day7Header">Sun</th></tr></thead>
                 <tbody id="taskTableBody"></tbody>
             </table>
         </div>
 
-        <!-- Legend -->
         <div class="legend">
             <span class="legend-item"><span class="legend-icon completed">✓</span> Completed</span>
             <span class="legend-item"><span class="legend-icon pending">✗</span> Failed</span>
@@ -158,62 +112,63 @@
             <span class="legend-item"><span class="legend-icon locked">🔒</span> Locked</span>
         </div>
 
-        <!-- Incoming Task Challenges -->
         <div class="incoming-section" id="incomingSection" style="display:none;">
-            <div class="incoming-header">
-                <h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2>
-                <span class="incoming-count" id="incomingCount">0</span>
-            </div>
+            <div class="incoming-header"><h2><i class="fas fa-envelope"></i> Incoming Task Challenges</h2><span class="incoming-count" id="incomingCount">0</span></div>
             <div class="incoming-list" id="incomingList"></div>
         </div>
 
-        <!-- Shared Missions -->
         <div class="shared-missions-section" id="sharedMissionsSection" style="display:none;">
-            <div class="shared-header">
-                <h2><i class="fas fa-handshake"></i> Shared Missions</h2>
-                <span class="shared-count" id="sharedCount">0</span>
-            </div>
+            <div class="shared-header"><h2><i class="fas fa-handshake"></i> Shared Missions</h2><span class="shared-count" id="sharedCount">0</span></div>
             <div class="shared-list" id="sharedMissionsList"></div>
         </div>
 
-        <!-- Friend Challenge -->
         <div class="friend-section">
-            <div class="friend-header">
-                <h2><i class="fas fa-users"></i> Find Shinobi</h2>
-                <span class="friend-count" id="friendCount">0 friends</span>
-            </div>
-            
-            <div class="challenge-info">
-                <i class="fas fa-search"></i> Search by <strong>Ninja Name</strong> to follow them.
-            </div>
-
-            <!-- Live Search Form -->
+            <div class="friend-header"><h2><i class="fas fa-users"></i> Find Shinobi</h2><span class="friend-count" id="friendCount">0 friends</span></div>
+            <div class="challenge-info"><i class="fas fa-search"></i> Search by <strong>Ninja Name</strong> to follow them.</div>
             <div class="add-friend-form" style="margin-bottom: 20px; position: relative;">
-                <input type="text" id="searchFriendName" placeholder="Type a name (e.g., Naruto)..." class="friend-input" style="flex: 1;" autocomplete="off">
+                <input type="text" id="searchFriendName" placeholder="Type a name..." class="friend-input" style="flex: 1;" autocomplete="off">
                 <div id="searchSuggestions" class="search-suggestions"></div>
             </div>
-
-            <!-- Search Result Card (Shows when clicked from suggestions) -->
             <div class="search-result-card" id="searchResultCard" style="display: none;">
                 <div class="search-avatar" id="searchAvatar">S</div>
-                <div class="search-info">
-                    <span class="search-name" id="searchName">Shinobi Name</span>
-                    <span class="search-email" id="searchEmail">email@example.com</span>
-                </div>
+                <div class="search-info"><span class="search-name" id="searchName">Shinobi</span><span class="search-email" id="searchEmail">email</span></div>
                 <div id="searchActionArea"></div>
             </div>
-
             <div id="friendMessage" class="friend-message"></div>
-
-            <!-- Leaderboard -->
             <h3 style="margin: 25px 0 15px; color: #ffd700; font-size: 16px;"><i class="fas fa-trophy"></i> Friends Leaderboard</h3>
             <div class="leaderboard" id="leaderboard"></div>
         </div>
 
-        <!-- Bottom Actions -->
         <div class="bottom-actions">
             <button class="export-btn" id="backupBtn"><i class="fas fa-download"></i> Save Scroll</button>
             <button class="clear-btn" id="clearBtn"><i class="fas fa-trash-alt"></i> Clear All</button>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 👤 MY PROFILE PAGE (Followers / Following) -->
+    <!-- ========================================== -->
+    <div class="page-view" id="myProfilePage">
+        <div class="container compare-container">
+            <div class="header" style="margin-bottom: 20px;">
+                <button class="nav-btn" onclick="closeMyProfilePage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
+                <div class="logo-text" style="text-align: center; flex: 1;"><h1>My Profile</h1></div>
+                <div style="width: 45px;"></div>
+            </div>
+
+            <div class="profile-tabs">
+                <button class="profile-tab active" id="tabFollowersBtn" onclick="switchProfileTab('followers')">Followers</button>
+                <button class="profile-tab" id="tabFollowingBtn" onclick="switchProfileTab('following')">Following</button>
+            </div>
+
+            <div id="profileUserList" style="min-height: 150px;"></div>
+
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed rgba(255,165,0,0.3);">
+                <h3 style="color: #00d9ff; font-size: 16px; margin-bottom: 10px;"><i class="fas fa-share-alt"></i> Share Task to Followers</h3>
+                <p style="font-size: 12px; color: #aaa; margin-bottom: 15px;">Select one of your missions and broadcast it to everyone who follows you.</p>
+                <select id="broadcastTaskSelect" class="friend-select" style="margin-bottom: 15px; width: 100%;"></select>
+                <button class="add-btn" onclick="broadcastTask()" style="width: 100%;"><i class="fas fa-paper-plane"></i> Broadcast Task</button>
+            </div>
         </div>
     </div>
 
@@ -222,9 +177,7 @@
         <div class="container compare-container">
             <div class="header" style="margin-bottom: 20px;">
                 <button class="nav-btn" onclick="closeFollowRequestsPage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
-                <div class="logo-text" style="text-align: center; flex: 1;">
-                    <h1>Follow Requests</h1>
-                </div>
+                <div class="logo-text" style="text-align: center; flex: 1;"><h1>Follow Requests</h1></div>
                 <div style="width: 45px;"></div>
             </div>
             <div id="followRequestsList" class="incoming-list" style="margin-top: 20px;"></div>
@@ -236,65 +189,35 @@
         <div class="container compare-container">
             <div class="header" style="margin-bottom: 20px;">
                 <button class="nav-btn" onclick="closeComparePage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
-                <div class="logo-text" style="text-align: center; flex: 1;">
-                    <h1>Compare Progress</h1>
-                </div>
+                <div class="logo-text" style="text-align: center; flex: 1;"><h1>Compare Progress</h1></div>
                 <div style="width: 45px;"></div>
             </div>
-
             <div class="compare-selection">
                 <div class="period-card p1-card">
                     <div class="period-badge">Period 1</div>
                     <div class="custom-calendar">
-                        <div class="cal-header">
-                            <button onclick="changeMonth(1, -1)"><i class="fas fa-chevron-left"></i></button>
-                            <span id="p1MonthLabel">Month Year</span>
-                            <button onclick="changeMonth(1, 1)"><i class="fas fa-chevron-right"></i></button>
-                        </div>
+                        <div class="cal-header"><button onclick="changeMonth(1, -1)"><i class="fas fa-chevron-left"></i></button><span id="p1MonthLabel">Month</span><button onclick="changeMonth(1, 1)"><i class="fas fa-chevron-right"></i></button></div>
                         <div class="cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
                         <div class="calendar-grid" id="p1Calendar"></div>
-                        <div class="cal-range-label" id="p1RangeLabel">Select start date</div>
+                        <div class="cal-range-label" id="p1RangeLabel">Start</div>
                     </div>
                 </div>
-
                 <div class="vs-circle">VS</div>
-
                 <div class="period-card p2-card">
                     <div class="period-badge p2-badge">Period 2</div>
                     <div class="custom-calendar">
-                        <div class="cal-header">
-                            <button onclick="changeMonth(2, -1)"><i class="fas fa-chevron-left"></i></button>
-                            <span id="p2MonthLabel">Month Year</span>
-                            <button onclick="changeMonth(2, 1)"><i class="fas fa-chevron-right"></i></button>
-                        </div>
+                        <div class="cal-header"><button onclick="changeMonth(2, -1)"><i class="fas fa-chevron-left"></i></button><span id="p2MonthLabel">Month</span><button onclick="changeMonth(2, 1)"><i class="fas fa-chevron-right"></i></button></div>
                         <div class="cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
                         <div class="calendar-grid" id="p2Calendar"></div>
-                        <div class="cal-range-label" id="p2RangeLabel">Select start date</div>
+                        <div class="cal-range-label" id="p2RangeLabel">Start</div>
                     </div>
                 </div>
             </div>
-
-            <button class="add-btn" onclick="runComparison()" style="width: 100%; justify-content: center; margin-top: 20px; height: 50px; font-size: 16px;">
-                <i class="fas fa-chart-bar"></i> Generate Comparison
-            </button>
-
+            <button class="add-btn" onclick="runComparison()" style="width: 100%; justify-content: center; margin-top: 20px;">Generate Comparison</button>
             <div class="compare-results hidden" id="compareResults">
-                <h2 class="results-title">Comparison Results</h2>
                 <div class="results-grid">
-                    <div class="result-card result-p1">
-                        <h3>Period 1</h3>
-                        <div class="stat-row"><span>Total Missions:</span> <strong id="res1Total">0</strong></div>
-                        <div class="stat-row"><span style="color:#4ade80">Completed:</span> <strong id="res1Completed" style="color:#4ade80">0</strong></div>
-                        <div class="stat-row"><span style="color:#ff5555">Failed:</span> <strong id="res1Failed" style="color:#ff5555">0</strong></div>
-                        <div class="stat-row highlight"><span>Success Rate:</span> <strong id="res1Rate">0%</strong></div>
-                    </div>
-                    <div class="result-card result-p2">
-                        <h3>Period 2</h3>
-                        <div class="stat-row"><span>Total Missions:</span> <strong id="res2Total">0</strong></div>
-                        <div class="stat-row"><span style="color:#4ade80">Completed:</span> <strong id="res2Completed" style="color:#4ade80">0</strong></div>
-                        <div class="stat-row"><span style="color:#ff5555">Failed:</span> <strong id="res2Failed" style="color:#ff5555">0</strong></div>
-                        <div class="stat-row highlight"><span>Success Rate:</span> <strong id="res2Rate">0%</strong></div>
-                    </div>
+                    <div class="result-card result-p1"><h3>Period 1</h3><div class="stat-row"><span>Total:</span> <strong id="res1Total">0</strong></div><div class="stat-row"><span>Done:</span> <strong id="res1Completed">0</strong></div><div class="stat-row"><span>Failed:</span> <strong id="res1Failed">0</strong></div><div class="stat-row highlight"><span>Rate:</span> <strong id="res1Rate">0%</strong></div></div>
+                    <div class="result-card result-p2"><h3>Period 2</h3><div class="stat-row"><span>Total:</span> <strong id="res2Total">0</strong></div><div class="stat-row"><span>Done:</span> <strong id="res2Completed">0</strong></div><div class="stat-row"><span>Failed:</span> <strong id="res2Failed">0</strong></div><div class="stat-row highlight"><span>Rate:</span> <strong id="res2Rate">0%</strong></div></div>
                 </div>
                 <div class="verdict-message" id="verdictMessage"></div>
             </div>
@@ -305,28 +228,14 @@
     <div class="modal-overlay" id="friendProfileModal">
         <div class="modal-box">
             <div class="modal-icon" id="friendProfileAvatar">🥷</div>
-            <h3 id="friendProfileName">Shinobi Name</h3>
-            <p id="friendProfileEmail">email@example.com</p>
-            
+            <h3 id="friendProfileName">Shinobi</h3>
+            <p id="friendProfileEmail">email</p>
             <div style="margin-top: 20px; padding-top: 20px; border-top: 1px dashed rgba(255,165,0,0.3);">
-                <p style="font-size: 13px; color: #00d9ff; margin-bottom: 10px; text-align: left;">
-                    <i class="fas fa-bolt"></i> Send a Mission Challenge:
-                </p>
-                <select id="profileTaskSelect" class="friend-select" style="margin-bottom: 15px; width: 100%;">
-                    <option value="">Select one of your missions...</option>
-                </select>
-                <button type="button" class="btn-primary" id="sendMissionFromProfileBtn" style="width: 100%;">
-                    <i class="fas fa-paper-plane"></i> Send Invite
-                </button>
+                <select id="profileTaskSelect" class="friend-select" style="margin-bottom: 15px; width: 100%;"></select>
+                <button type="button" class="btn-primary" id="sendMissionFromProfileBtn" style="width: 100%;"><i class="fas fa-paper-plane"></i> Send Invite</button>
             </div>
-
             <div class="modal-message" id="profileMessage" style="margin-top: 15px;"></div>
-
-            <div class="modal-buttons" style="margin-top: 20px;">
-                <button type="button" class="btn-secondary" onclick="closeFriendProfileModal()" style="width: 100%;">
-                    <i class="fas fa-times"></i> Close
-                </button>
-            </div>
+            <div class="modal-buttons" style="margin-top: 20px;"><button type="button" class="btn-secondary" onclick="closeFriendProfileModal()" style="width: 100%;">Close</button></div>
         </div>
     </div>
 
@@ -335,12 +244,11 @@
         <div class="modal-box">
             <div class="modal-icon">🥷</div>
             <h3>Choose Your Ninja Name</h3>
-            <p>This name will be shown to your friends.</p>
             <div class="modal-message" id="usernameMessage"></div>
-            <input type="text" id="usernameInput" placeholder="Enter your ninja name" maxlength="20" minlength="2" autocomplete="off">
+            <input type="text" id="usernameInput" placeholder="Enter ninja name" maxlength="20">
             <div class="modal-buttons">
-                <button type="button" class="btn-secondary" onclick="closeUsernameModal()"><i class="fas fa-times"></i> Cancel</button>
-                <button type="button" class="btn-primary" id="saveUsernameBtn"><i class="fas fa-check"></i> Save</button>
+                <button type="button" class="btn-secondary" onclick="closeUsernameModal()">Cancel</button>
+                <button type="button" class="btn-primary" id="saveUsernameBtn">Save</button>
             </div>
         </div>
     </div>
