@@ -1,7 +1,7 @@
 // ============================================
 // 🍥 Ninja Mission Tracker — Service Worker
 // ============================================
-const CACHE_NAME = 'ninja-tracker-v1';
+const CACHE_NAME = 'ninja-tracker-v2'; // 🆕 Version ah v1 la irundhu v2 ku maathiruken
 const urlsToCache = [
   './',
   './index.html',
