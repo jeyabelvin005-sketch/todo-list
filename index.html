@@ -39,7 +39,7 @@
                 <div class="konoha-symbol"><img src="images/naruto-face.jpg" alt="Konoha"></div>
                 <div class="logo-text">
                     <h1>Ninja Mission Tracker</h1>
-                    <span class="subtitle">疾風伝 • Weekly Training Log</span>
+                    <span class="subtitle">Shinobi • Weekly Training Log</span>
                 </div>
             </div>
             <div class="header-buttons">
@@ -90,7 +90,7 @@
         <div class="week-nav">
             <button class="nav-btn" id="prevWeekBtn"><i class="fas fa-chevron-left"></i></button>
             <div class="week-label-wrap">
-                <span class="week-kanji">週</span>
+                <span class="week-kanji">Week</span>
                 <span id="weekLabel">This Week</span>
             </div>
             <button class="nav-btn" id="nextWeekBtn"><i class="fas fa-chevron-right"></i></button>
@@ -167,7 +167,7 @@
             <div class="shared-list" id="sharedMissionsList"></div>
         </div>
 
-        <!-- 🆕 LEADERBOARD SECTION (Cleaned up) -->
+        <!-- Leaderboard -->
         <div class="friend-section" style="margin-top: 25px;">
             <div class="friend-header">
                 <h2><i class="fas fa-trophy"></i> Friends Leaderboard</h2>
@@ -187,7 +187,7 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- 🔍 NEW MODAL: SEARCH MENU                  -->
+    <!-- 🔍 SEARCH MODAL                            -->
     <!-- ========================================== -->
     <div class="modal-overlay" id="searchModal">
         <div class="modal-box search-modal-box">
@@ -200,7 +200,6 @@
                 <div id="searchSuggestions" class="search-suggestions"></div>
             </div>
 
-            <!-- Search Result Card -->
             <div class="search-result-card" id="searchResultCard" style="display: none;">
                 <div class="search-avatar" id="searchAvatar">S</div>
                 <div class="search-info">
@@ -233,7 +232,7 @@
 
             <div class="profile-tabs" style="margin-bottom: 25px; display: flex; gap: 5px; flex-wrap: wrap;">
                 <button class="profile-tab active" onclick="switchProfileTab('network')" id="tabBtn-network" style="flex: 1; min-width: 120px;"><i class="fas fa-users"></i> Network</button>
-                <button class="profile-tab" onclick="switchProfileTab('avatar')" id="tabBtn-avatar" style="flex: 1; min-width: 120px;"><i class="fas fa-user-astronaut"></i> Avatar & Name</button>
+                <button class="profile-tab" onclick="switchProfileTab('avatar')" id="tabBtn-avatar" style="flex: 1; min-width: 120px;"><i class="fas fa-user-astronaut"></i> Avatar & Info</button>
                 <button class="profile-tab" onclick="switchProfileTab('data')" id="tabBtn-data" style="flex: 1; min-width: 120px;"><i class="fas fa-chart-pie"></i> Data & Progress</button>
             </div>
 
@@ -253,7 +252,7 @@
                 </div>
             </div>
 
-            <!-- Tab 2: Avatar & Name -->
+            <!-- Tab 2: Avatar & Info -->
             <div id="profileTab-avatar" class="profile-tab-content" style="display: none;">
                 <div class="avatar-builder">
                     <div class="avatar-preview-box" style="background: rgba(0,0,0,0.3);">
@@ -295,11 +294,14 @@
                 </div>
 
                 <div style="margin-top: 30px; padding-top: 20px; border-top: 1px dashed rgba(255,165,0,0.3);">
-                    <h3 style="color: #00d9ff; font-size: 16px; margin-bottom: 10px;"><i class="fas fa-user-edit"></i> Change Ninja Name</h3>
+                    <h3 style="color: #00d9ff; font-size: 16px; margin-bottom: 10px;"><i class="fas fa-user-edit"></i> Profile Details</h3>
                     <div id="usernameMessage" class="modal-message" style="margin-bottom: 10px;"></div>
+                    <div class="add-form" style="margin-bottom: 15px;">
+                        <input type="text" id="usernameInput" class="main-input" placeholder="Enter ninja name" maxlength="20">
+                    </div>
                     <div class="add-form">
-                        <input type="text" id="usernameInput" class="main-input" placeholder="Enter new ninja name" maxlength="20">
-                        <button class="add-btn" onclick="saveUsernameFromProfile()"><i class="fas fa-check"></i> Update Name</button>
+                        <input type="text" id="bioInput" class="main-input" placeholder="Write a short bio (e.g., Future Hokage)..." maxlength="100">
+                        <button class="add-btn" onclick="saveProfileDetails()"><i class="fas fa-check"></i> Update</button>
                     </div>
                 </div>
             </div>
@@ -321,6 +323,34 @@
         </div>
     </div>
 
+    <!-- ========================================== -->
+    <!-- 👤 OTHER USER PROFILE PAGE (NEW)           -->
+    <!-- ========================================== -->
+    <div class="page-view" id="friendProfilePage">
+        <div class="container compare-container" style="max-width: 600px;">
+            <div class="header" style="margin-bottom: 20px;">
+                <button class="nav-btn" onclick="closeFriendProfilePage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
+                <div class="logo-text" style="text-align: center; flex: 1;"><h1>Shinobi Profile</h1></div>
+                <div style="width: 45px;"></div>
+            </div>
+
+            <div class="friend-profile-card">
+                <div class="fp-avatar-box" id="fpAvatarBox">
+                    <!-- SVG Avatar loads here -->
+                </div>
+                <h2 class="fp-name" id="fpName">Shinobi Name</h2>
+                <p class="fp-bio" id="fpBio">No bio added yet.</p>
+                <p class="fp-id" id="fpId">ID: xxxxx</p>
+
+                <div class="fp-actions">
+                    <button id="fpFollowBtn" class="follow-btn" onclick="toggleFollowFromProfile()"><i class="fas fa-heart"></i> Follow</button>
+                    <button class="follow-btn" style="background: linear-gradient(135deg, #4a5fc1, #2d3a8c);" onclick="openMessageModal()"><i class="fas fa-comment"></i> Message</button>
+                    <button class="follow-btn" style="background: linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openSendMissionModalFromProfile()"><i class="fas fa-bolt"></i> Mission</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 🔔 NOTIFICATIONS PAGE -->
     <div class="page-view" id="followRequestsPage">
         <div class="container compare-container">
@@ -333,22 +363,16 @@
         </div>
     </div>
 
-        <!-- ========================================== -->
-    <!-- 📊 NEW PAGE: COMPARE PROGRESS (PAPER STYLE)-->
-    <!-- ========================================== -->
+    <!-- 📊 COMPARE PROGRESS PAGE -->
     <div class="page-view" id="comparePage">
         <div class="container compare-container" style="max-width: 1000px;">
             <div class="header" style="margin-bottom: 20px;">
                 <button class="nav-btn" onclick="closeComparePage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
-                <div class="logo-text" style="text-align: center; flex: 1;">
-                    <h1>Progress Checker</h1>
-                </div>
+                <div class="logo-text" style="text-align: center; flex: 1;"><h1>Progress Checker</h1></div>
                 <div style="width: 45px;"></div>
             </div>
 
-            <!-- Top Section: Period 1 -->
             <div class="compare-row">
-                <!-- Calendar 1 -->
                 <div class="period-card p1-card">
                     <div class="custom-calendar">
                         <div class="cal-header">
@@ -361,25 +385,16 @@
                         <div class="cal-range-label" id="p1RangeLabel">Select 2 dates to compare</div>
                     </div>
                 </div>
-
                 <div class="compare-arrow-icon"><i class="fas fa-long-arrow-alt-right"></i></div>
-
-                <!-- Task Breakdown 1 -->
                 <div class="task-breakdown-box">
-                    <div class="tb-header">
-                        <span>Day</span><span>Tasks</span><span>✓/x</span>
-                    </div>
-                    <div class="tb-body" id="p1TaskBreakdown">
-                        <p style="text-align:center; color:#888;">Select dates to view tasks</p>
-                    </div>
+                    <div class="tb-header"><span>Day</span><span>Tasks</span><span>✓/x</span></div>
+                    <div class="tb-body" id="p1TaskBreakdown"><p style="text-align:center; color:#888;">Select dates to view tasks</p></div>
                 </div>
             </div>
 
             <div class="vs-divider">VS</div>
 
-            <!-- Bottom Section: Period 2 -->
             <div class="compare-row">
-                <!-- Calendar 2 -->
                 <div class="period-card p2-card">
                     <div class="custom-calendar">
                         <div class="cal-header">
@@ -392,30 +407,21 @@
                         <div class="cal-range-label" id="p2RangeLabel">Select 2 dates to compare</div>
                     </div>
                 </div>
-
                 <div class="compare-arrow-icon"><i class="fas fa-long-arrow-alt-right"></i></div>
-
-                <!-- Task Breakdown 2 -->
                 <div class="task-breakdown-box">
-                    <div class="tb-header">
-                        <span>Day</span><span>Tasks</span><span>✓/x</span>
-                    </div>
-                    <div class="tb-body" id="p2TaskBreakdown">
-                        <p style="text-align:center; color:#888;">Select dates to view tasks</p>
-                    </div>
+                    <div class="tb-header"><span>Day</span><span>Tasks</span><span>✓/x</span></div>
+                    <div class="tb-body" id="p2TaskBreakdown"><p style="text-align:center; color:#888;">Select dates to view tasks</p></div>
                 </div>
             </div>
 
-            <!-- Motivational Speech -->
             <div class="motivational-box">
                 <div class="motivational-icon">🔥</div>
                 <p id="motivationalSpeech">Select dates from both calendars to compare your progress and get a motivational speech!</p>
             </div>
-
         </div>
     </div>
 
-    <!-- 👤 FRIEND PROFILE MODAL -->
+    <!-- 👤 SEND MISSION MODAL -->
     <div class="modal-overlay" id="friendProfileModal">
         <div class="modal-box">
             <div class="modal-icon" id="friendProfileAvatar">🥷</div>
@@ -427,6 +433,18 @@
             </div>
             <div class="modal-message" id="profileMessage" style="margin-top: 15px;"></div>
             <div class="modal-buttons" style="margin-top: 20px;"><button type="button" class="btn-secondary" onclick="closeFriendProfileModal()" style="width: 100%;">Close</button></div>
+        </div>
+    </div>
+
+    <!-- 💬 MESSAGE MODAL -->
+    <div class="modal-overlay" id="messageModal">
+        <div class="modal-box">
+            <div class="modal-icon">💬</div>
+            <h3>Send Message</h3>
+            <p>Message to: <strong id="msgTargetName" style="color:#ffd700;">Shinobi</strong></p>
+            <textarea id="messageInput" class="main-input" rows="3" placeholder="Type your message here..." style="margin-bottom: 15px; resize:none;"></textarea>
+            <button type="button" class="btn-primary" onclick="sendMessage()" style="width: 100%;"><i class="fas fa-paper-plane"></i> Send Message</button>
+            <div class="modal-buttons" style="margin-top: 10px;"><button type="button" class="btn-secondary" onclick="closeMessageModal()" style="width: 100%;">Cancel</button></div>
         </div>
     </div>
 
