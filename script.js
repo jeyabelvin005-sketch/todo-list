@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Full Logic (Updated)
+// 🍥 Ninja Mission Tracker - Full Logic (Bugs Fixed)
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -67,7 +67,7 @@ function messagesCol() { return db.collection('messages'); }
 // 👤 FRIEND PROFILE PAGE & MESSAGING
 // ============================================
 window.openFriendProfile = async function(uid, name, email) {
-  closeSearchMenu();
+  closeSearchMenu(); // Close search modal if open
   
   const page = document.getElementById('friendProfilePage');
   if(page) page.classList.add('active');
@@ -153,7 +153,7 @@ window.sendMessage = async function() {
   } catch (err) { console.error(err); alert('Failed to send message.'); }
 };
 
-// Send Mission Modal (From Friend Profile Page)
+// Send Mission Modal
 window.openSendMissionModalFromProfile = function() {
   if(!activeProfileUser) return;
   document.getElementById('friendProfileAvatar').textContent = (activeProfileUser.name || 'S')[0].toUpperCase();
@@ -164,8 +164,8 @@ window.openSendMissionModalFromProfile = function() {
   document.getElementById('friendProfileModal').classList.add('show');
 };
 
-// 🆕 Fixed: sendMissionFromProfile function
-async function sendMissionFromProfile() {
+// 🆕 FIXED: Exposing function to window
+window.sendMissionFromProfile = async function() {
   if (!activeProfileUser) return;
   const select = document.getElementById('profileTaskSelect');
   const msg = document.getElementById('profileMessage');
@@ -272,7 +272,7 @@ function showFriendResultCard() {
   }
 }
 
-async function followFriend(uid, name, email) {
+window.followFriend = async function(uid, name, email) {
   try {
     const targetName = name || (searchedUser ? searchedUser.displayName : 'Shinobi');
     const targetEmail = email || (searchedUser ? searchedUser.email : '');
@@ -358,7 +358,7 @@ async function renderProfileUsers() {
   if(select) select.innerHTML = '<option value="">Select one of your missions...</option>' + tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
 }
 
-async function broadcastTask() {
+window.broadcastTask = async function() {
   const select = document.getElementById('broadcastTaskSelect');
   if (!select || !select.value) { alert('Please select a task to broadcast.'); return; }
   const taskText = select.options[select.selectedIndex].dataset.text;
