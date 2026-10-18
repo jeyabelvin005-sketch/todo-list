@@ -333,43 +333,85 @@
         </div>
     </div>
 
-    <!-- 📊 COMPARE PROGRESS PAGE -->
+        <!-- ========================================== -->
+    <!-- 📊 NEW PAGE: COMPARE PROGRESS (PAPER STYLE)-->
+    <!-- ========================================== -->
     <div class="page-view" id="comparePage">
-        <div class="container compare-container">
+        <div class="container compare-container" style="max-width: 1000px;">
             <div class="header" style="margin-bottom: 20px;">
                 <button class="nav-btn" onclick="closeComparePage()" style="width: auto; padding: 0 15px;"><i class="fas fa-arrow-left"></i> Back</button>
-                <div class="logo-text" style="text-align: center; flex: 1;"><h1>Compare Progress</h1></div>
+                <div class="logo-text" style="text-align: center; flex: 1;">
+                    <h1>Progress Checker</h1>
+                </div>
                 <div style="width: 45px;"></div>
             </div>
-            <div class="compare-selection">
+
+            <!-- Top Section: Period 1 -->
+            <div class="compare-row">
+                <!-- Calendar 1 -->
                 <div class="period-card p1-card">
-                    <div class="period-badge">Period 1</div>
                     <div class="custom-calendar">
-                        <div class="cal-header"><button onclick="changeMonth(1, -1)"><i class="fas fa-chevron-left"></i></button><span id="p1MonthLabel">Month</span><button onclick="changeMonth(1, 1)"><i class="fas fa-chevron-right"></i></button></div>
+                        <div class="cal-header">
+                            <button onclick="changeMonth(1, -1)"><i class="fas fa-chevron-left"></i></button>
+                            <span id="p1MonthLabel">Month Year</span>
+                            <button onclick="changeMonth(1, 1)"><i class="fas fa-chevron-right"></i></button>
+                        </div>
                         <div class="cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
                         <div class="calendar-grid" id="p1Calendar"></div>
-                        <div class="cal-range-label" id="p1RangeLabel">Start</div>
+                        <div class="cal-range-label" id="p1RangeLabel">Select 2 dates to compare</div>
                     </div>
                 </div>
-                <div class="vs-circle">VS</div>
+
+                <div class="compare-arrow-icon"><i class="fas fa-long-arrow-alt-right"></i></div>
+
+                <!-- Task Breakdown 1 -->
+                <div class="task-breakdown-box">
+                    <div class="tb-header">
+                        <span>Day</span><span>Tasks</span><span>✓/x</span>
+                    </div>
+                    <div class="tb-body" id="p1TaskBreakdown">
+                        <p style="text-align:center; color:#888;">Select dates to view tasks</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vs-divider">VS</div>
+
+            <!-- Bottom Section: Period 2 -->
+            <div class="compare-row">
+                <!-- Calendar 2 -->
                 <div class="period-card p2-card">
-                    <div class="period-badge p2-badge">Period 2</div>
                     <div class="custom-calendar">
-                        <div class="cal-header"><button onclick="changeMonth(2, -1)"><i class="fas fa-chevron-left"></i></button><span id="p2MonthLabel">Month</span><button onclick="changeMonth(2, 1)"><i class="fas fa-chevron-right"></i></button></div>
+                        <div class="cal-header">
+                            <button onclick="changeMonth(2, -1)"><i class="fas fa-chevron-left"></i></button>
+                            <span id="p2MonthLabel">Month Year</span>
+                            <button onclick="changeMonth(2, 1)"><i class="fas fa-chevron-right"></i></button>
+                        </div>
                         <div class="cal-weekdays"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
                         <div class="calendar-grid" id="p2Calendar"></div>
-                        <div class="cal-range-label" id="p2RangeLabel">Start</div>
+                        <div class="cal-range-label" id="p2RangeLabel">Select 2 dates to compare</div>
+                    </div>
+                </div>
+
+                <div class="compare-arrow-icon"><i class="fas fa-long-arrow-alt-right"></i></div>
+
+                <!-- Task Breakdown 2 -->
+                <div class="task-breakdown-box">
+                    <div class="tb-header">
+                        <span>Day</span><span>Tasks</span><span>✓/x</span>
+                    </div>
+                    <div class="tb-body" id="p2TaskBreakdown">
+                        <p style="text-align:center; color:#888;">Select dates to view tasks</p>
                     </div>
                 </div>
             </div>
-            <button class="add-btn" onclick="runComparison()" style="width: 100%; justify-content: center; margin-top: 20px;">Generate Comparison</button>
-            <div class="compare-results hidden" id="compareResults">
-                <div class="results-grid">
-                    <div class="result-card result-p1"><h3>Period 1</h3><div class="stat-row"><span>Total:</span> <strong id="res1Total">0</strong></div><div class="stat-row"><span>Done:</span> <strong id="res1Completed">0</strong></div><div class="stat-row"><span>Failed:</span> <strong id="res1Failed">0</strong></div><div class="stat-row highlight"><span>Rate:</span> <strong id="res1Rate">0%</strong></div></div>
-                    <div class="result-card result-p2"><h3>Period 2</h3><div class="stat-row"><span>Total:</span> <strong id="res2Total">0</strong></div><div class="stat-row"><span>Done:</span> <strong id="res2Completed">0</strong></div><div class="stat-row"><span>Failed:</span> <strong id="res2Failed">0</strong></div><div class="stat-row highlight"><span>Rate:</span> <strong id="res2Rate">0%</strong></div></div>
-                </div>
-                <div class="verdict-message" id="verdictMessage"></div>
+
+            <!-- Motivational Speech -->
+            <div class="motivational-box">
+                <div class="motivational-icon">🔥</div>
+                <p id="motivationalSpeech">Select dates from both calendars to compare your progress and get a motivational speech!</p>
             </div>
+
         </div>
     </div>
 
