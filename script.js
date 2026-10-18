@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Full Logic
+// 🍥 Ninja Mission Tracker - Full Logic (Paper Style Compare)
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -75,7 +75,6 @@ window.openSearchMenu = function() {
 window.closeSearchMenu = function() {
   document.getElementById('searchModal').classList.remove('show');
   document.body.classList.remove('modal-open');
-  // Reset search fields
   document.getElementById('searchFriendName').value = '';
   document.getElementById('searchSuggestions').style.display = 'none';
   document.getElementById('searchResultCard').style.display = 'none';
@@ -333,7 +332,6 @@ function renderFollowRequests(followReqs, missionReqs) {
   }
 
   let html = '';
-
   if (followReqs.length > 0) {
     html += '<h3 style="color:#ffd700; margin-bottom:10px; font-size:16px;">Follow Requests</h3>';
     html += followReqs.map(c => `
@@ -342,7 +340,6 @@ function renderFollowRequests(followReqs, missionReqs) {
         <div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
       </div>`).join('');
   }
-
   if (missionReqs.length > 0) {
     html += '<h3 style="color:#00d9ff; margin-top:20px; margin-bottom:10px; font-size:16px;">Mission Invites</h3>';
     html += missionReqs.map(c => `
@@ -389,38 +386,55 @@ async function sendMissionFromProfile() {
 }
 
 // ============================================
-// 📅 CALENDAR & COMPARE
+// 📊 COMPARE PROGRESS (PAPER STYLE)
 // ============================================
 window.openComparePage = function() {
   closeProfileMenu(); 
   const cp = document.getElementById('comparePage');
   if(cp) cp.classList.add('active'); 
   document.body.classList.add('modal-open');
-  const now = new Date(); p1State.month = now.getMonth(); p1State.year = now.getFullYear(); p2State.month = now.getMonth(); p2State.year = now.getFullYear();
-  renderCalendar(1); renderCalendar(2);
+  
+  const now = new Date(); 
+  p1State.month = now.getMonth(); p1State.year = now.getFullYear(); 
+  p2State.month = now.getMonth(); p2State.year = now.getFullYear();
+  
+  renderCalendar(1); 
+  renderCalendar(2);
 };
+
 window.closeComparePage = function() { 
   const cp = document.getElementById('comparePage');
   if(cp) cp.classList.remove('active'); 
   document.body.classList.remove('modal-open'); 
 };
+
 window.changeMonth = function(period, dir) {
   const state = period === 1 ? p1State : p2State;
-  state.month += dir; if (state.month < 0) { state.month = 11; state.year--; } if (state.month > 11) { state.month = 0; state.year++; }
+  state.month += dir; 
+  if (state.month < 0) { state.month = 11; state.year--; } 
+  if (state.month > 11) { state.month = 0; state.year++; }
   renderCalendar(period);
 };
+
 window.selectDate = function(period, dateStr) {
   const state = period === 1 ? p1State : p2State;
-  if (!state.start || (state.start && state.end)) { state.start = dateStr; state.end = null; }
-  else if (dateStr >= state.start) { state.end = dateStr; } else { state.start = dateStr; }
+  if (!state.start || (state.start && state.end)) { 
+      state.start = dateStr; state.end = null; 
+  } else if (dateStr >= state.start) { 
+      state.end = dateStr; 
+  } else { 
+      state.start = dateStr; 
+  }
   renderCalendar(period);
 };
+
 function renderCalendar(period) {
   const state = period === 1 ? p1State : p2State;
   const container = document.getElementById(`p${period}Calendar`);
   const monthLabel = document.getElementById(`p${period}MonthLabel`);
   const rangeLabel = document.getElementById(`p${period}RangeLabel`);
   if(!container) return;
+
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   monthLabel.textContent = `${monthNames[state.month]} ${state.year}`;
   const firstDay = new Date(state.year, state.month, 1).getDay();
@@ -436,51 +450,107 @@ function renderCalendar(period) {
     html += `<div class="${classes}" onclick="selectDate(${period}, '${dateStr}')">${d}</div>`;
   }
   container.innerHTML = html;
-  if (state.start && state.end) rangeLabel.textContent = `${state.start} → ${state.end}`;
-  else if (state.start) rangeLabel.textContent = `Start: ${state.start} (Select end)`;
-  else rangeLabel.textContent = `Select start date`;
+  
+  if (state.start && state.end) {
+    rangeLabel.textContent = `${state.start} → ${state.end}`;
+    renderTaskBreakdown(period, state.start, state.end);
+  } else if (state.start) {
+    rangeLabel.textContent = `Start: ${state.start} (Select end)`;
+    document.getElementById(`p${period}TaskBreakdown`).innerHTML = '<p style="text-align:center; color:#888;">Select end date...</p>';
+  } else {
+    rangeLabel.textContent = `Select 2 dates to compare`;
+    document.getElementById(`p${period}TaskBreakdown`).innerHTML = '<p style="text-align:center; color:#888;">Select dates to view tasks</p>';
+  }
+}
+
+function renderTaskBreakdown(period, startStr, endStr) {
+  const container = document.getElementById(`p${period}TaskBreakdown`);
+  if(!container) return;
+
+  const start = new Date(startStr); start.setHours(0,0,0,0);
+  const end = new Date(endStr); end.setHours(23,59,59,999);
+
+  if (start > end) { container.innerHTML = '<p style="text-align:center; color:#ff5555;">Invalid Range</p>'; return; }
+
+  let html = '';
+  let hasData = false;
+
+  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+    const dateStr = formatDate(d);
+    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+    
+    const dayTasks = tasks.filter(t => {
+        const created = new Date(t.createdDate || t.createdAt);
+        return created <= d;
+    });
+
+    if (dayTasks.length > 0) {
+        hasData = true;
+        html += `<div class="tb-row">
+            <div class="tb-day">${d.getDate()}<br><span style="font-size:9px; color:#aaa;">${dayName}</span></div>
+            <div class="tb-tasks">`;
+            
+        dayTasks.forEach(t => {
+            const isDone = t.completions && t.completions[dateStr];
+            html += `<div class="tb-task">
+                <span>${escapeHtml(t.text)}</span>
+                <span class="tb-status ${isDone ? 'done' : 'fail'}">${isDone ? '✓' : '✕'}</span>
+            </div>`;
+        });
+        html += `</div></div>`;
+    }
+  }
+
+  if(!hasData) {
+      container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">No tasks active in this range.</p>';
+  } else {
+      container.innerHTML = html;
+  }
+  
+  // Auto run comparison if both periods are ready
+  if (p1State.start && p1State.end && p2State.start && p2State.end) {
+      runComparison();
+  }
 }
 
 window.runComparison = function() {
-  if (!p1State.start || !p1State.end) { alert('Select complete dates for Period 1.'); return; }
-  if (!p2State.start || !p2State.end) { alert('Select complete dates for Period 2.'); return; }
-  const stats1 = getStatsForRange(p1State.start, p1State.end); const stats2 = getStatsForRange(p2State.start, p2State.end);
-  const r1T = document.getElementById('res1Total'); if(r1T) r1T.textContent = stats1.total;
-  const r1C = document.getElementById('res1Completed'); if(r1C) r1C.textContent = stats1.completed;
-  const r1F = document.getElementById('res1Failed'); if(r1F) r1F.textContent = stats1.failed;
-  const r1R = document.getElementById('res1Rate'); if(r1R) r1R.textContent = `${stats1.rate}%`;
-  const r2T = document.getElementById('res2Total'); if(r2T) r2T.textContent = stats2.total;
-  const r2C = document.getElementById('res2Completed'); if(r2C) r2C.textContent = stats2.completed;
-  const r2F = document.getElementById('res2Failed'); if(r2F) r2F.textContent = stats2.failed;
-  const r2R = document.getElementById('res2Rate'); if(r2R) r2R.textContent = `${stats2.rate}%`;
-  const verdictEl = document.getElementById('verdictMessage');
-  if(verdictEl) {
-    if (stats2.rate > stats1.rate) { verdictEl.textContent = `🔥 Period 2 is ${stats2.rate - stats1.rate}% better!`; verdictEl.className = 'verdict-message verdict-win'; }
-    else if (stats1.rate > stats2.rate) { verdictEl.textContent = `⚠️ Period 1 was ${stats1.rate - stats2.rate}% better!`; verdictEl.className = 'verdict-message verdict-win'; }
-    else { verdictEl.textContent = `⚖️ Both periods have the same success rate.`; verdictEl.className = 'verdict-message verdict-tie'; }
+  if (!p1State.start || !p1State.end) return;
+  if (!p2State.start || !p2State.end) return;
+
+  function getRangeScore(startStr, endStr) {
+      const start = new Date(startStr); start.setHours(0,0,0,0);
+      const end = new Date(endStr); end.setHours(23,59,59,999);
+      let total = 0, completed = 0;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+          const dateStr = formatDate(d);
+          tasks.forEach(t => {
+              const created = new Date(t.createdDate || t.createdAt);
+              if (created <= d) {
+                  total++;
+                  if (t.completions && t.completions[dateStr]) completed++;
+              }
+          });
+      }
+      return { total, completed, rate: total > 0 ? (completed/total)*100 : 0 };
   }
-  const resDiv = document.getElementById('compareResults'); if(resDiv) resDiv.classList.remove('hidden');
+
+  const stats1 = getRangeScore(p1State.start, p1State.end);
+  const stats2 = getRangeScore(p2State.start, p2State.end);
+  
+  const speechEl = document.getElementById('motivationalSpeech');
+  if(!speechEl) return;
+  
+  if (stats2.rate > stats1.rate) {
+      speechEl.innerHTML = `🔥 <strong>Amazing Progress!</strong> You have improved by ${Math.round(stats2.rate - stats1.rate)}% in the second period. Keep up the great work and continue to push your limits, shinobi!`;
+  } else if (stats1.rate > stats2.rate) {
+      speechEl.innerHTML = `⚠️ <strong>Stay Focused!</strong> Your progress dropped by ${Math.round(stats1.rate - stats2.rate)}%. Don't give up. Analyze what went wrong and train harder to surpass your previous record!`;
+  } else {
+      speechEl.innerHTML = `⚖️ <strong>Consistent Performance!</strong> Both periods show the same success rate. Try to break the plateau and aim higher this week!`;
+  }
 };
 
-function getStatsForRange(startStr, endStr) {
-  const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
-  const today = new Date(); today.setHours(23,59,59,999); 
-  if (isNaN(start) || isNaN(end) || start > end) return { total: 0, completed: 0, failed: 0, rate: 0 };
-  let total = 0, completed = 0, failed = 0;
-  for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    if (d > today) continue; 
-    const dateStr = formatDate(d);
-    tasks.forEach(task => {
-      const taskCreated = new Date(task.createdDate || task.createdAt);
-      if (taskCreated <= d) { total++; if (task.completions && task.completions[dateStr]) completed++; else failed++; }
-    });
-  }
-  const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-  return { total, completed, failed, rate };
-}
-
 // ============================================
-// ✅ TASKS LOGIC
+// ✅ MAIN TASKS LOGIC
 // ============================================
 async function loadTasks() {
   const snap = await tasksCol().orderBy('createdAt', 'asc').get();
@@ -819,7 +889,6 @@ auth.onAuthStateChanged(async (user) => {
     on('backupBtn', 'click', backupData);
     on('clearBtn', 'click', clearAllTasks);
     
-    // 🆕 Search input listener inside modal
     on('searchFriendName', 'input', onSearchInput);
     
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
