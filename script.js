@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Full Logic (Fixed SVG)
+// 🍥 Ninja Mission Tracker - Full Logic (Chat & Shared Fix)
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -17,20 +17,17 @@ let activeProfileUser = null;
 let searchTimeout = null; 
 let currentProfileSubTab = 'followers';
 
+// Chat State
+let activeChatUser = null;
+let chatUnsubscribe = null;
+
 // Calendar States
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 
-// 🆕 UPDATED Avatar State
+// Avatar State
 let currentAvatar = {
-    skin: "#f1c27d", 
-    faceShape: "round",
-    hairStyle: "short", 
-    hairColor: "#2c1b18", 
-    eyeColor: "#222", 
-    expression: "happy",
-    outfit: "orange",
-    headband: "none"
+    skin: "#f1c27d", faceShape: "round", hairStyle: "short", hairColor: "#2c1b18", eyeColor: "#222", expression: "happy", outfit: "orange", headband: "none"
 };
 
 function on(id, event, callback) {
@@ -40,11 +37,8 @@ function on(id, event, callback) {
 
 // ---------- Date Helpers ----------
 function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay();
-  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  d.setDate(diff); d.setHours(0, 0, 0, 0);
-  return d;
+  const d = new Date(date); const day = d.getDay(); const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff); d.setHours(0, 0, 0, 0); return d;
 }
 function formatDate(date) {
   const y = date.getFullYear(); const m = String(date.getMonth() + 1).padStart(2, '0'); const d = String(date.getDate()).padStart(2, '0');
@@ -68,10 +62,86 @@ function getWeekKey(date = new Date()) {
 function tasksCol() { return db.collection('users').doc(currentUser.uid).collection('tasks'); }
 function userDoc(uid) { return db.collection('users').doc(uid); }
 function challengesCol() { return db.collection('challenges'); }
-function messagesCol() { return db.collection('messages'); }
+function chatsCol() { return db.collection('chats'); }
 
 // ============================================
-// 👤 FRIEND PROFILE PAGE & MESSAGING
+// 💬 WHATSAPP STYLE CHAT LOGIC
+// ============================================
+window.openChatFromProfile = function() {
+    if(!activeProfileUser) return;
+    closeFriendProfilePage(); // Close profile page
+    openChatWidget(activeProfileUser.uid, activeProfileUser.name);
+};
+
+function openChatWidget(uid, name) {
+    activeChatUser = { uid, name };
+    document.getElementById('chatHeaderName').textContent = name;
+    document.getElementById('chatHeaderAvatar').textContent = name[0].toUpperCase();
+    document.getElementById('chatWidget').style.display = 'flex';
+    document.getElementById('chatInput').focus();
+    
+    listenToMessages(uid);
+}
+
+window.closeChat = function() {
+    document.getElementById('chatWidget').style.display = 'none';
+    if(chatUnsubscribe) chatUnsubscribe();
+    activeChatUser = null;
+};
+
+function listenToMessages(friendUid) {
+    if(chatUnsubscribe) chatUnsubscribe();
+    
+    // Create a unique chat ID for both users (sorted alphabetically so it's the same for both)
+    const chatId = [currentUser.uid, friendUid].sort().join('_');
+    const messagesRef = chatsCol().doc(chatId).collection('messages').orderBy('createdAt', 'asc');
+    
+    chatUnsubscribe = messagesRef.onSnapshot(snapshot => {
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = '';
+        
+        snapshot.forEach(doc => {
+            const msg = doc.data();
+            const isMe = msg.fromUid === currentUser.uid;
+            const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            container.innerHTML += `
+                <div class="chat-bubble ${isMe ? 'sent' : 'received'}">
+                    ${escapeHtml(msg.text)}
+                    <span class="chat-time">${timeStr}</span>
+                </div>
+            `;
+        });
+        // Auto scroll to bottom
+        container.scrollTop = container.scrollHeight;
+    });
+}
+
+window.sendChatMessage = async function() {
+    if(!activeChatUser) return;
+    const input = document.getElementById('chatInput');
+    const text = input.value.trim();
+    if(!text) return;
+    
+    input.value = '';
+    const chatId = [currentUser.uid, activeChatUser.uid].sort().join('_');
+    
+    try {
+        await chatsCol().doc(chatId).collection('messages').add({
+            fromUid: currentUser.uid,
+            toUid: activeChatUser.uid,
+            text: text,
+            createdAt: Date.now()
+        });
+    } catch (err) { console.error("Chat Error:", err); }
+};
+
+window.handleChatEnter = function(e) {
+    if (e.key === 'Enter') sendChatMessage();
+};
+
+// ============================================
+// 👤 FRIEND PROFILE PAGE
 // ============================================
 window.openFriendProfile = async function(uid, name, email) {
   closeSearchMenu();
@@ -83,7 +153,7 @@ window.openFriendProfile = async function(uid, name, email) {
     const doc = await userDoc(uid).get();
     if (doc.exists) {
         const data = doc.data();
-        activeProfileUser = { uid, name: data.displayName, email: data.email, bio: data.bio || 'No bio added yet.' };
+        activeProfileUser = { uid, name: data.displayName, email: data.email };
         
         document.getElementById('fpName').textContent = data.displayName;
         document.getElementById('fpBio').textContent = data.bio || 'No bio added yet.';
@@ -103,21 +173,15 @@ window.openFriendProfile = async function(uid, name, email) {
         const fpFollowBtn = document.getElementById('fpFollowBtn');
         if (isFriend) {
             fpFollowBtn.innerHTML = '<i class="fas fa-user-check"></i> Following';
-            fpFollowBtn.style.background = 'rgba(255, 85, 85, 0.15)';
-            fpFollowBtn.style.color = '#ff5555';
-            fpFollowBtn.style.border = '1px solid #ff5555';
+            fpFollowBtn.style.background = 'rgba(255, 85, 85, 0.15)'; fpFollowBtn.style.color = '#ff5555'; fpFollowBtn.style.border = '1px solid #ff5555';
             fpFollowBtn.onclick = () => { removeFriend(uid); closeFriendProfilePage(); };
         } else if (isPending) {
             fpFollowBtn.innerHTML = '<i class="fas fa-clock"></i> Pending';
-            fpFollowBtn.style.background = 'rgba(255, 165, 0, 0.15)';
-            fpFollowBtn.style.color = '#ffa500';
-            fpFollowBtn.style.border = '1px solid #ffa500';
+            fpFollowBtn.style.background = 'rgba(255, 165, 0, 0.15)'; fpFollowBtn.style.color = '#ffa500'; fpFollowBtn.style.border = '1px solid #ffa500';
             fpFollowBtn.onclick = null;
         } else {
             fpFollowBtn.innerHTML = '<i class="fas fa-heart"></i> Follow';
-            fpFollowBtn.style.background = 'linear-gradient(135deg, #ff4757, #ff6b81)';
-            fpFollowBtn.style.color = '#fff';
-            fpFollowBtn.style.border = 'none';
+            fpFollowBtn.style.background = 'linear-gradient(135deg, #ff4757, #ff6b81)'; fpFollowBtn.style.color = '#fff'; fpFollowBtn.style.border = 'none';
             fpFollowBtn.onclick = () => followFriend(uid, activeProfileUser.name, activeProfileUser.email).then(() => openFriendProfile(uid, name, email));
         }
     }
@@ -128,27 +192,6 @@ window.closeFriendProfilePage = function() {
   const page = document.getElementById('friendProfilePage');
   if(page) page.classList.remove('active');
   document.body.classList.remove('modal-open');
-  activeProfileUser = null;
-};
-
-window.openMessageModal = function() {
-  if(!activeProfileUser) return;
-  document.getElementById('msgTargetName').textContent = activeProfileUser.name;
-  document.getElementById('messageInput').value = '';
-  document.getElementById('messageModal').classList.add('show');
-};
-window.closeMessageModal = function() {
-  document.getElementById('messageModal').classList.remove('show');
-};
-window.sendMessage = async function() {
-  if(!activeProfileUser) return;
-  const text = document.getElementById('messageInput').value.trim();
-  if(!text) { alert('Message cannot be empty.'); return; }
-  try {
-    await messagesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, toUid: activeProfileUser.uid, text: text, createdAt: Date.now() });
-    closeMessageModal();
-    alert(`🍥 Message sent to ${activeProfileUser.name}!`);
-  } catch (err) { console.error(err); alert('Failed to send message.'); }
 };
 
 window.openSendMissionModalFromProfile = function() {
@@ -182,34 +225,23 @@ window.closeFriendProfileModal = function() { document.getElementById('friendPro
 // 🔍 SEARCH MENU LOGIC
 // ============================================
 window.openSearchMenu = function() {
-  closeProfileMenu();
-  document.getElementById('searchModal').classList.add('show');
-  document.body.classList.add('modal-open');
+  closeProfileMenu(); document.getElementById('searchModal').classList.add('show'); document.body.classList.add('modal-open');
   setTimeout(() => document.getElementById('searchFriendName').focus(), 150);
 };
-
 window.closeSearchMenu = function() {
-  document.getElementById('searchModal').classList.remove('show');
-  document.body.classList.remove('modal-open');
-  document.getElementById('searchFriendName').value = '';
-  document.getElementById('searchSuggestions').style.display = 'none';
-  document.getElementById('searchResultCard').style.display = 'none';
-  document.getElementById('friendMessage').className = 'friend-message';
+  document.getElementById('searchModal').classList.remove('show'); document.body.classList.remove('modal-open');
+  document.getElementById('searchFriendName').value = ''; document.getElementById('searchSuggestions').style.display = 'none';
+  document.getElementById('searchResultCard').style.display = 'none'; document.getElementById('friendMessage').className = 'friend-message';
 };
-
 function onSearchInput() {
-  const input = document.getElementById('searchFriendName');
-  const suggestions = document.getElementById('searchSuggestions');
+  const input = document.getElementById('searchFriendName'); const suggestions = document.getElementById('searchSuggestions');
   if (!input || !suggestions) return;
-  const query = input.value.trim();
-  clearTimeout(searchTimeout);
+  const query = input.value.trim(); clearTimeout(searchTimeout);
   if (query.length === 0) { suggestions.style.display = 'none'; return; }
-  
   searchTimeout = setTimeout(async () => {
     try {
       const snap = await db.collection('users').where('displayName', '>=', query).where('displayName', '<=', query + '\uf8ff').limit(5).get();
       if (snap.empty) { suggestions.innerHTML = '<div style="padding: 10px; color: #aaa; text-align: center; font-size:12px;">No shinobi found</div>'; suggestions.style.display = 'block'; return; }
-      
       let html = '';
       snap.docs.forEach(doc => {
         if (doc.id === currentUser.uid) return; 
@@ -221,14 +253,10 @@ function onSearchInput() {
     } catch (err) { console.error(err); }
   }, 300);
 }
-
 window.selectSearchedUser = function(uid, name, email) {
-  document.getElementById('searchSuggestions').style.display = 'none';
-  document.getElementById('searchFriendName').value = name;
-  searchedUser = { uid: uid, displayName: name, email: email };
-  showFriendResultCard();
+  document.getElementById('searchSuggestions').style.display = 'none'; document.getElementById('searchFriendName').value = name;
+  searchedUser = { uid: uid, displayName: name, email: email }; showFriendResultCard();
 };
-
 function showFriendResultCard() {
   const resultCard = document.getElementById('searchResultCard');
   if (!resultCard || !searchedUser) return;
@@ -236,12 +264,10 @@ function showFriendResultCard() {
   document.getElementById('searchName').textContent = searchedUser.displayName || 'Shinobi';
   document.getElementById('searchEmail').textContent = searchedUser.email;
   resultCard.style.display = 'flex';
-
   const isFriend = acceptedChallenges.some(c => c.fromUid === searchedUser.uid && c.status === 'accepted') || outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'accepted');
   const isPending = outgoingChallenges.some(c => c.toUid === searchedUser.uid && c.status === 'pending');
   const actionArea = document.getElementById('searchActionArea');
   if(!actionArea) return;
-
   if (isFriend) {
     actionArea.innerHTML = `<div style="display:flex; gap:8px;"><button class="unfollow-btn" onclick="removeFriend('${searchedUser.uid}')"><i class="fas fa-user-check"></i> Following</button><button class="follow-btn" style="background:linear-gradient(135deg, #ffd700, #ffa500); color:#000;" onclick="openFriendProfile('${searchedUser.uid}', '${searchedUser.displayName}', '${searchedUser.email}')"><i class="fas fa-user-circle"></i> Profile</button></div>`;
   } else if (isPending) {
@@ -250,70 +276,52 @@ function showFriendResultCard() {
     actionArea.innerHTML = `<button class="follow-btn" onclick="followFriend('${searchedUser.uid}')"><i class="fas fa-heart"></i> Follow</button>`;
   }
 }
-
 window.followFriend = async function(uid, name, email) {
   try {
     const targetName = name || (searchedUser ? searchedUser.displayName : 'Shinobi');
     const targetEmail = email || (searchedUser ? searchedUser.email : '');
     await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: targetEmail, toUid: uid, taskText: "Follow Request", weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
-    showFriendMessage(`🍥 Follow request sent!`, 'success'); 
-    await loadChallenges(); 
-    if (searchedUser) showFriendResultCard(); 
+    showFriendMessage(`🍥 Follow request sent!`, 'success'); await loadChallenges(); if (searchedUser) showFriendResultCard(); 
   } catch (err) { console.error(err); }
 }
 
 // ============================================
-// 👤 MY PROFILE PAGE & TABS
+// 👤 MY PROFILE PAGE
 // ============================================
 window.openMyProfilePage = function() {
-  closeProfileMenu();
-  const page = document.getElementById('myProfilePage');
-  if(page) page.classList.add('active');
-  document.body.classList.add('modal-open');
-  switchProfileTab('network');
+  closeProfileMenu(); const page = document.getElementById('myProfilePage');
+  if(page) page.classList.add('active'); document.body.classList.add('modal-open'); switchProfileTab('network');
 };
-
 window.closeMyProfilePage = function() {
   const page = document.getElementById('myProfilePage');
-  if(page) page.classList.remove('active');
-  document.body.classList.remove('modal-open');
+  if(page) page.classList.remove('active'); document.body.classList.remove('modal-open');
 };
-
 window.switchProfileTab = function(tabId) {
   document.querySelectorAll('.profile-tab-content').forEach(el => el.style.display = 'none');
   document.querySelectorAll('.profile-tabs .profile-tab').forEach(el => el.classList.remove('active'));
-  const content = document.getElementById(`profileTab-${tabId}`);
-  const btn = document.getElementById(`tabBtn-${tabId}`);
-  if(content) content.style.display = 'block';
-  if(btn) btn.classList.add('active');
-  
+  const content = document.getElementById(`profileTab-${tabId}`); const btn = document.getElementById(`tabBtn-${tabId}`);
+  if(content) content.style.display = 'block'; if(btn) btn.classList.add('active');
   if(tabId === 'network') renderProfileUsers();
   if(tabId === 'avatar') {
       if (userProfile.avatarConfig) currentAvatar = { ...userProfile.avatarConfig };
       if(!currentAvatar.faceShape) currentAvatar.faceShape = 'round';
       if(!currentAvatar.outfit) currentAvatar.outfit = 'orange';
       if(!currentAvatar.headband) currentAvatar.headband = 'none';
-      
       document.getElementById('usernameInput').value = userProfile.displayName || '';
       document.getElementById('bioInput').value = userProfile.bio || '';
       renderAvatarPreview();
   }
 };
-
 window.switchNetworkSubTab = function(subTab) {
   currentProfileSubTab = subTab;
   document.getElementById('tabFollowersBtn').classList.toggle('active', subTab === 'followers');
   document.getElementById('tabFollowingBtn').classList.toggle('active', subTab === 'following');
   renderProfileUsers();
 };
-
 async function renderProfileUsers() {
-  const container = document.getElementById('profileUserList');
-  if(!container) return;
+  const container = document.getElementById('profileUserList'); if(!container) return;
   container.innerHTML = '<p style="text-align:center; color:#aaa;">Loading...</p>';
-  const uids = new Set();
-  const tempList = [];
-
+  const uids = new Set(); const tempList = [];
   if (currentProfileSubTab === 'followers') {
     const snap = await challengesCol().where('toUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
     snap.docs.forEach(d => { const data = d.data(); if (data.taskText === 'Follow Request' && !uids.has(data.fromUid)) { uids.add(data.fromUid); tempList.push({ uid: data.fromUid }); } });
@@ -321,7 +329,6 @@ async function renderProfileUsers() {
     const snap = await challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get();
     snap.docs.forEach(d => { const data = d.data(); if (data.taskText === 'Follow Request' && !uids.has(data.toUid)) { uids.add(data.toUid); tempList.push({ uid: data.toUid }); } });
   }
-
   if (tempList.length === 0) { container.innerHTML = `<p style="text-align:center; color:#aaa;">No users found here yet.</p>`; return; }
   const userDocs = await Promise.all(tempList.map(item => userDoc(item.uid).get()));
   container.innerHTML = '';
@@ -339,7 +346,6 @@ async function renderProfileUsers() {
   const select = document.getElementById('broadcastTaskSelect');
   if(select) select.innerHTML = '<option value="">Select one of your missions...</option>' + tasks.map(t => `<option value="${escapeHtml(t.id)}" data-text="${escapeHtml(t.text)}">${escapeHtml(t.text)}</option>`).join('');
 }
-
 window.broadcastTask = async function() {
   const select = document.getElementById('broadcastTaskSelect');
   if (!select || !select.value) { alert('Please select a task to broadcast.'); return; }
@@ -370,7 +376,7 @@ window.broadcastTask = async function() {
 }
 
 // ============================================
-// 👤 AVATAR CUSTOMIZER LOGIC (FULLY FIXED & UPGRADED)
+// 👤 AVATAR CUSTOMIZER LOGIC
 // ============================================
 function setActiveColor(paletteId, color) {
   const palette = document.getElementById(paletteId); if(!palette) return;
@@ -380,7 +386,6 @@ function setActiveBtn(groupId, value, attrName) {
   const group = document.getElementById(groupId); if(!group) return;
   group.querySelectorAll('.style-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute(attrName) === value));
 }
-
 function getAvatarSVG(config) {
   const faceShape = config.faceShape || 'round';
   const hairStyle = config.hairStyle || 'short';
@@ -397,25 +402,16 @@ function getAvatarSVG(config) {
 
   const outfits = {
       orange: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#ff6b1a" />`,
-      akatsuki: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#111" />
-                 <circle cx="60" cy="180" r="8" fill="#ff0000" opacity="0.8" />
-                 <circle cx="140" cy="185" r="6" fill="#ff0000" opacity="0.8" />`,
-      leaf: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" />
-             <rect x="70" y="170" width="60" height="20" fill="#2d7a3e" rx="5" />`,
+      akatsuki: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#111" /><circle cx="60" cy="180" r="8" fill="#ff0000" opacity="0.8" /><circle cx="140" cy="185" r="6" fill="#ff0000" opacity="0.8" />`,
+      leaf: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" /><rect x="70" y="170" width="60" height="20" fill="#2d7a3e" rx="5" />`,
       sand: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#8d5524" />`
   };
 
   const headbands = {
       none: ``,
-      leaf: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#2c3e50" />
-             <rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" />
-             <path d="M 95 80 L 105 80 L 100 87 Z" fill="#222" />`,
-      sand: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#8d5524" />
-             <rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" />
-             <circle cx="100" cy="82" r="4" fill="#222" />`,
-      missing: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#2c3e50" />
-                <rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" />
-                <line x1="85" y1="80" x2="115" y2="85" stroke="#222" stroke-width="2" />`
+      leaf: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#2c3e50" /><rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" /><path d="M 95 80 L 105 80 L 100 87 Z" fill="#222" />`,
+      sand: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#8d5524" /><rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" /><circle cx="100" cy="82" r="4" fill="#222" />`,
+      missing: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#2c3e50" /><rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" /><line x1="85" y1="80" x2="115" y2="85" stroke="#222" stroke-width="2" />`
   };
 
   const hairStyles = {
@@ -427,7 +423,6 @@ function getAvatarSVG(config) {
       bob: { front: "M 45 90 Q 45 40 100 40 Q 155 40 155 90 L 155 140 Q 140 130 140 80 Q 120 60 100 60 Q 80 60 60 80 Q 60 130 45 140 Z", back: "" }
   };
 
-  // 🆕 FIXED: Used valid path 'd' strings for ALL mouths (no <circle> tags inside <path>)
   const expressions = {
       happy: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 120 Q 100 135 115 120" },
       neutral: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 125 L 115 125" },
@@ -446,14 +441,10 @@ function getAvatarSVG(config) {
     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <rect width="200" height="200" fill="#f0f4f8" />
         <path fill="${config.hairColor}" d="${h.back}" />
-        
         ${o}
-        
         <rect x="85" y="140" width="30" height="30" fill="${config.skin}" />
         ${f}
-        
         ${hb}
-        
         <g style="color: ${config.eyeColor}">${e.eyes}</g>
         <path d="${e.mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" />
         <path fill="${config.hairColor}" d="${h.front}" />
@@ -464,16 +455,9 @@ function getAvatarSVG(config) {
 function renderAvatarPreview() {
   const container = document.getElementById('avatar-svg-container');
   if(container) container.innerHTML = getAvatarSVG(currentAvatar);
-  
-  setActiveColor('skin-palette', currentAvatar.skin); 
-  setActiveColor('hair-palette', currentAvatar.hairColor); 
-  setActiveColor('eye-palette', currentAvatar.eyeColor);
-  
-  setActiveBtn('face-shape-options', currentAvatar.faceShape, 'data-shape');
-  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style'); 
-  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
-  setActiveBtn('outfit-options', currentAvatar.outfit, 'data-outfit');
-  setActiveBtn('headband-options', currentAvatar.headband, 'data-band');
+  setActiveColor('skin-palette', currentAvatar.skin); setActiveColor('hair-palette', currentAvatar.hairColor); setActiveColor('eye-palette', currentAvatar.eyeColor);
+  setActiveBtn('face-shape-options', currentAvatar.faceShape, 'data-shape'); setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style'); 
+  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr'); setActiveBtn('outfit-options', currentAvatar.outfit, 'data-outfit'); setActiveBtn('headband-options', currentAvatar.headband, 'data-band');
 }
 
 window.saveAvatar = async function() {
@@ -482,8 +466,6 @@ window.saveAvatar = async function() {
     userProfile.avatarConfig = currentAvatar; updateProfileUI(); alert("✓ Avatar saved!");
   } catch (err) { alert("Failed to save avatar."); }
 };
-
-// Avatar Event Listeners
 on('skin-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.skin = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('hair-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.hairColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('eye-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.eyeColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
@@ -494,68 +476,43 @@ on('outfit-options', 'click', e => { if(e.target.classList.contains('style-btn')
 on('headband-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.headband = e.target.getAttribute('data-band'); renderAvatarPreview(); } });
 
 // ============================================
-// ✏️ SAVE PROFILE DETAILS (Name & Bio)
+// ✏️ SAVE PROFILE DETAILS
 // ============================================
 window.saveProfileDetails = async function() {
-  const nameInput = document.getElementById('usernameInput'); 
-  const bioInput = document.getElementById('bioInput');
-  const msg = document.getElementById('usernameMessage'); 
+  const nameInput = document.getElementById('usernameInput'); const bioInput = document.getElementById('bioInput'); const msg = document.getElementById('usernameMessage'); 
   if(!nameInput || !msg || !bioInput) return;
-  
-  const name = nameInput.value.trim();
-  const bio = bioInput.value.trim();
-
+  const name = nameInput.value.trim(); const bio = bioInput.value.trim();
   if (name.length < 2 || name.length > 20) { msg.textContent = 'Name should be 2-20 characters.'; msg.className = 'modal-message show error'; return; }
-  
   msg.className = 'modal-message';
   try {
     const nameCheck = await db.collection('users').where('displayName', '==', name).get();
     if (nameCheck.docs.some(doc => doc.id !== currentUser.uid)) { msg.textContent = 'This Name is already taken!'; msg.className = 'modal-message show error'; return; }
-    
     await userDoc(currentUser.uid).set({ displayName: name, bio: bio, updatedAt: Date.now() }, { merge: true }); 
-    
-    userProfile.displayName = name; 
-    userProfile.bio = bio;
-    updateProfileUI(); 
-    msg.textContent = '✓ Details updated!'; msg.className = 'modal-message show success'; 
+    userProfile.displayName = name; userProfile.bio = bio; updateProfileUI(); msg.textContent = '✓ Details updated!'; msg.className = 'modal-message show success'; 
   } catch (err) { msg.textContent = 'Error saving.'; msg.className = 'modal-message show error'; }
 };
 
 // ============================================
-// 🔔 NOTIFICATIONS PAGE (With Follow Back)
+// 🔔 NOTIFICATIONS PAGE
 // ============================================
 window.openFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
-  if (page) page.classList.add('active');
-  document.body.classList.add('modal-open');
-  renderFollowRequests(incomingFollowRequests, incomingTaskChallenges);
+  if (page) page.classList.add('active'); document.body.classList.add('modal-open'); renderFollowRequests(incomingFollowRequests, incomingTaskChallenges);
 };
 window.closeFollowRequestsPage = function() {
   const page = document.getElementById('followRequestsPage');
-  if (page) page.classList.remove('active');
-  document.body.classList.remove('modal-open');
+  if (page) page.classList.remove('active'); document.body.classList.remove('modal-open');
 };
-
 function renderFollowRequests(followReqs, missionReqs) {
-  const list = document.getElementById('followRequestsList');
-  if (!list) return;
-
-  if (followReqs.length === 0 && missionReqs.length === 0) { 
-    list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new notifications.</p></div>`; 
-    return; 
-  }
-
+  const list = document.getElementById('followRequestsList'); if (!list) return;
+  if (followReqs.length === 0 && missionReqs.length === 0) { list.innerHTML = `<div class="empty-leaderboard"><span>🔔</span><p>No new notifications.</p></div>`; return; }
   let html = '';
   if (followReqs.length > 0) {
     html += '<h3 style="color:#ffd700; margin-bottom:10px; font-size:16px;">Follow Requests</h3>';
     html += followReqs.map(c => `
       <div class="follow-req-item">
         <div class="follow-req-info"><div class="follow-req-avatar">${(c.fromName || 'S')[0].toUpperCase()}</div><div><div class="follow-req-name">${escapeHtml(c.fromName)}</div><div class="follow-req-text">Wants to follow you</div></div></div>
-        <div class="incoming-actions">
-            <button class="accept-btn" onclick="acceptAndFollowBack('${c.id}', '${c.fromUid}', '${c.fromName}', '${c.fromEmail}')">Accept & Follow Back</button>
-            <button class="accept-btn" style="background:#555;" onclick="acceptChallenge('${c.id}')">Accept</button>
-            <button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button>
-        </div>
+        <div class="incoming-actions"><button class="accept-btn" onclick="acceptAndFollowBack('${c.id}', '${c.fromUid}', '${c.fromName}', '${c.fromEmail}')">Accept & Follow Back</button><button class="accept-btn" style="background:#555;" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div>
       </div>`).join('');
   }
   if (missionReqs.length > 0) {
@@ -569,34 +526,18 @@ function renderFollowRequests(followReqs, missionReqs) {
   list.innerHTML = html;
 }
 
-// ============================================
-// 🎯 CHALLENGE ACCEPTS & FOLLOW BACK
-// ============================================
-window.acceptChallenge = async function(id) { 
-    await challengesCol().doc(id).update({ status: 'accepted' }); 
-    loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success'); 
-};
-
+window.acceptChallenge = async function(id) { await challengesCol().doc(id).update({ status: 'accepted' }); loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success'); };
 window.acceptAndFollowBack = async function(challengeId, fromUid, fromName, fromEmail) {
     try {
         await challengesCol().doc(challengeId).update({ status: 'accepted' });
         const checkFollow = await challengesCol().where('fromUid', '==', currentUser.uid).where('toUid', '==', fromUid).get();
         if (checkFollow.empty) {
-            await challengesCol().add({
-                fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
-                toEmail: fromEmail, toUid: fromUid, taskText: "Follow Request",
-                weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
-            });
+            await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: fromEmail, toUid: fromUid, taskText: "Follow Request", weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
         }
-        loadChallenges(); loadLeaderboard(); 
-        showFriendMessage(`🍥 Followed back ${fromName}!`, 'success'); 
+        loadChallenges(); loadLeaderboard(); showFriendMessage(`🍥 Followed back ${fromName}!`, 'success'); 
     } catch (err) { console.error(err); }
 };
-
-window.rejectChallenge = async function(id) { 
-    await challengesCol().doc(id).update({ status: 'rejected' }); 
-    loadChallenges(); 
-};
+window.rejectChallenge = async function(id) { await challengesCol().doc(id).update({ status: 'rejected' }); loadChallenges(); };
 window.removeFriend = async function(friendUid) {
   if (!confirm('Unfollow this shinobi?')) return;
   try {
@@ -611,75 +552,45 @@ window.removeFriend = async function(friendUid) {
 // 📊 COMPARE PROGRESS (PAPER STYLE)
 // ============================================
 window.openComparePage = function() {
-  closeProfileMenu(); 
-  const cp = document.getElementById('comparePage');
-  if(cp) cp.classList.add('active'); 
-  document.body.classList.add('modal-open');
-  const now = new Date(); 
-  p1State.month = now.getMonth(); p1State.year = now.getFullYear(); 
-  p2State.month = now.getMonth(); p2State.year = now.getFullYear();
+  closeProfileMenu(); const cp = document.getElementById('comparePage');
+  if(cp) cp.classList.add('active'); document.body.classList.add('modal-open');
+  const now = new Date(); p1State.month = now.getMonth(); p1State.year = now.getFullYear(); p2State.month = now.getMonth(); p2State.year = now.getFullYear();
   renderCalendar(1); renderCalendar(2);
 };
-window.closeComparePage = function() { 
-  const cp = document.getElementById('comparePage');
-  if(cp) cp.classList.remove('active'); 
-  document.body.classList.remove('modal-open'); 
-};
+window.closeComparePage = function() { const cp = document.getElementById('comparePage'); if(cp) cp.classList.remove('active'); document.body.classList.remove('modal-open'); };
 window.changeMonth = function(period, dir) {
-  const state = period === 1 ? p1State : p2State;
-  state.month += dir; if (state.month < 0) { state.month = 11; state.year--; } if (state.month > 11) { state.month = 0; state.year++; }
+  const state = period === 1 ? p1State : p2State; state.month += dir; if (state.month < 0) { state.month = 11; state.year--; } if (state.month > 11) { state.month = 0; state.year++; }
   renderCalendar(period);
 };
 window.selectDate = function(period, dateStr) {
   const state = period === 1 ? p1State : p2State;
-  if (!state.start || (state.start && state.end)) { state.start = dateStr; state.end = null; }
-  else if (dateStr >= state.start) { state.end = dateStr; } else { state.start = dateStr; }
+  if (!state.start || (state.start && state.end)) { state.start = dateStr; state.end = null; } else if (dateStr >= state.start) { state.end = dateStr; } else { state.start = dateStr; }
   renderCalendar(period);
 };
 function renderCalendar(period) {
-  const state = period === 1 ? p1State : p2State;
-  const container = document.getElementById(`p${period}Calendar`);
-  const monthLabel = document.getElementById(`p${period}MonthLabel`);
-  const rangeLabel = document.getElementById(`p${period}RangeLabel`);
+  const state = period === 1 ? p1State : p2State; const container = document.getElementById(`p${period}Calendar`); const monthLabel = document.getElementById(`p${period}MonthLabel`); const rangeLabel = document.getElementById(`p${period}RangeLabel`);
   if(!container) return;
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   monthLabel.textContent = `${monthNames[state.month]} ${state.year}`;
-  const firstDay = new Date(state.year, state.month, 1).getDay();
-  const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
-  let html = '';
-  for (let i = 0; i < firstDay; i++) html += `<div></div>`;
+  const firstDay = new Date(state.year, state.month, 1).getDay(); const daysInMonth = new Date(state.year, state.month + 1, 0).getDate();
+  let html = ''; for (let i = 0; i < firstDay; i++) html += `<div></div>`;
   for (let d = 1; d <= daysInMonth; d++) {
     const dateStr = `${state.year}-${String(state.month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    let classes = 'cal-day';
-    if (state.start === dateStr) classes += ' selected start';
-    if (state.end === dateStr) classes += ' selected end';
-    if (state.start && state.end && dateStr > state.start && dateStr < state.end) classes += ' in-range';
+    let classes = 'cal-day'; if (state.start === dateStr) classes += ' selected start'; if (state.end === dateStr) classes += ' selected end'; if (state.start && state.end && dateStr > state.start && dateStr < state.end) classes += ' in-range';
     html += `<div class="${classes}" onclick="selectDate(${period}, '${dateStr}')">${d}</div>`;
   }
   container.innerHTML = html;
-  
-  if (state.start && state.end) {
-    rangeLabel.textContent = `${state.start} → ${state.end}`;
-    renderTaskBreakdown(period, state.start, state.end);
-  } else if (state.start) {
-    rangeLabel.textContent = `Start: ${state.start} (Select end)`;
-    document.getElementById(`p${period}TaskBreakdown`).innerHTML = '<p style="text-align:center; color:#888;">Select end date...</p>';
-  } else {
-    rangeLabel.textContent = `Select 2 dates to compare`;
-    document.getElementById(`p${period}TaskBreakdown`).innerHTML = '<p style="text-align:center; color:#888;">Select dates to view tasks</p>';
-  }
+  if (state.start && state.end) { rangeLabel.textContent = `${state.start} → ${state.end}`; renderTaskBreakdown(period, state.start, state.end); } 
+  else if (state.start) { rangeLabel.textContent = `Start: ${state.start} (Select end)`; document.getElementById(`p${period}TaskBreakdown`).innerHTML = '<p style="text-align:center; color:#888;">Select end date...</p>'; } 
+  else { rangeLabel.textContent = `Select 2 dates to compare`; document.getElementById(`p${period}TaskBreakdown`).innerHTML = '<p style="text-align:center; color:#888;">Select dates to view tasks</p>'; }
 }
-
 function renderTaskBreakdown(period, startStr, endStr) {
-  const container = document.getElementById(`p${period}TaskBreakdown`);
-  if(!container) return;
-  const start = new Date(startStr); start.setHours(0,0,0,0);
-  const end = new Date(endStr); end.setHours(23,59,59,999);
+  const container = document.getElementById(`p${period}TaskBreakdown`); if(!container) return;
+  const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
   if (start > end) { container.innerHTML = '<p style="text-align:center; color:#ff5555;">Invalid Range</p>'; return; }
   let html = ''; let hasData = false;
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    const dateStr = formatDate(d);
-    const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+    const dateStr = formatDate(d); const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
     const dayTasks = tasks.filter(t => { const created = new Date(t.createdDate || t.createdAt); return created <= d; });
     if (dayTasks.length > 0) {
         hasData = true;
@@ -691,33 +602,25 @@ function renderTaskBreakdown(period, startStr, endStr) {
         html += `</div></div>`;
     }
   }
-  if(!hasData) { container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">No tasks active in this range.</p>'; } 
-  else { container.innerHTML = html; }
+  if(!hasData) { container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">No tasks active in this range.</p>'; } else { container.innerHTML = html; }
   if (p1State.start && p1State.end && p2State.start && p2State.end) { runComparison(); }
 }
-
 window.runComparison = function() {
-  if (!p1State.start || !p1State.end) return;
-  if (!p2State.start || !p2State.end) return;
+  if (!p1State.start || !p1State.end || !p2State.start || !p2State.end) return;
   function getRangeScore(startStr, endStr) {
       const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
       let total = 0, completed = 0;
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           const dateStr = formatDate(d);
-          tasks.forEach(t => {
-              const created = new Date(t.createdDate || t.createdAt);
-              if (created <= d) { total++; if (t.completions && t.completions[dateStr]) completed++; }
-          });
+          tasks.forEach(t => { const created = new Date(t.createdDate || t.createdAt); if (created <= d) { total++; if (t.completions && t.completions[dateStr]) completed++; } });
       }
       return { total, completed, rate: total > 0 ? (completed/total)*100 : 0 };
   }
-  const stats1 = getRangeScore(p1State.start, p1State.end);
-  const stats2 = getRangeScore(p2State.start, p2State.end);
-  const speechEl = document.getElementById('motivationalSpeech');
-  if(!speechEl) return;
-  if (stats2.rate > stats1.rate) { speechEl.innerHTML = `🔥 <strong>Amazing Progress!</strong> You have improved by ${Math.round(stats2.rate - stats1.rate)}% in the second period. Keep up the great work and continue to push your limits, shinobi!`; } 
-  else if (stats1.rate > stats2.rate) { speechEl.innerHTML = `⚠️ <strong>Stay Focused!</strong> Your progress dropped by ${Math.round(stats1.rate - stats2.rate)}%. Don't give up. Analyze what went wrong and train harder to surpass your previous record!`; } 
-  else { speechEl.innerHTML = `⚖️ <strong>Consistent Performance!</strong> Both periods show the same success rate. Try to break the plateau and aim higher this week!`; }
+  const stats1 = getRangeScore(p1State.start, p1State.end); const stats2 = getRangeScore(p2State.start, p2State.end);
+  const speechEl = document.getElementById('motivationalSpeech'); if(!speechEl) return;
+  if (stats2.rate > stats1.rate) { speechEl.innerHTML = `🔥 <strong>Amazing Progress!</strong> You have improved by ${Math.round(stats2.rate - stats1.rate)}% in the second period. Keep up the great work!`; } 
+  else if (stats1.rate > stats2.rate) { speechEl.innerHTML = `⚠️ <strong>Stay Focused!</strong> Your progress dropped by ${Math.round(stats1.rate - stats2.rate)}%. Don't give up, analyze and train harder!`; } 
+  else { speechEl.innerHTML = `⚖️ <strong>Consistent Performance!</strong> Both periods show the same success rate. Try to break the plateau!`; }
 };
 
 // ============================================
@@ -731,8 +634,7 @@ async function addTask() {
   const input = document.getElementById('taskInput'); if(!input) return;
   const text = input.value.trim(); if (!text) { alert('Please enter a mission!'); return; }
   const newTask = { text, createdDate: getToday(), completions: {}, createdAt: Date.now() };
-  const ref = await tasksCol().add(newTask); tasks.push({ id: ref.id, ...newTask });
-  input.value = ''; renderTasks(); updateStats();
+  const ref = await tasksCol().add(newTask); tasks.push({ id: ref.id, ...newTask }); input.value = ''; renderTasks(); updateStats();
 }
 async function toggleDay(taskId, dateStr) {
   const task = tasks.find(t => t.id === taskId); if (!task) return;
@@ -745,8 +647,7 @@ async function deleteTask(taskId) {
   tasks = tasks.filter(t => t.id !== taskId); renderTasks(); updateStats();
 }
 function renderTasks() {
-  const tbody = document.getElementById('taskTableBody'); if(!tbody) return;
-  tbody.innerHTML = ''; const todayIndex = getTodayIndex();
+  const tbody = document.getElementById('taskTableBody'); if(!tbody) return; tbody.innerHTML = ''; const todayIndex = getTodayIndex();
   if (tasks.length === 0) { tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:30px; color:#ffa500;">📜 No missions assigned yet.</td></tr>'; return; }
   tasks.forEach((task, index) => {
     const row = document.createElement('tr'); row.style.animationDelay = `${index * 0.05}s`;
@@ -764,16 +665,9 @@ function renderTasks() {
   });
 }
 function updateStats() {
-  const tt = document.getElementById('totalTasks'); if(tt) tt.textContent = tasks.length;
-  const todayIndex = getTodayIndex(); let completed = 0, pending = 0;
-  tasks.forEach(task => {
-    for (let i = 0; i <= todayIndex && i < 7; i++) {
-      const cellDate = new Date(currentWeekStart); cellDate.setDate(cellDate.getDate() + i); const dateStr = formatDate(cellDate);
-      if (task.completions && task.completions[dateStr]) completed++; else pending++;
-    }
-  });
-  const ct = document.getElementById('completedTasks'); if(ct) ct.textContent = completed; 
-  const pt = document.getElementById('pendingTasks'); if(pt) pt.textContent = pending;
+  const tt = document.getElementById('totalTasks'); if(tt) tt.textContent = tasks.length; const todayIndex = getTodayIndex(); let completed = 0, pending = 0;
+  tasks.forEach(task => { for (let i = 0; i <= todayIndex && i < 7; i++) { const cellDate = new Date(currentWeekStart); cellDate.setDate(cellDate.getDate() + i); const dateStr = formatDate(cellDate); if (task.completions && task.completions[dateStr]) completed++; else pending++; } });
+  const ct = document.getElementById('completedTasks'); if(ct) ct.textContent = completed; const pt = document.getElementById('pendingTasks'); if(pt) pt.textContent = pending;
 }
 function updateWeekDisplay() {
   const wl = document.getElementById('weekLabel'); if(!wl) return;
@@ -781,52 +675,29 @@ function updateWeekDisplay() {
   wl.textContent = `${currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']; const todayIndex = getTodayIndex();
   for (let i = 0; i < 7; i++) {
-    const dayDate = new Date(currentWeekStart); dayDate.setDate(dayDate.getDate() + i);
-    let badge = '';
-    if (i === todayIndex) badge = '<br><span style="color:#00d9ff;font-size:11px;">⚔️ Today</span>';
-    else if (i < todayIndex) badge = '<br><span style="color:#ff9999;font-size:11px;">Past</span>';
-    else badge = '<br><span style="color:#90ee90;font-size:11px;">Future</span>';
-    const dh = document.getElementById(`day${i + 1}Header`); 
-    if (dh) dh.innerHTML = `${dayNames[i]} ${dayDate.getDate()}${badge}`;
+    const dayDate = new Date(currentWeekStart); dayDate.setDate(dayDate.getDate() + i); let badge = '';
+    if (i === todayIndex) badge = '<br><span style="color:#00d9ff;font-size:11px;">⚔️ Today</span>'; else if (i < todayIndex) badge = '<br><span style="color:#ff9999;font-size:11px;">Past</span>'; else badge = '<br><span style="color:#90ee90;font-size:11px;">Future</span>';
+    const dh = document.getElementById(`day${i + 1}Header`); if (dh) dh.innerHTML = `${dayNames[i]} ${dayDate.getDate()}${badge}`;
   }
 }
 
 // ---------- Profile UI Helpers ----------
 function toggleProfileMenu() { const pw = document.getElementById('profileWrapper'); if(pw) pw.classList.toggle('open'); }
 function closeProfileMenu() { const pw = document.getElementById('profileWrapper'); if(pw) pw.classList.remove('open'); }
-
 function updateProfileUI() {
-  const name = userProfile.displayName || 'Shinobi'; 
-  const email = userProfile.email || currentUser?.email || ''; 
-  const pa = document.getElementById('profileAvatar'); 
+  const name = userProfile.displayName || 'Shinobi'; const email = userProfile.email || currentUser?.email || ''; const pa = document.getElementById('profileAvatar'); 
   if(pa) {
-    if(userProfile.avatarConfig) {
-      pa.innerHTML = getAvatarSVG(userProfile.avatarConfig);
-      pa.style.background = 'transparent'; pa.style.border = '2px solid rgba(255, 215, 0, 0.7)';
-    } else {
-      pa.innerHTML = (name || 'S')[0].toUpperCase();
-      pa.style.background = 'radial-gradient(circle, #ffd700, var(--naruto-orange))';
-    }
+    if(userProfile.avatarConfig) { pa.innerHTML = getAvatarSVG(userProfile.avatarConfig); pa.style.background = 'transparent'; pa.style.border = '2px solid rgba(255, 215, 0, 0.7)'; } 
+    else { pa.innerHTML = (name || 'S')[0].toUpperCase(); pa.style.background = 'radial-gradient(circle, #ffd700, var(--naruto-orange))'; }
   }
-  const pn = document.getElementById('profileName'); if(pn) pn.textContent = name;
-  const dhn = document.getElementById('dropdownHeaderName'); if(dhn) dhn.textContent = name;
-  const dhe = document.getElementById('dropdownHeaderEmail'); if(dhe) dhe.textContent = email;
+  const pn = document.getElementById('profileName'); if(pn) pn.textContent = name; const dhn = document.getElementById('dropdownHeaderName'); if(dhn) dhn.textContent = name; const dhe = document.getElementById('dropdownHeaderEmail'); if(dhe) dhe.textContent = email;
 }
-
 async function loadProfile() {
   try {
     const snap = await userDoc(currentUser.uid).get();
-    if (snap.exists) {
-      const data = snap.data();
-      userProfile.displayName = data.displayName || (currentUser.email || 'shinobi').split('@')[0];
-      userProfile.avatarConfig = data.avatarConfig || null;
-      userProfile.bio = data.bio || '';
-    } else { 
-      const defaultName = (currentUser.email || 'shinobi').split('@')[0]; userProfile.displayName = defaultName; 
-      await userDoc(currentUser.uid).set({ email: currentUser.email, displayName: defaultName, createdAt: Date.now() }, { merge: true }); 
-    }
-    userProfile.email = currentUser.email; 
-    updateProfileUI();
+    if (snap.exists) { const data = snap.data(); userProfile.displayName = data.displayName || (currentUser.email || 'shinobi').split('@')[0]; userProfile.avatarConfig = data.avatarConfig || null; userProfile.bio = data.bio || ''; } 
+    else { const defaultName = (currentUser.email || 'shinobi').split('@')[0]; userProfile.displayName = defaultName; await userDoc(currentUser.uid).set({ email: currentUser.email, displayName: defaultName, createdAt: Date.now() }, { merge: true }); }
+    userProfile.email = currentUser.email; updateProfileUI();
   } catch (err) { updateProfileUI(); }
 }
 
@@ -837,43 +708,47 @@ async function loadChallenges() {
     const incomingAll = toSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const fromSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
     outgoingChallenges = fromSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    incomingChallenges = incomingAll.filter(c => c.status === 'pending');
-    acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
+    incomingChallenges = incomingAll.filter(c => c.status === 'pending'); acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
     const acceptedSentByMe = outgoingChallenges.filter(c => c.status === 'accepted' && c.taskText !== 'Follow Request');
-    incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request');
-    incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
-    renderIncomingChallenges(); 
-    renderFollowRequests(incomingFollowRequests, incomingTaskChallenges); 
-    renderSharedMissions(acceptedChallenges, acceptedSentByMe); 
-    const dot = document.getElementById('notificationDot');
-    if (dot) dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
+    incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request'); incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
+    renderIncomingChallenges(); renderFollowRequests(incomingFollowRequests, incomingTaskChallenges); renderSharedMissions(acceptedChallenges, acceptedSentByMe); 
+    const dot = document.getElementById('notificationDot'); if (dot) dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
   } catch (err) { console.error(err); }
 }
 
 function renderIncomingChallenges() {
-  const section = document.getElementById('incomingSection');
-  const list = document.getElementById('incomingList');
-  if (!section || !list) return;
+  const section = document.getElementById('incomingSection'); const list = document.getElementById('incomingList'); if (!section || !list) return;
   if (incomingTaskChallenges.length === 0) { section.style.display = 'none'; return; }
-  section.style.display = 'block';
-  const ic = document.getElementById('incomingCount'); if(ic) ic.textContent = incomingTaskChallenges.length;
+  section.style.display = 'block'; const ic = document.getElementById('incomingCount'); if(ic) ic.textContent = incomingTaskChallenges.length;
   list.innerHTML = incomingTaskChallenges.map(c => `<div class="incoming-item"><div class="incoming-info"><span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span><span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span></div><div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div></div>`).join('');
 }
 
+// 🆕 UPDATED: Shared Missions with Date & Bin Layout
 async function renderSharedMissions(incoming, outgoing) {
   const section = document.getElementById('sharedMissionsSection');
   const list = document.getElementById('sharedMissionsList');
   const count = document.getElementById('sharedCount');
   if(!section || !list) return;
+
   const allMissions = [...incoming, ...outgoing];
   if (allMissions.length === 0) { section.style.display = 'none'; return; }
+
   section.style.display = 'block'; 
   if(count) count.textContent = allMissions.length;
   const todayIndex = getTodayIndex();
+  const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
+
   let html = '';
   for (const c of allMissions) {
     let label = `From ${escapeHtml(c.fromName)}`;
-    if (c.fromUid === currentUser.uid) { label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`; }
+    if (c.fromUid === currentUser.uid) {
+        label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`;
+    }
+
+    // 🆕 Get date from createdAt
+    const taskDate = new Date(c.createdAt).toLocaleDateString('en-US', dateOptions);
+    const dayName = new Date(c.createdAt).toLocaleDateString('en-US', { weekday: 'long' });
+
     let daysHtml = '';
     for (let i = 0; i < 7; i++) {
       const cellDate = new Date(currentWeekStart); cellDate.setDate(cellDate.getDate() + i);
@@ -884,16 +759,29 @@ async function renderSharedMissions(incoming, outgoing) {
       else { stateClass += isCompleted ? ' completed' : ' pending'; symbol = isCompleted ? '✓' : '✗'; }
       daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
-    html += `<div class="shared-card"><div class="shared-info" style="display:flex; justify-content:space-between; align-items:flex-start;"><div><span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'};">🥷 ${label}</span><span class="shared-task">${escapeHtml(c.taskText)}</span></div><button onclick="removeSharedMission('${c.id}')" style="background:transparent; border:none; color:#ff5555; cursor:pointer; font-size:16px;" title="Remove Mission"><i class="fas fa-trash"></i></button></div><div class="shared-week-grid">${daysHtml}</div></div>`;
+    
+    // 🆕 New HTML Layout for Shared Mission
+    html += `
+    <div class="shared-card">
+        <div class="shared-info-header">
+            <div class="shared-details">
+                <span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'}; font-size: 11px; font-weight:700; text-transform:uppercase;">🥷 ${label}</span>
+                <span class="shared-task-title">${escapeHtml(c.taskText)}</span>
+                <span class="shared-date-badge"><i class="far fa-calendar-alt"></i> ${dayName}, ${taskDate}</span>
+            </div>
+            <button class="shared-delete-btn" onclick="removeSharedMission('${c.id}')" title="Remove Mission">
+                <i class="fas fa-trash"></i>
+            </button>
+        </div>
+        <div class="shared-week-grid">${daysHtml}</div>
+    </div>`;
   }
   list.innerHTML = html;
 }
 
 window.removeSharedMission = async function(challengeId) {
   if (!confirm('Remove this shared mission? It will be deleted for both of you.')) return;
-  try {
-    await challengesCol().doc(challengeId).delete(); await loadChallenges(); await loadLeaderboard();
-  } catch (err) { console.error('Error removing mission:', err); alert('Failed to remove mission.'); }
+  try { await challengesCol().doc(challengeId).delete(); await loadChallenges(); await loadLeaderboard(); } catch (err) { console.error('Error removing mission:', err); alert('Failed to remove mission.'); }
 };
 
 async function toggleSharedDay(challengeId, dateStr) {
@@ -911,29 +799,18 @@ async function toggleSharedDay(challengeId, dateStr) {
 async function loadLeaderboard() {
   const container = document.getElementById('leaderboard'); if(!container) return;
   try {
-    const [sSnap, rSnap] = await Promise.all([
-      challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
-      challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
-    ]);
-    const fUids = new Set();
-    sSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().toUid); });
-    rSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().fromUid); });
+    const [sSnap, rSnap] = await Promise.all([ challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(), challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get() ]);
+    const fUids = new Set(); sSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().toUid); }); rSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().fromUid); });
     const allUids = [currentUser.uid, ...Array.from(fUids)];
     if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet.</p></div>`; const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; return; }
-    const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
-    const entries = [];
+    const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get())); const entries = [];
     for (const doc of userDocs) {
-      if (!doc.exists) continue;
-      let count = 0; const tIdx = getTodayIndex();
+      if (!doc.exists) continue; let count = 0; const tIdx = getTodayIndex();
       const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
-      sharedSnap.docs.forEach(sd => {
-        const c = sd.data(); if (c.taskText === 'Follow Request') return;
-        for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (c.completions && c.completions[ds]) count++; }
-      });
+      sharedSnap.docs.forEach(sd => { const c = sd.data(); if (c.taskText === 'Follow Request') return; for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (c.completions && c.completions[ds]) count++; } });
       entries.push({ uid: doc.id, name: doc.data().displayName, email: doc.data().email, count, self: doc.id === currentUser.uid });
     }
-    entries.sort((a,b) => b.count - a.count);
-    const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
+    entries.sort((a,b) => b.count - a.count); const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
@@ -969,13 +846,10 @@ auth.onAuthStateChanged(async (user) => {
     on('profileBtn', 'click', (e) => { e.stopPropagation(); toggleProfileMenu(); });
     
     document.addEventListener('click', (e) => { 
-        const pw = document.getElementById('profileWrapper'); 
-        if (pw && !pw.contains(e.target)) closeProfileMenu(); 
-        const suggestions = document.getElementById('searchSuggestions');
-        const input = document.getElementById('searchFriendName');
+        const pw = document.getElementById('profileWrapper'); if (pw && !pw.contains(e.target)) closeProfileMenu(); 
+        const suggestions = document.getElementById('searchSuggestions'); const input = document.getElementById('searchFriendName');
         if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) { suggestions.style.display = 'none'; }
-        const searchModal = document.getElementById('searchModal');
-        if (searchModal && e.target === searchModal) { closeSearchMenu(); }
+        const searchModal = document.getElementById('searchModal'); if (searchModal && e.target === searchModal) { closeSearchMenu(); }
     });
     
     on('addBtn', 'click', addTask);
@@ -983,8 +857,7 @@ auth.onAuthStateChanged(async (user) => {
     on('prevWeekBtn', 'click', () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); updateWeekDisplay(); renderTasks(); updateStats(); });
     on('nextWeekBtn', 'click', () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); updateWeekDisplay(); renderTasks(); updateStats(); });
     on('todayBtn', 'click', () => { currentWeekStart = getWeekStart(new Date()); updateWeekDisplay(); renderTasks(); updateStats(); });
-    on('backupBtn', 'click', backupData);
-    on('clearBtn', 'click', clearAllTasks);
+    on('backupBtn', 'click', backupData); on('clearBtn', 'click', clearAllTasks);
     on('searchFriendName', 'input', onSearchInput);
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
     on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveProfileDetails(); });
