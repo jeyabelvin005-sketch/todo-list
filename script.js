@@ -68,14 +68,12 @@ function messagesCol() { return db.collection('messages'); }
 // ============================================
 window.openFriendProfile = async function(uid, name, email) {
   closeSearchMenu();
-  closeLeaderboardFriends(); // if any
   
   const page = document.getElementById('friendProfilePage');
   if(page) page.classList.add('active');
   document.body.classList.add('modal-open');
 
   try {
-    // Fetch full user data to get Bio and Avatar
     const doc = await userDoc(uid).get();
     if (doc.exists) {
         const data = doc.data();
@@ -93,7 +91,6 @@ window.openFriendProfile = async function(uid, name, email) {
             avatarBox.innerHTML = (data.displayName || 'S')[0].toUpperCase();
         }
 
-        // Update Follow Button UI
         const isFriend = acceptedChallenges.some(c => c.fromUid === uid && c.status === 'accepted') || outgoingChallenges.some(c => c.toUid === uid && c.status === 'accepted');
         const isPending = outgoingChallenges.some(c => c.toUid === uid && c.status === 'pending');
         
@@ -128,7 +125,7 @@ window.closeFriendProfilePage = function() {
   activeProfileUser = null;
 };
 
-// Message Modal Logic
+// Message Modal
 window.openMessageModal = function() {
   if(!activeProfileUser) return;
   document.getElementById('msgTargetName').textContent = activeProfileUser.name;
@@ -156,7 +153,7 @@ window.sendMessage = async function() {
   } catch (err) { console.error(err); alert('Failed to send message.'); }
 };
 
-// Send Mission Modal Logic (Moved from old Friend Profile modal)
+// Send Mission Modal (From Friend Profile Page)
 window.openSendMissionModalFromProfile = function() {
   if(!activeProfileUser) return;
   document.getElementById('friendProfileAvatar').textContent = (activeProfileUser.name || 'S')[0].toUpperCase();
@@ -166,6 +163,38 @@ window.openSendMissionModalFromProfile = function() {
   document.getElementById('profileMessage').className = 'modal-message';
   document.getElementById('friendProfileModal').classList.add('show');
 };
+
+// 🆕 Fixed: sendMissionFromProfile function
+async function sendMissionFromProfile() {
+  if (!activeProfileUser) return;
+  const select = document.getElementById('profileTaskSelect');
+  const msg = document.getElementById('profileMessage');
+  if (!select.value) { msg.textContent = 'Please select a mission first.'; msg.className = 'modal-message show error'; return; }
+  
+  const taskText = select.options[select.selectedIndex].dataset.text;
+  const btn = document.getElementById('sendMissionFromProfileBtn');
+  btn.disabled = true; 
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+  
+  try {
+    await challengesCol().add({ 
+        fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, 
+        toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, 
+        taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() 
+    });
+    msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; 
+    msg.className = 'modal-message show success'; 
+    select.value = '';
+    setTimeout(() => { closeFriendProfileModal(); }, 2000);
+  } catch (err) { 
+    msg.textContent = 'Error sending mission.'; 
+    msg.className = 'modal-message show error'; 
+  } finally { 
+    btn.disabled = false; 
+    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; 
+  }
+}
+window.closeFriendProfileModal = function() { document.getElementById('friendProfileModal').classList.remove('show'); };
 
 // ============================================
 // 🔍 SEARCH MENU LOGIC
@@ -484,18 +513,10 @@ window.acceptChallenge = async function(id) {
     loadChallenges(); loadLeaderboard(); showFriendMessage('🍥 Accepted!', 'success'); 
 };
 
-// 🆕 Accept & Follow Back Logic
 window.acceptAndFollowBack = async function(challengeId, fromUid, fromName, fromEmail) {
     try {
-        // 1. Accept incoming request
         await challengesCol().doc(challengeId).update({ status: 'accepted' });
-        
-        // 2. Send a follow request back (if not already following)
-        const checkFollow = await challengesCol()
-            .where('fromUid', '==', currentUser.uid)
-            .where('toUid', '==', fromUid)
-            .get();
-            
+        const checkFollow = await challengesCol().where('fromUid', '==', currentUser.uid).where('toUid', '==', fromUid).get();
         if (checkFollow.empty) {
             await challengesCol().add({
                 fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email,
@@ -503,7 +524,6 @@ window.acceptAndFollowBack = async function(challengeId, fromUid, fromName, from
                 weekKey: getWeekKey(), status: 'pending', createdAt: Date.now()
             });
         }
-        
         loadChallenges(); loadLeaderboard(); 
         showFriendMessage(`🍥 Followed back ${fromName}!`, 'success'); 
     } catch (err) { console.error(err); }
@@ -996,7 +1016,9 @@ auth.onAuthStateChanged(async (user) => {
     
     on('searchFriendName', 'input', onSearchInput);
     
+    // 🆕 Mission modal button listener
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
+    
     on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveProfileDetails(); });
 
     await loadChallenges(); await loadLeaderboard();
