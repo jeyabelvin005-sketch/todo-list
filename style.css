@@ -787,3 +787,101 @@ body.dark-mode .modal-box { background: linear-gradient(135deg, rgba(10, 14, 26,
     .compare-arrow-icon { transform: rotate(90deg); margin: -10px 0; }
     .tb-body { max-height: 200px; }
 }
+/* ==========================================
+   👤 FRIEND PROFILE PAGE (NEW)
+   ========================================== */
+.friend-profile-card {
+    background: linear-gradient(135deg, rgba(30, 18, 10, 0.8) 0%, rgba(20, 14, 8, 0.9) 100%);
+    border: 2px solid rgba(255, 165, 0, 0.4);
+    border-radius: 24px;
+    padding: 40px 30px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+}
+
+.fp-avatar-box {
+    width: 120px; height: 120px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.5);
+    border: 3px solid #ffd700;
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.5);
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 40px; font-weight: 800; color: #fff;
+}
+.fp-avatar-box svg { width: 100%; height: 100%; object-fit: cover; }
+
+.fp-name {
+    font-size: 28px;
+    font-weight: 900;
+    color: #ffd700;
+    margin-bottom: 5px;
+    text-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+}
+
+.fp-bio {
+    font-size: 14px;
+    color: #ccc;
+    margin-bottom: 10px;
+    font-style: italic;
+}
+
+.fp-id {
+    font-size: 11px;
+    color: #888;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+    background: rgba(0,0,0,0.4);
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+}
+
+.fp-actions {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.fp-actions .follow-btn {
+    flex: 1;
+    min-width: 100px;
+    justify-content: center;
+    padding: 12px;
+    font-size: 14px;
+}
+
+/* Message Modal */
+#messageModal .main-input {
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    border: 2px solid rgba(255, 165, 0, 0.4);
+    border-radius: 12px;
+    color: #fff;
+    padding: 15px;
+    font-family: inherit;
+}
+
+/* Follow Back Button in Notifications */
+.follow-back-btn {
+    background: linear-gradient(135deg, #4a5fc1, #2d3a8c);
+    color: #fff;
+    border: none;
+    padding: 9px 16px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: 0.3s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.follow-back-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(74, 95, 193, 0.5);
+}
