@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Full Logic (Upgraded Avatar)
+// 🍥 Ninja Mission Tracker - Full Logic (Fixed SVG)
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -21,14 +21,16 @@ let currentProfileSubTab = 'followers';
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 
-// 🆕 UPDATED Avatar State (Added faceShape)
+// 🆕 UPDATED Avatar State
 let currentAvatar = {
     skin: "#f1c27d", 
     faceShape: "round",
     hairStyle: "short", 
     hairColor: "#2c1b18", 
     eyeColor: "#222", 
-    expression: "happy"
+    expression: "happy",
+    outfit: "orange",
+    headband: "none"
 };
 
 function on(id, event, callback) {
@@ -142,7 +144,6 @@ window.sendMessage = async function() {
   if(!activeProfileUser) return;
   const text = document.getElementById('messageInput').value.trim();
   if(!text) { alert('Message cannot be empty.'); return; }
-
   try {
     await messagesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, toUid: activeProfileUser.uid, text: text, createdAt: Date.now() });
     closeMessageModal();
@@ -165,11 +166,9 @@ window.sendMissionFromProfile = async function() {
   const select = document.getElementById('profileTaskSelect');
   const msg = document.getElementById('profileMessage');
   if (!select.value) { msg.textContent = 'Please select a mission first.'; msg.className = 'modal-message show error'; return; }
-  
   const taskText = select.options[select.selectedIndex].dataset.text;
   const btn = document.getElementById('sendMissionFromProfileBtn');
   btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
-  
   try {
     await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
     msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; msg.className = 'modal-message show success'; select.value = '';
@@ -233,7 +232,6 @@ window.selectSearchedUser = function(uid, name, email) {
 function showFriendResultCard() {
   const resultCard = document.getElementById('searchResultCard');
   if (!resultCard || !searchedUser) return;
-  
   document.getElementById('searchAvatar').textContent = (searchedUser.displayName || 'S')[0].toUpperCase();
   document.getElementById('searchName').textContent = searchedUser.displayName || 'Shinobi';
   document.getElementById('searchEmail').textContent = searchedUser.email;
@@ -292,8 +290,9 @@ window.switchProfileTab = function(tabId) {
   if(tabId === 'network') renderProfileUsers();
   if(tabId === 'avatar') {
       if (userProfile.avatarConfig) currentAvatar = { ...userProfile.avatarConfig };
-      // Set defaults if old user doesn't have new fields
       if(!currentAvatar.faceShape) currentAvatar.faceShape = 'round';
+      if(!currentAvatar.outfit) currentAvatar.outfit = 'orange';
+      if(!currentAvatar.headband) currentAvatar.headband = 'none';
       
       document.getElementById('usernameInput').value = userProfile.displayName || '';
       document.getElementById('bioInput').value = userProfile.bio || '';
@@ -371,7 +370,7 @@ window.broadcastTask = async function() {
 }
 
 // ============================================
-// 👤 AVATAR CUSTOMIZER LOGIC (UPGRADED)
+// 👤 AVATAR CUSTOMIZER LOGIC (FULLY FIXED & UPGRADED)
 // ============================================
 function setActiveColor(paletteId, color) {
   const palette = document.getElementById(paletteId); if(!palette) return;
@@ -382,12 +381,12 @@ function setActiveBtn(groupId, value, attrName) {
   group.querySelectorAll('.style-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute(attrName) === value));
 }
 
-// 🆕 UPGRADED SVG GENERATOR
 function getAvatarSVG(config) {
-  // Fallbacks for old saved configs
   const faceShape = config.faceShape || 'round';
   const hairStyle = config.hairStyle || 'short';
   const expression = config.expression || 'happy';
+  const outfit = config.outfit || 'orange';
+  const headband = config.headband || 'none';
 
   const faceShapes = {
       round: `<circle cx="100" cy="105" r="50" fill="${config.skin}" />`,
@@ -396,53 +395,64 @@ function getAvatarSVG(config) {
       pointy: `<path d="M 55 85 Q 100 50 145 85 Q 145 120 100 145 Q 55 120 55 85 Z" fill="${config.skin}" />`
   };
 
-  const hairStyles = {
-      short: { 
-          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", 
-          back: "" 
-      },
-      long: { 
-          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", 
-          back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z" 
-      },
-      spiky: { 
-          front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z", 
-          back: "" 
-      },
-      bald: {
-          front: "",
-          back: ""
-      },
-      mohawk: {
-          front: "M 85 60 L 85 30 L 95 40 L 100 20 L 105 40 L 115 30 L 115 60 Z M 90 60 L 110 60 L 110 90 L 90 90 Z",
-          back: ""
-      },
-      bob: {
-          front: "M 45 90 Q 45 40 100 40 Q 155 40 155 90 L 155 140 Q 140 130 140 80 Q 120 60 100 60 Q 80 60 60 80 Q 60 130 45 140 Z",
-          back: ""
-      }
+  const outfits = {
+      orange: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#ff6b1a" />`,
+      akatsuki: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#111" />
+                 <circle cx="60" cy="180" r="8" fill="#ff0000" opacity="0.8" />
+                 <circle cx="140" cy="185" r="6" fill="#ff0000" opacity="0.8" />`,
+      leaf: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" />
+             <rect x="70" y="170" width="60" height="20" fill="#2d7a3e" rx="5" />`,
+      sand: `<path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#8d5524" />`
   };
 
+  const headbands = {
+      none: ``,
+      leaf: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#2c3e50" />
+             <rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" />
+             <path d="M 95 80 L 105 80 L 100 87 Z" fill="#222" />`,
+      sand: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#8d5524" />
+             <rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" />
+             <circle cx="100" cy="82" r="4" fill="#222" />`,
+      missing: `<path d="M 55 75 Q 100 70 145 75 L 145 90 Q 100 85 55 90 Z" fill="#2c3e50" />
+                <rect x="85" y="75" width="30" height="15" fill="#bdc3c7" rx="2" />
+                <line x1="85" y1="80" x2="115" y2="85" stroke="#222" stroke-width="2" />`
+  };
+
+  const hairStyles = {
+      short: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "" },
+      long: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z" },
+      spiky: { front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z", back: "" },
+      bald: { front: "", back: "" },
+      mohawk: { front: "M 85 60 L 85 30 L 95 40 L 100 20 L 105 40 L 115 30 L 115 60 Z M 90 60 L 110 60 L 110 90 L 90 90 Z", back: "" },
+      bob: { front: "M 45 90 Q 45 40 100 40 Q 155 40 155 90 L 155 140 Q 140 130 140 80 Q 120 60 100 60 Q 80 60 60 80 Q 60 130 45 140 Z", back: "" }
+  };
+
+  // 🆕 FIXED: Used valid path 'd' strings for ALL mouths (no <circle> tags inside <path>)
   const expressions = {
       happy: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 120 Q 100 135 115 120" },
       neutral: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 125 L 115 125" },
       angry: { eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`, mouth: "M 85 130 Q 100 115 115 130" },
-      surprised: { eyes: `<circle cx="80" cy="95" r="7" fill="currentColor" /><circle cx="120" cy="95" r="7" fill="currentColor" />`, mouth: `<circle cx="100" cy="125" r="8" fill="none" stroke="#222" stroke-width="3"/>` },
-      sad: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 130 Q 100 115 115 130" }
+      surprised: { eyes: `<circle cx="80" cy="95" r="7" fill="currentColor" /><circle cx="120" cy="95" r="7" fill="currentColor" />`, mouth: "M 92 125 a 8 8 0 1 0 16 0 a 8 8 0 1 0 -16 0" },
+      sad: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 135 Q 100 120 115 135" }
   };
 
   const h = hairStyles[hairStyle] || hairStyles.short;
   const e = expressions[expression] || expressions.happy;
   const f = faceShapes[faceShape] || faceShapes.round;
+  const o = outfits[outfit] || outfits.orange;
+  const hb = headbands[headband] || headbands.none;
 
   return `
     <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <rect width="200" height="200" fill="#f0f4f8" />
         <path fill="${config.hairColor}" d="${h.back}" />
-        <path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" />
-        <rect x="85" y="140" width="30" height="30" fill="${config.skin}" />
         
+        ${o}
+        
+        <rect x="85" y="140" width="30" height="30" fill="${config.skin}" />
         ${f}
+        
+        ${hb}
         
         <g style="color: ${config.eyeColor}">${e.eyes}</g>
         <path d="${e.mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" />
@@ -459,10 +469,11 @@ function renderAvatarPreview() {
   setActiveColor('hair-palette', currentAvatar.hairColor); 
   setActiveColor('eye-palette', currentAvatar.eyeColor);
   
-  // Set active states for new buttons
   setActiveBtn('face-shape-options', currentAvatar.faceShape, 'data-shape');
   setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style'); 
   setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
+  setActiveBtn('outfit-options', currentAvatar.outfit, 'data-outfit');
+  setActiveBtn('headband-options', currentAvatar.headband, 'data-band');
 }
 
 window.saveAvatar = async function() {
@@ -479,6 +490,8 @@ on('eye-palette', 'click', e => { if(e.target.classList.contains('color-btn')) {
 on('face-shape-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.faceShape = e.target.getAttribute('data-shape'); renderAvatarPreview(); } });
 on('hair-style-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.hairStyle = e.target.getAttribute('data-style'); renderAvatarPreview(); } });
 on('expression-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.expression = e.target.getAttribute('data-expr'); renderAvatarPreview(); } });
+on('outfit-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.outfit = e.target.getAttribute('data-outfit'); renderAvatarPreview(); } });
+on('headband-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.headband = e.target.getAttribute('data-band'); renderAvatarPreview(); } });
 
 // ============================================
 // ✏️ SAVE PROFILE DETAILS (Name & Bio)
@@ -660,86 +673,51 @@ function renderCalendar(period) {
 function renderTaskBreakdown(period, startStr, endStr) {
   const container = document.getElementById(`p${period}TaskBreakdown`);
   if(!container) return;
-
   const start = new Date(startStr); start.setHours(0,0,0,0);
   const end = new Date(endStr); end.setHours(23,59,59,999);
-
   if (start > end) { container.innerHTML = '<p style="text-align:center; color:#ff5555;">Invalid Range</p>'; return; }
-
-  let html = '';
-  let hasData = false;
-
+  let html = ''; let hasData = false;
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
     const dateStr = formatDate(d);
     const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-    
-    const dayTasks = tasks.filter(t => {
-        const created = new Date(t.createdDate || t.createdAt);
-        return created <= d;
-    });
-
+    const dayTasks = tasks.filter(t => { const created = new Date(t.createdDate || t.createdAt); return created <= d; });
     if (dayTasks.length > 0) {
         hasData = true;
-        html += `<div class="tb-row">
-            <div class="tb-day">${d.getDate()}<br><span style="font-size:9px; color:#aaa;">${dayName}</span></div>
-            <div class="tb-tasks">`;
-            
+        html += `<div class="tb-row"><div class="tb-day">${d.getDate()}<br><span style="font-size:9px; color:#aaa;">${dayName}</span></div><div class="tb-tasks">`;
         dayTasks.forEach(t => {
             const isDone = t.completions && t.completions[dateStr];
-            html += `<div class="tb-task">
-                <span>${escapeHtml(t.text)}</span>
-                <span class="tb-status ${isDone ? 'done' : 'fail'}">${isDone ? '✓' : '✕'}</span>
-            </div>`;
+            html += `<div class="tb-task"><span>${escapeHtml(t.text)}</span><span class="tb-status ${isDone ? 'done' : 'fail'}">${isDone ? '✓' : '✕'}</span></div>`;
         });
         html += `</div></div>`;
     }
   }
-
-  if(!hasData) {
-      container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">No tasks active in this range.</p>';
-  } else {
-      container.innerHTML = html;
-  }
-  
-  if (p1State.start && p1State.end && p2State.start && p2State.end) {
-      runComparison();
-  }
+  if(!hasData) { container.innerHTML = '<p style="text-align:center; color:#888; padding:10px;">No tasks active in this range.</p>'; } 
+  else { container.innerHTML = html; }
+  if (p1State.start && p1State.end && p2State.start && p2State.end) { runComparison(); }
 }
 
 window.runComparison = function() {
   if (!p1State.start || !p1State.end) return;
   if (!p2State.start || !p2State.end) return;
-
   function getRangeScore(startStr, endStr) {
-      const start = new Date(startStr); start.setHours(0,0,0,0);
-      const end = new Date(endStr); end.setHours(23,59,59,999);
+      const start = new Date(startStr); start.setHours(0,0,0,0); const end = new Date(endStr); end.setHours(23,59,59,999);
       let total = 0, completed = 0;
       for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           const dateStr = formatDate(d);
           tasks.forEach(t => {
               const created = new Date(t.createdDate || t.createdAt);
-              if (created <= d) {
-                  total++;
-                  if (t.completions && t.completions[dateStr]) completed++;
-              }
+              if (created <= d) { total++; if (t.completions && t.completions[dateStr]) completed++; }
           });
       }
       return { total, completed, rate: total > 0 ? (completed/total)*100 : 0 };
   }
-
   const stats1 = getRangeScore(p1State.start, p1State.end);
   const stats2 = getRangeScore(p2State.start, p2State.end);
-  
   const speechEl = document.getElementById('motivationalSpeech');
   if(!speechEl) return;
-  
-  if (stats2.rate > stats1.rate) {
-      speechEl.innerHTML = `🔥 <strong>Amazing Progress!</strong> You have improved by ${Math.round(stats2.rate - stats1.rate)}% in the second period. Keep up the great work and continue to push your limits, shinobi!`;
-  } else if (stats1.rate > stats2.rate) {
-      speechEl.innerHTML = `⚠️ <strong>Stay Focused!</strong> Your progress dropped by ${Math.round(stats1.rate - stats2.rate)}%. Don't give up. Analyze what went wrong and train harder to surpass your previous record!`;
-  } else {
-      speechEl.innerHTML = `⚖️ <strong>Consistent Performance!</strong> Both periods show the same success rate. Try to break the plateau and aim higher this week!`;
-  }
+  if (stats2.rate > stats1.rate) { speechEl.innerHTML = `🔥 <strong>Amazing Progress!</strong> You have improved by ${Math.round(stats2.rate - stats1.rate)}% in the second period. Keep up the great work and continue to push your limits, shinobi!`; } 
+  else if (stats1.rate > stats2.rate) { speechEl.innerHTML = `⚠️ <strong>Stay Focused!</strong> Your progress dropped by ${Math.round(stats1.rate - stats2.rate)}%. Don't give up. Analyze what went wrong and train harder to surpass your previous record!`; } 
+  else { speechEl.innerHTML = `⚖️ <strong>Consistent Performance!</strong> Both periods show the same success rate. Try to break the plateau and aim higher this week!`; }
 };
 
 // ============================================
@@ -859,19 +837,14 @@ async function loadChallenges() {
     const incomingAll = toSnap.docs.map(d => ({ id: d.id, ...d.data() }));
     const fromSnap = await challengesCol().where('fromUid', '==', currentUser.uid).get();
     outgoingChallenges = fromSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-    
     incomingChallenges = incomingAll.filter(c => c.status === 'pending');
     acceptedChallenges = incomingAll.filter(c => c.status === 'accepted'); 
-    
     const acceptedSentByMe = outgoingChallenges.filter(c => c.status === 'accepted' && c.taskText !== 'Follow Request');
-
     incomingFollowRequests = incomingChallenges.filter(c => c.taskText === 'Follow Request');
     incomingTaskChallenges = incomingChallenges.filter(c => c.taskText !== 'Follow Request');
-    
     renderIncomingChallenges(); 
     renderFollowRequests(incomingFollowRequests, incomingTaskChallenges); 
     renderSharedMissions(acceptedChallenges, acceptedSentByMe); 
-
     const dot = document.getElementById('notificationDot');
     if (dot) dot.style.display = (incomingFollowRequests.length > 0 || incomingTaskChallenges.length > 0) ? 'block' : 'none';
   } catch (err) { console.error(err); }
@@ -892,21 +865,15 @@ async function renderSharedMissions(incoming, outgoing) {
   const list = document.getElementById('sharedMissionsList');
   const count = document.getElementById('sharedCount');
   if(!section || !list) return;
-
   const allMissions = [...incoming, ...outgoing];
   if (allMissions.length === 0) { section.style.display = 'none'; return; }
-
   section.style.display = 'block'; 
   if(count) count.textContent = allMissions.length;
   const todayIndex = getTodayIndex();
-
   let html = '';
   for (const c of allMissions) {
     let label = `From ${escapeHtml(c.fromName)}`;
-    if (c.fromUid === currentUser.uid) {
-        label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`;
-    }
-
+    if (c.fromUid === currentUser.uid) { label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`; }
     let daysHtml = '';
     for (let i = 0; i < 7; i++) {
       const cellDate = new Date(currentWeekStart); cellDate.setDate(cellDate.getDate() + i);
@@ -917,17 +884,7 @@ async function renderSharedMissions(incoming, outgoing) {
       else { stateClass += isCompleted ? ' completed' : ' pending'; symbol = isCompleted ? '✓' : '✗'; }
       daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
-    
-    html += `<div class="shared-card">
-        <div class="shared-info" style="display:flex; justify-content:space-between; align-items:flex-start;">
-          <div>
-              <span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'};">🥷 ${label}</span>
-              <span class="shared-task">${escapeHtml(c.taskText)}</span>
-          </div>
-          <button onclick="removeSharedMission('${c.id}')" style="background:transparent; border:none; color:#ff5555; cursor:pointer; font-size:16px;" title="Remove Mission"><i class="fas fa-trash"></i></button>
-        </div>
-        <div class="shared-week-grid">${daysHtml}</div>
-    </div>`;
+    html += `<div class="shared-card"><div class="shared-info" style="display:flex; justify-content:space-between; align-items:flex-start;"><div><span class="shared-from" style="color: ${c.fromUid === currentUser.uid ? '#ffd700' : '#00d9ff'};">🥷 ${label}</span><span class="shared-task">${escapeHtml(c.taskText)}</span></div><button onclick="removeSharedMission('${c.id}')" style="background:transparent; border:none; color:#ff5555; cursor:pointer; font-size:16px;" title="Remove Mission"><i class="fas fa-trash"></i></button></div><div class="shared-week-grid">${daysHtml}</div></div>`;
   }
   list.innerHTML = html;
 }
@@ -935,28 +892,17 @@ async function renderSharedMissions(incoming, outgoing) {
 window.removeSharedMission = async function(challengeId) {
   if (!confirm('Remove this shared mission? It will be deleted for both of you.')) return;
   try {
-    await challengesCol().doc(challengeId).delete();
-    await loadChallenges();
-    await loadLeaderboard();
+    await challengesCol().doc(challengeId).delete(); await loadChallenges(); await loadLeaderboard();
   } catch (err) { console.error('Error removing mission:', err); alert('Failed to remove mission.'); }
 };
 
 async function toggleSharedDay(challengeId, dateStr) {
   let challenge = acceptedChallenges.find(c => c.id === challengeId);
-  if (!challenge) {
-      const fromSnap = await challengesCol().doc(challengeId).get();
-      if (fromSnap.exists) challenge = { id: fromSnap.id, ...fromSnap.data() };
-  }
+  if (!challenge) { const fromSnap = await challengesCol().doc(challengeId).get(); if (fromSnap.exists) challenge = { id: fromSnap.id, ...fromSnap.data() }; }
   if (!challenge) return;
-
   if (!challenge.completions) challenge.completions = {};
   if (challenge.completions[dateStr]) delete challenge.completions[dateStr]; else challenge.completions[dateStr] = true;
-  
-  try { 
-      await challengesCol().doc(challengeId).update({ completions: challenge.completions }); 
-      await loadChallenges(); 
-      loadLeaderboard(); 
-  } catch (err) { console.error(err); }
+  try { await challengesCol().doc(challengeId).update({ completions: challenge.completions }); await loadChallenges(); loadLeaderboard(); } catch (err) { console.error(err); }
 }
 
 // ============================================
@@ -969,43 +915,25 @@ async function loadLeaderboard() {
       challengesCol().where('fromUid', '==', currentUser.uid).where('status', '==', 'accepted').get(),
       challengesCol().where('toEmail', '==', currentUser.email).where('status', '==', 'accepted').get()
     ]);
-    
     const fUids = new Set();
     sSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().toUid); });
     rSnap.docs.forEach(d => { if (d.data().taskText !== 'Follow Request') fUids.add(d.data().fromUid); });
-
     const allUids = [currentUser.uid, ...Array.from(fUids)];
-
-    if (allUids.length === 1) { 
-        container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet.</p></div>`; 
-        const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; 
-        return; 
-    }
-
+    if (allUids.length === 1) { container.innerHTML = `<div class="empty-leaderboard"><p>No shared missions yet.</p></div>`; const fc = document.getElementById('friendCount'); if(fc) fc.textContent = '0 friends'; return; }
     const userDocs = await Promise.all(allUids.map(uid => userDoc(uid).get()));
     const entries = [];
-    
     for (const doc of userDocs) {
       if (!doc.exists) continue;
-      let count = 0; 
-      const tIdx = getTodayIndex();
-
+      let count = 0; const tIdx = getTodayIndex();
       const sharedSnap = await challengesCol().where('toUid', '==', doc.id).where('status', '==', 'accepted').get();
       sharedSnap.docs.forEach(sd => {
-        const c = sd.data(); 
-        if (c.taskText === 'Follow Request') return;
-        for (let i = 0; i <= tIdx && i < 7; i++) {
-          const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d);
-          if (c.completions && c.completions[ds]) count++;
-        }
+        const c = sd.data(); if (c.taskText === 'Follow Request') return;
+        for (let i = 0; i <= tIdx && i < 7; i++) { const d = new Date(currentWeekStart); d.setDate(d.getDate() + i); const ds = formatDate(d); if (c.completions && c.completions[ds]) count++; }
       });
-      
       entries.push({ uid: doc.id, name: doc.data().displayName, email: doc.data().email, count, self: doc.id === currentUser.uid });
     }
-
     entries.sort((a,b) => b.count - a.count);
     const fc = document.getElementById('friendCount'); if(fc) fc.textContent = `${entries.length} friends`;
-    
     container.innerHTML = entries.map((e, i) => `
       <div class="leaderboard-item ${e.self ? 'is-self' : ''}">
         <span class="rank-badge">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1)}</span>
@@ -1043,17 +971,11 @@ auth.onAuthStateChanged(async (user) => {
     document.addEventListener('click', (e) => { 
         const pw = document.getElementById('profileWrapper'); 
         if (pw && !pw.contains(e.target)) closeProfileMenu(); 
-        
         const suggestions = document.getElementById('searchSuggestions');
         const input = document.getElementById('searchFriendName');
-        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) {
-            suggestions.style.display = 'none';
-        }
-        
+        if (suggestions && input && !suggestions.contains(e.target) && e.target !== input) { suggestions.style.display = 'none'; }
         const searchModal = document.getElementById('searchModal');
-        if (searchModal && e.target === searchModal) {
-            closeSearchMenu();
-        }
+        if (searchModal && e.target === searchModal) { closeSearchMenu(); }
     });
     
     on('addBtn', 'click', addTask);
@@ -1061,15 +983,10 @@ auth.onAuthStateChanged(async (user) => {
     on('prevWeekBtn', 'click', () => { currentWeekStart.setDate(currentWeekStart.getDate() - 7); updateWeekDisplay(); renderTasks(); updateStats(); });
     on('nextWeekBtn', 'click', () => { currentWeekStart.setDate(currentWeekStart.getDate() + 7); updateWeekDisplay(); renderTasks(); updateStats(); });
     on('todayBtn', 'click', () => { currentWeekStart = getWeekStart(new Date()); updateWeekDisplay(); renderTasks(); updateStats(); });
-    
     on('backupBtn', 'click', backupData);
     on('clearBtn', 'click', clearAllTasks);
-    
     on('searchFriendName', 'input', onSearchInput);
-    
-    // Mission modal button listener
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
-    
     on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveProfileDetails(); });
 
     await loadChallenges(); await loadLeaderboard();
