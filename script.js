@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Full Logic (Chat & Shared Fix)
+// 🍥 Ninja Mission Tracker - Full Logic
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -69,7 +69,7 @@ function chatsCol() { return db.collection('chats'); }
 // ============================================
 window.openChatFromProfile = function() {
     if(!activeProfileUser) return;
-    closeFriendProfilePage(); // Close profile page
+    closeFriendProfilePage();
     openChatWidget(activeProfileUser.uid, activeProfileUser.name);
 };
 
@@ -79,7 +79,6 @@ function openChatWidget(uid, name) {
     document.getElementById('chatHeaderAvatar').textContent = name[0].toUpperCase();
     document.getElementById('chatWidget').style.display = 'flex';
     document.getElementById('chatInput').focus();
-    
     listenToMessages(uid);
 }
 
@@ -91,20 +90,16 @@ window.closeChat = function() {
 
 function listenToMessages(friendUid) {
     if(chatUnsubscribe) chatUnsubscribe();
-    
-    // Create a unique chat ID for both users (sorted alphabetically so it's the same for both)
     const chatId = [currentUser.uid, friendUid].sort().join('_');
     const messagesRef = chatsCol().doc(chatId).collection('messages').orderBy('createdAt', 'asc');
     
     chatUnsubscribe = messagesRef.onSnapshot(snapshot => {
         const container = document.getElementById('chatMessages');
         container.innerHTML = '';
-        
         snapshot.forEach(doc => {
             const msg = doc.data();
             const isMe = msg.fromUid === currentUser.uid;
             const timeStr = new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            
             container.innerHTML += `
                 <div class="chat-bubble ${isMe ? 'sent' : 'received'}">
                     ${escapeHtml(msg.text)}
@@ -112,7 +107,6 @@ function listenToMessages(friendUid) {
                 </div>
             `;
         });
-        // Auto scroll to bottom
         container.scrollTop = container.scrollHeight;
     });
 }
@@ -122,23 +116,16 @@ window.sendChatMessage = async function() {
     const input = document.getElementById('chatInput');
     const text = input.value.trim();
     if(!text) return;
-    
     input.value = '';
     const chatId = [currentUser.uid, activeChatUser.uid].sort().join('_');
-    
     try {
         await chatsCol().doc(chatId).collection('messages').add({
-            fromUid: currentUser.uid,
-            toUid: activeChatUser.uid,
-            text: text,
-            createdAt: Date.now()
+            fromUid: currentUser.uid, toUid: activeChatUser.uid, text: text, createdAt: Date.now()
         });
     } catch (err) { console.error("Chat Error:", err); }
 };
 
-window.handleChatEnter = function(e) {
-    if (e.key === 'Enter') sendChatMessage();
-};
+window.handleChatEnter = function(e) { if (e.key === 'Enter') sendChatMessage(); };
 
 // ============================================
 // 👤 FRIEND PROFILE PAGE
@@ -723,7 +710,6 @@ function renderIncomingChallenges() {
   list.innerHTML = incomingTaskChallenges.map(c => `<div class="incoming-item"><div class="incoming-info"><span class="incoming-from">🥷 ${escapeHtml(c.fromName)}</span><span class="incoming-task">challenged you on "<strong>${escapeHtml(c.taskText)}</strong>"</span></div><div class="incoming-actions"><button class="accept-btn" onclick="acceptChallenge('${c.id}')">Accept</button><button class="reject-btn" onclick="rejectChallenge('${c.id}')">Reject</button></div></div>`).join('');
 }
 
-// 🆕 UPDATED: Shared Missions with Date & Bin Layout
 async function renderSharedMissions(incoming, outgoing) {
   const section = document.getElementById('sharedMissionsSection');
   const list = document.getElementById('sharedMissionsList');
@@ -736,18 +722,22 @@ async function renderSharedMissions(incoming, outgoing) {
   section.style.display = 'block'; 
   if(count) count.textContent = allMissions.length;
   const todayIndex = getTodayIndex();
-  const dateOptions = { month: 'short', day: 'numeric', year: 'numeric' };
 
   let html = '';
   for (const c of allMissions) {
     let label = `From ${escapeHtml(c.fromName)}`;
-    if (c.fromUid === currentUser.uid) {
-        label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`;
-    }
+    if (c.fromUid === currentUser.uid) { label = `Sent to ${escapeHtml(c.toName || c.toEmail)}`; }
 
-    // 🆕 Get date from createdAt
-    const taskDate = new Date(c.createdAt).toLocaleDateString('en-US', dateOptions);
-    const dayName = new Date(c.createdAt).toLocaleDateString('en-US', { weekday: 'long' });
+    // 🆕 Date & Day Logic
+    let taskDate = "Recent";
+    let dayName = "Task";
+    if (c.createdAt) {
+        const d = new Date(c.createdAt);
+        if (!isNaN(d.getTime())) {
+            taskDate = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            dayName = d.toLocaleDateString('en-US', { weekday: 'long' });
+        }
+    }
 
     let daysHtml = '';
     for (let i = 0; i < 7; i++) {
@@ -760,7 +750,7 @@ async function renderSharedMissions(incoming, outgoing) {
       daysHtml += `<button class="${stateClass}" ${i > todayIndex?'disabled':''} onclick="toggleSharedDay('${c.id}', '${dateStr}')">${symbol}</button>`;
     }
     
-    // 🆕 New HTML Layout for Shared Mission
+    // 🆕 New HTML Layout with Date & Trash Icon
     html += `
     <div class="shared-card">
         <div class="shared-info-header">
