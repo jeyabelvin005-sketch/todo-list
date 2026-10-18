@@ -1,5 +1,5 @@
 // ============================================
-// 🍥 Ninja Mission Tracker - Full Logic (Bugs Fixed)
+// 🍥 Ninja Mission Tracker - Full Logic (Upgraded Avatar)
 // ============================================
 let tasks = [];
 let currentWeekStart = getWeekStart(new Date());
@@ -21,9 +21,14 @@ let currentProfileSubTab = 'followers';
 let p1State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 let p2State = { start: null, end: null, month: new Date().getMonth(), year: new Date().getFullYear() };
 
-// Avatar State
+// 🆕 UPDATED Avatar State (Added faceShape)
 let currentAvatar = {
-    skin: "#f1c27d", hairStyle: "short", hairColor: "#2c1b18", eyeColor: "#222", expression: "happy"
+    skin: "#f1c27d", 
+    faceShape: "round",
+    hairStyle: "short", 
+    hairColor: "#2c1b18", 
+    eyeColor: "#222", 
+    expression: "happy"
 };
 
 function on(id, event, callback) {
@@ -67,8 +72,7 @@ function messagesCol() { return db.collection('messages'); }
 // 👤 FRIEND PROFILE PAGE & MESSAGING
 // ============================================
 window.openFriendProfile = async function(uid, name, email) {
-  closeSearchMenu(); // Close search modal if open
-  
+  closeSearchMenu();
   const page = document.getElementById('friendProfilePage');
   if(page) page.classList.add('active');
   document.body.classList.add('modal-open');
@@ -125,7 +129,6 @@ window.closeFriendProfilePage = function() {
   activeProfileUser = null;
 };
 
-// Message Modal
 window.openMessageModal = function() {
   if(!activeProfileUser) return;
   document.getElementById('msgTargetName').textContent = activeProfileUser.name;
@@ -141,19 +144,12 @@ window.sendMessage = async function() {
   if(!text) { alert('Message cannot be empty.'); return; }
 
   try {
-    await messagesCol().add({
-        fromUid: currentUser.uid,
-        fromName: userProfile.displayName,
-        toUid: activeProfileUser.uid,
-        text: text,
-        createdAt: Date.now()
-    });
+    await messagesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, toUid: activeProfileUser.uid, text: text, createdAt: Date.now() });
     closeMessageModal();
     alert(`🍥 Message sent to ${activeProfileUser.name}!`);
   } catch (err) { console.error(err); alert('Failed to send message.'); }
 };
 
-// Send Mission Modal
 window.openSendMissionModalFromProfile = function() {
   if(!activeProfileUser) return;
   document.getElementById('friendProfileAvatar').textContent = (activeProfileUser.name || 'S')[0].toUpperCase();
@@ -164,7 +160,6 @@ window.openSendMissionModalFromProfile = function() {
   document.getElementById('friendProfileModal').classList.add('show');
 };
 
-// 🆕 FIXED: Exposing function to window
 window.sendMissionFromProfile = async function() {
   if (!activeProfileUser) return;
   const select = document.getElementById('profileTaskSelect');
@@ -173,26 +168,14 @@ window.sendMissionFromProfile = async function() {
   
   const taskText = select.options[select.selectedIndex].dataset.text;
   const btn = document.getElementById('sendMissionFromProfileBtn');
-  btn.disabled = true; 
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
   
   try {
-    await challengesCol().add({ 
-        fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, 
-        toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, 
-        taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() 
-    });
-    msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; 
-    msg.className = 'modal-message show success'; 
-    select.value = '';
+    await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: activeProfileUser.email, toUid: activeProfileUser.uid, toName: activeProfileUser.name, taskText: taskText, weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
+    msg.textContent = `🍥 Mission "${taskText}" sent to ${activeProfileUser.name}!`; msg.className = 'modal-message show success'; select.value = '';
     setTimeout(() => { closeFriendProfileModal(); }, 2000);
-  } catch (err) { 
-    msg.textContent = 'Error sending mission.'; 
-    msg.className = 'modal-message show error'; 
-  } finally { 
-    btn.disabled = false; 
-    btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; 
-  }
+  } catch (err) { msg.textContent = 'Error sending mission.'; msg.className = 'modal-message show error'; } 
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invite'; }
 }
 window.closeFriendProfileModal = function() { document.getElementById('friendProfileModal').classList.remove('show'); };
 
@@ -219,10 +202,8 @@ function onSearchInput() {
   const input = document.getElementById('searchFriendName');
   const suggestions = document.getElementById('searchSuggestions');
   if (!input || !suggestions) return;
-  
   const query = input.value.trim();
   clearTimeout(searchTimeout);
-  
   if (query.length === 0) { suggestions.style.display = 'none'; return; }
   
   searchTimeout = setTimeout(async () => {
@@ -276,7 +257,6 @@ window.followFriend = async function(uid, name, email) {
   try {
     const targetName = name || (searchedUser ? searchedUser.displayName : 'Shinobi');
     const targetEmail = email || (searchedUser ? searchedUser.email : '');
-    
     await challengesCol().add({ fromUid: currentUser.uid, fromName: userProfile.displayName, fromEmail: currentUser.email, toEmail: targetEmail, toUid: uid, taskText: "Follow Request", weekKey: getWeekKey(), status: 'pending', createdAt: Date.now() });
     showFriendMessage(`🍥 Follow request sent!`, 'success'); 
     await loadChallenges(); 
@@ -312,6 +292,9 @@ window.switchProfileTab = function(tabId) {
   if(tabId === 'network') renderProfileUsers();
   if(tabId === 'avatar') {
       if (userProfile.avatarConfig) currentAvatar = { ...userProfile.avatarConfig };
+      // Set defaults if old user doesn't have new fields
+      if(!currentAvatar.faceShape) currentAvatar.faceShape = 'round';
+      
       document.getElementById('usernameInput').value = userProfile.displayName || '';
       document.getElementById('bioInput').value = userProfile.bio || '';
       renderAvatarPreview();
@@ -388,7 +371,7 @@ window.broadcastTask = async function() {
 }
 
 // ============================================
-// 👤 AVATAR CUSTOMIZER LOGIC
+// 👤 AVATAR CUSTOMIZER LOGIC (UPGRADED)
 // ============================================
 function setActiveColor(paletteId, color) {
   const palette = document.getElementById(paletteId); if(!palette) return;
@@ -398,34 +381,102 @@ function setActiveBtn(groupId, value, attrName) {
   const group = document.getElementById(groupId); if(!group) return;
   group.querySelectorAll('.style-btn').forEach(btn => btn.classList.toggle('active', btn.getAttribute(attrName) === value));
 }
+
+// 🆕 UPGRADED SVG GENERATOR
 function getAvatarSVG(config) {
-  const hairStyles = {
-      short: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "" },
-      long: { front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z" },
-      spiky: { front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z", back: "" }
+  // Fallbacks for old saved configs
+  const faceShape = config.faceShape || 'round';
+  const hairStyle = config.hairStyle || 'short';
+  const expression = config.expression || 'happy';
+
+  const faceShapes = {
+      round: `<circle cx="100" cy="105" r="50" fill="${config.skin}" />`,
+      square: `<rect x="55" y="55" width="90" height="90" rx="25" fill="${config.skin}" />`,
+      oval: `<ellipse cx="100" cy="105" rx="45" ry="55" fill="${config.skin}" />`,
+      pointy: `<path d="M 55 85 Q 100 50 145 85 Q 145 120 100 145 Q 55 120 55 85 Z" fill="${config.skin}" />`
   };
+
+  const hairStyles = {
+      short: { 
+          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", 
+          back: "" 
+      },
+      long: { 
+          front: "M 55 90 Q 55 45 100 45 Q 145 45 145 90 Q 130 60 100 60 Q 70 60 55 90 Z", 
+          back: "M 50 100 Q 50 40 100 40 Q 150 40 150 100 L 165 180 L 35 180 Z" 
+      },
+      spiky: { 
+          front: "M 50 100 L 70 50 L 85 80 L 100 30 L 115 80 L 130 50 L 150 100 Q 130 70 100 70 Q 70 70 50 100 Z", 
+          back: "" 
+      },
+      bald: {
+          front: "",
+          back: ""
+      },
+      mohawk: {
+          front: "M 85 60 L 85 30 L 95 40 L 100 20 L 105 40 L 115 30 L 115 60 Z M 90 60 L 110 60 L 110 90 L 90 90 Z",
+          back: ""
+      },
+      bob: {
+          front: "M 45 90 Q 45 40 100 40 Q 155 40 155 90 L 155 140 Q 140 130 140 80 Q 120 60 100 60 Q 80 60 60 80 Q 60 130 45 140 Z",
+          back: ""
+      }
+  };
+
   const expressions = {
       happy: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 120 Q 100 135 115 120" },
       neutral: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 125 L 115 125" },
-      angry: { eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`, mouth: "M 85 130 Q 100 115 115 130" }
+      angry: { eyes: `<path d="M 70 90 L 90 100 M 110 100 L 130 90" stroke="currentColor" stroke-width="4" fill="none" stroke-linecap="round" />`, mouth: "M 85 130 Q 100 115 115 130" },
+      surprised: { eyes: `<circle cx="80" cy="95" r="7" fill="currentColor" /><circle cx="120" cy="95" r="7" fill="currentColor" />`, mouth: `<circle cx="100" cy="125" r="8" fill="none" stroke="#222" stroke-width="3"/>` },
+      sad: { eyes: `<circle cx="80" cy="95" r="5" fill="currentColor" /><circle cx="120" cy="95" r="5" fill="currentColor" />`, mouth: "M 85 130 Q 100 115 115 130" }
   };
-  return `<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg"><rect width="200" height="200" fill="#f0f4f8" /><path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].back}" /><path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" /><rect x="85" y="140" width="30" height="30" fill="${config.skin}" /><circle cx="100" cy="100" r="50" fill="${config.skin}" /><g style="color: ${config.eyeColor}">${expressions[config.expression].eyes}</g><path d="${expressions[config.expression].mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" /><path fill="${config.hairColor}" d="${hairStyles[config.hairStyle].front}" /></svg>`;
+
+  const h = hairStyles[hairStyle] || hairStyles.short;
+  const e = expressions[expression] || expressions.happy;
+  const f = faceShapes[faceShape] || faceShapes.round;
+
+  return `
+    <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <rect width="200" height="200" fill="#f0f4f8" />
+        <path fill="${config.hairColor}" d="${h.back}" />
+        <path d="M 40 200 L 40 180 Q 100 150 160 180 L 160 200 Z" fill="#4a5fc1" />
+        <rect x="85" y="140" width="30" height="30" fill="${config.skin}" />
+        
+        ${f}
+        
+        <g style="color: ${config.eyeColor}">${e.eyes}</g>
+        <path d="${e.mouth}" stroke="#222" stroke-width="3" fill="none" stroke-linecap="round" />
+        <path fill="${config.hairColor}" d="${h.front}" />
+    </svg>
+  `;
 }
+
 function renderAvatarPreview() {
   const container = document.getElementById('avatar-svg-container');
   if(container) container.innerHTML = getAvatarSVG(currentAvatar);
-  setActiveColor('skin-palette', currentAvatar.skin); setActiveColor('hair-palette', currentAvatar.hairColor); setActiveColor('eye-palette', currentAvatar.eyeColor);
-  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style'); setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
+  
+  setActiveColor('skin-palette', currentAvatar.skin); 
+  setActiveColor('hair-palette', currentAvatar.hairColor); 
+  setActiveColor('eye-palette', currentAvatar.eyeColor);
+  
+  // Set active states for new buttons
+  setActiveBtn('face-shape-options', currentAvatar.faceShape, 'data-shape');
+  setActiveBtn('hair-style-options', currentAvatar.hairStyle, 'data-style'); 
+  setActiveBtn('expression-options', currentAvatar.expression, 'data-expr');
 }
+
 window.saveAvatar = async function() {
   try {
     await userDoc(currentUser.uid).set({ avatarConfig: currentAvatar, updatedAt: Date.now() }, { merge: true });
     userProfile.avatarConfig = currentAvatar; updateProfileUI(); alert("✓ Avatar saved!");
   } catch (err) { alert("Failed to save avatar."); }
 };
+
+// Avatar Event Listeners
 on('skin-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.skin = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('hair-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.hairColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
 on('eye-palette', 'click', e => { if(e.target.classList.contains('color-btn')) { currentAvatar.eyeColor = e.target.getAttribute('data-color'); renderAvatarPreview(); } });
+on('face-shape-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.faceShape = e.target.getAttribute('data-shape'); renderAvatarPreview(); } });
 on('hair-style-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.hairStyle = e.target.getAttribute('data-style'); renderAvatarPreview(); } });
 on('expression-options', 'click', e => { if(e.target.classList.contains('style-btn')) { currentAvatar.expression = e.target.getAttribute('data-expr'); renderAvatarPreview(); } });
 
@@ -1016,7 +1067,7 @@ auth.onAuthStateChanged(async (user) => {
     
     on('searchFriendName', 'input', onSearchInput);
     
-    // 🆕 Mission modal button listener
+    // Mission modal button listener
     on('sendMissionFromProfileBtn', 'click', sendMissionFromProfile);
     
     on('usernameInput', 'keypress', e => { if (e.key === 'Enter') saveProfileDetails(); });
