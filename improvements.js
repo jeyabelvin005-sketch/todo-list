@@ -11,6 +11,12 @@
 // ============================================
 
 (function () {
+  // Safety check: script.js must load first.
+  if (typeof renderTasks !== 'function') {
+    console.error('improvements.js: script.js has not loaded. Make sure script.js loads without a 404 and that <script src="improvements.js"> comes AFTER <script src="script.js"> in index.html.');
+    return;
+  }
+
   const NAME_PATTERN = /^[a-zA-Z0-9_ ]+$/;   // same rule as the signup page
   const MAX_MISSION_LENGTH = 100;
   const byId = (id) => document.getElementById(id);
