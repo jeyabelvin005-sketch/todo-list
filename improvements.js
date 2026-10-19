@@ -163,6 +163,40 @@
     return originalFollow(uid, name, email);
   };
 
+  // Shared missions: show the day name and date (e.g. "Mon 12") above the
+  // 7 day buttons. Today is highlighted in the same blue as the rest of the app.
+  const originalShared = renderSharedMissions;
+  window.renderSharedMissions = async function (incoming, outgoing) {
+    await originalShared(incoming, outgoing);
+    const names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const todayIdx = getTodayIndex();
+    const cells = names.map((n, i) => {
+      const d = new Date(currentWeekStart); d.setDate(d.getDate() + i);
+      const color = i === todayIdx ? '#00d9ff' : 'rgba(255,200,100,0.8)';
+      return `<div style="text-align:center;font-size:10px;line-height:1.3;font-weight:700;color:${color}">${n}<br>${d.getDate()}</div>`;
+    }).join('');
+    document.querySelectorAll('#sharedMissionsList .shared-week-grid').forEach(grid => {
+      const labels = document.createElement('div');
+      labels.className = 'shared-week-grid';           // same 7-column grid, so labels line up
+      labels.style.cssText = 'background:transparent;padding:0 8px;margin-bottom:-8px;';
+      labels.innerHTML = cells;
+      grid.parentNode.insertBefore(labels, grid);
+    });
+  };
+
+  // Shared missions now follow the week arrows / Today button
+  // (before, they stayed on the week they first loaded).
+  ['prevWeekBtn', 'nextWeekBtn', 'todayBtn'].forEach(id => {
+    const btn = byId(id);
+    if (!btn) return;
+    btn.addEventListener('click', () => setTimeout(() => {
+      renderSharedMissions(
+        acceptedChallenges,
+        outgoingChallenges.filter(c => c.status === 'accepted' && c.taskText !== 'Follow Request')
+      );
+    }, 0));                                            // wait until script.js has changed the week
+  });
+
   // Broadcast: asks before sending a mission to ALL followers.
   const originalBroadcast = window.broadcastTask;
   window.broadcastTask = function () {
