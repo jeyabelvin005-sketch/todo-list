@@ -163,6 +163,22 @@
     return originalFollow(uid, name, email);
   };
 
+  // Broadcast: asks before sending a mission to ALL followers.
+  const originalBroadcast = window.broadcastTask;
+  window.broadcastTask = function () {
+    const select = byId('broadcastTaskSelect');
+    if (select && select.value && !confirm('Send this mission to ALL your followers?')) return;
+    return originalBroadcast();
+  };
+
+  // Chat: very long messages are blocked with a clear message.
+  const originalSend = window.sendChatMessage;
+  window.sendChatMessage = function () {
+    const input = byId('chatInput');
+    if (input && input.value.trim().length > 500) { alert('Messages can be up to 500 characters.'); return; }
+    return originalSend();
+  };
+
   // Unfollow: the confirmation now says shared missions are removed too,
   // and failures are reported.
   window.removeFriend = async function (friendUid) {
